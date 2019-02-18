@@ -1,11 +1,15 @@
+#include "events.h"
 #include "common.h"
-
 Event::Event(json lpEv)
 {
     if (lpEv == NULL)
         return;
     this->type = lpEv["type"];
     lpEv = lpEv["object"];
+    if (lpEv["random_id"].is_number())
+        this->random_id = lpEv["random_id"];
+    else
+        this->random_id = 0;
     this->msg = lpEv["text"];
     this->from_id = lpEv["from_id"];
     this->timestamp = lpEv["date"];
@@ -34,4 +38,26 @@ Event::~Event()
         delete fwd;
     for (auto doc : docs)
         delete doc;
+}
+
+json Event::send(Vk* vk)
+{
+    table_t param;
+    if (this->type.find("message_") != this->type.npos) {
+        param["peer_id"] = std::to_string(this->peer_id);
+        param["random_id"] = std::to_string(this->random_id);
+        param["message"] = this->msg;
+        for (auto doc : this->docs)
+            param["attachment"] += doc->get() + ",";
+        return vk->send("messages.send", param);
+    }
+    if (this->type.find("wall_post_") != this->type.npos) {
+        param["post_id"] = std::to_string(this->post_id);
+        param["message"] = this->msg;
+        param["owner_id"] = std::to_string(this->peer_id);
+        for (auto doc : this->docs)
+            param["attachment"] += doc->get() + ",";
+        return vk->send("wall.createComment", param);
+    }
+    return NULL;
 }

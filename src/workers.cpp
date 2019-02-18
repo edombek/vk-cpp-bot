@@ -2,9 +2,14 @@
 
 using namespace std;
 
-Workers::Workers(int c)
+Workers::Workers(uint8_t c)
 {
-    this->thrs.resize(c);
+    this->thrs = new thread[c];
+    this->thrs_count = c;
+    this->events = new Event*[maxEvents];
+    this->event_read = 0;
+    this->event_write = 0;
+    this->event_size = 0;
     for (int i = 0; i < c; i++) {
         this->thrs[i] = thread(&Workers::work, this);
     }
@@ -12,14 +17,22 @@ Workers::Workers(int c)
 
 Workers::~Workers()
 {
-    for (int i = 0; i < this->thrs.size(); i++)
+    for (int i = 0; i < this->thrs_count; i++)
         this->thrs[i].join();
+    delete thrs;
+    delete events;
 }
 
 void Workers::add_event(Event* event)
 {
     this->events_lock.lock();
-    this->events.push_back(event);
+    if (this->event_size == maxEvents) {
+        this->events_lock.unlock();
+        return;
+    }
+    this->event_size++;
+    this->events[this->event_write] = event;
+    this->event_write = (this->event_write + 1) % maxEvents;
     this->events_lock.unlock();
     this->getter_lock.try_lock();
     this->getter_lock.unlock();
@@ -30,11 +43,13 @@ Event* Workers::get_event()
     Event* event = NULL;
     this->getter_lock.lock();
     this->events_lock.lock();
-    if (this->events.size()) {
-        event = this->events[0];
-        this->events.erase(this->events.begin());
+    if (this->event_size) {
+
+        event = this->events[this->event_read];
+        this->event_read = (this->event_read + 1) % maxEvents;
+        this->event_size--;
     }
-    if (this->events.size())
+    if (this->event_size)
         this->getter_lock.unlock();
     this->events_lock.unlock();
     return event;
@@ -49,7 +64,8 @@ void Workers::work()
         Event* event = this->get_event();
         if (event == NULL)
             continue;
-        cout << event->msg << endl;
+        cout << event->send(&vk).dump(4) << endl;
+        ;
         delete event;
     }
 }

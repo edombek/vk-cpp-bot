@@ -10,8 +10,7 @@ typedef std::vector<std::string> args_t;
 typedef std::map<std::string, std::string> table_t;
 
 #include "doc.h"
-#include "events.h"
 
-#define wCount 3
+#define wCount 10
 
 #endif
