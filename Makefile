@@ -11,6 +11,8 @@ SOURCES=	\
 	src/doc.cpp \
 	src/events.cpp \
 	src/workers.cpp \
+	src/str.cpp \
+	src/cmd.cpp \
 	src/main.cpp
 OBJECTS=$(SOURCES:.cpp=.o)
 EXECUTABLE=vkbot

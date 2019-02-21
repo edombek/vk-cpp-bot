@@ -55,6 +55,8 @@ Event* Workers::get_event()
     return event;
 }
 
+#include "cmd.h"
+#include "str.h"
 #include <iostream>
 void Workers::work()
 {
@@ -64,8 +66,15 @@ void Workers::work()
         Event* event = this->get_event();
         if (event == NULL)
             continue;
-        cout << event->send(&vk).dump(4) << endl;
-        ;
+        if (event->msg.size()) {
+            Event* outEvent = event->getOut();
+            event->setNet(&net, &vk);
+            outEvent->setNet(&net, &vk);
+            //cout << str::low(*event->words.begin()) << endl;
+            if (cmd::start(str::low(*event->words.begin()), event, outEvent))
+                outEvent->send();
+            delete outEvent;
+        }
         delete event;
     }
 }
