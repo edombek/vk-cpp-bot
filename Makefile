@@ -1,4 +1,5 @@
-CC=g++ #-Ofast -ftree-vectorize #-g -DDEBUG-fsanitize=address -fsanitize-recover=address -U_FORTIFY_SOURCE -fno-omit-frame-pointer -fno-common -static-libasan
+CC=g++ -Ofast -ftree-vectorize
+#CC=g++ -g -DDEBUG -fsanitize=address -fsanitize-recover=address -U_FORTIFY_SOURCE -fno-omit-frame-pointer -fno-common
 CFLAGS= -std=c++11 -c
 LDFLAGS= -pthread -lcurl
 INCLUDES= -Iinclude

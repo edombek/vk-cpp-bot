@@ -9,18 +9,17 @@
 
 class Net {
 private:
-    std::string buffer;
     CURL* curl;
     CURLcode result;
-    char errorBuffer[CURL_ERROR_SIZE];
 
 public:
     Net();
     ~Net();
+    std::string buffer;
     static void init();
     std::string urlEncode(std::string str);
-    std::string send(std::string url, std::string params);
-    std::string send(std::string url, table_t param = {}, bool post = true);
+    void send(std::string url, std::string params = "");
+    void send(std::string url, table_t param, bool post = true);
 };
 
 #endif

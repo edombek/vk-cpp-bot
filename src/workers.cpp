@@ -70,7 +70,7 @@ void Workers::work()
             Event* outEvent = event->getOut();
             event->setNet(&net, &vk);
             outEvent->setNet(&net, &vk);
-            //cout << str::low(*event->words.begin()) << endl;
+            cout << str::low(event->msg) << endl;
             if (cmd::start(str::low(*event->words.begin()), event, outEvent))
                 outEvent->send();
             delete outEvent;

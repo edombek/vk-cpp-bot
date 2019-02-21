@@ -8,11 +8,9 @@ class Vk {
 private:
     std::string token;
     Net* net;
-    bool n;
 
 public:
-    Vk(Net* n = NULL);
-    ~Vk();
+    Vk(Net* n);
     json send(std::string method, table_t args = {});
 };
 

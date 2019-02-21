@@ -9,7 +9,9 @@
 using namespace std;
 
 #define net_agent "EVGESHAd vk-cpp-bot"
-//#define printOut
+#ifdef DEBUG
+#define printOut
+#endif // DEBUG
 
 size_t writer(char* data, size_t size, size_t nmemb, string* buffer)
 {
@@ -24,13 +26,6 @@ size_t writer(char* data, size_t size, size_t nmemb, string* buffer)
 Net::Net()
 {
     this->curl = curl_easy_init();
-    curl_easy_setopt(this->curl, CURLOPT_ERRORBUFFER, this->errorBuffer);
-    curl_easy_setopt(this->curl, CURLOPT_USERAGENT, net_agent);
-    curl_easy_setopt(this->curl, CURLOPT_WRITEFUNCTION, writer);
-    curl_easy_setopt(this->curl, CURLOPT_WRITEDATA, &this->buffer);
-    curl_easy_setopt(this->curl, CURLOPT_SSL_VERIFYPEER, 0L);
-    curl_easy_setopt(this->curl, CURLOPT_SSL_VERIFYHOST, 0L);
-    curl_easy_setopt(this->curl, CURLOPT_TIMEOUT, 600L);
 }
 
 Net::~Net()
@@ -52,11 +47,12 @@ string Net::urlEncode(string str)
     return result;
 }
 
-string Net::send(string url, table_t param, bool post)
+void Net::send(string url, table_t param, bool post)
 {
+    if (!param.size())
+        return this->send(url);
     string paramline = "";
-    table_t* params = &param;
-    for (auto iter = params->begin(); iter != params->end(); iter++) {
+    for (auto iter = param.begin(); iter != param.end(); iter++) {
         paramline += iter->first + "=" + urlEncode(iter->second) + "&";
     }
     if (post)
@@ -64,23 +60,28 @@ string Net::send(string url, table_t param, bool post)
     return this->send(url + "?" + paramline);
 }
 
-string Net::send(string url, string params)
+void Net::send(string url, string params)
 {
-    buffer = "";
+    this->buffer = "";
     if (this->curl) {
-            curl_easy_setopt(this->curl, CURLOPT_URL, url.c_str());
+        curl_easy_setopt(this->curl, CURLOPT_URL, url.c_str());
+        curl_easy_setopt(this->curl, CURLOPT_WRITEDATA, &this->buffer);
+        curl_easy_setopt(this->curl, CURLOPT_USERAGENT, net_agent);
+        curl_easy_setopt(this->curl, CURLOPT_WRITEFUNCTION, writer);
+        curl_easy_setopt(this->curl, CURLOPT_SSL_VERIFYPEER, 0L);
+        curl_easy_setopt(this->curl, CURLOPT_SSL_VERIFYHOST, 0L);
+        curl_easy_setopt(this->curl, CURLOPT_TIMEOUT, 600L);
         if (params != "") {
             curl_easy_setopt(curl, CURLOPT_POST, 1);
             curl_easy_setopt(curl, CURLOPT_POSTFIELDS, params.c_str());
         }
         this->result = curl_easy_perform(curl);
         if (this->result != CURLE_OK)
-            cout << ": CURL ERROR: " << errorBuffer << endl;
+            cout << ": CURL ERROR: " << curl_easy_strerror(this->result) << endl;
 #ifdef printOut
         cout << endl
              << ": " << url << "-" << params << endl
              << "	" << buffer << endl;
 #endif
     }
-    return buffer;
 }
