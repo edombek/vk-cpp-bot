@@ -41,34 +41,26 @@
 		<Unit filename="README.md" />
 		<Unit filename="config.json" />
 		<Unit filename="include/bd.h" />
-		<Unit filename="include/cmd.h">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
+		<Unit filename="include/cmd.h" />
 		<Unit filename="include/common.h" />
 		<Unit filename="include/doc.h" />
 		<Unit filename="include/events.h" />
 		<Unit filename="include/fs.h" />
 		<Unit filename="include/lp.h" />
 		<Unit filename="include/net.h" />
-		<Unit filename="include/str.h">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
+		<Unit filename="include/str.h" />
 		<Unit filename="include/vk.h" />
 		<Unit filename="include/workers.h" />
 		<Unit filename="src/bd.cpp" />
-		<Unit filename="src/cmd.cpp">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="src/cmds.hpp" />
+		<Unit filename="src/cmd.cpp" />
+		<Unit filename="src/cmds.cpp" />
 		<Unit filename="src/doc.cpp" />
 		<Unit filename="src/events.cpp" />
 		<Unit filename="src/fs.cpp" />
 		<Unit filename="src/lp.cpp" />
 		<Unit filename="src/main.cpp" />
 		<Unit filename="src/net.cpp" />
-		<Unit filename="src/str.cpp">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
+		<Unit filename="src/str.cpp" />
 		<Unit filename="src/vk.cpp" />
 		<Unit filename="src/workers.cpp" />
 		<Extensions>

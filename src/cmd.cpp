@@ -1,5 +1,4 @@
 #include "cmd.h"
-#include "cmds.hpp"
 #include <map>
 
 using namespace std;
@@ -14,6 +13,8 @@ typedef struct {
 typedef map<string, cmd_t> cmds_t;
 
 void help(cmdHead);
+void test(cmdHead);
+
 cmds_t cmdsList = {
     { "/help", { "вывод команд", &help, 1, true } },
     { "/test", { "статус бота", &test, 1, true } }

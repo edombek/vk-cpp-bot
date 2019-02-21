@@ -11,9 +11,26 @@ using namespace std;
 #define net_agent "EVGESHAd vk-cpp-bot"
 //#define printOut
 
+size_t writer(char* data, size_t size, size_t nmemb, string* buffer)
+{
+    int result = 0;
+    if (buffer != NULL) {
+        buffer->append(data, size * nmemb);
+        result = size * nmemb;
+    }
+    return result;
+}
+
 Net::Net()
 {
     this->curl = curl_easy_init();
+    curl_easy_setopt(this->curl, CURLOPT_ERRORBUFFER, this->errorBuffer);
+    curl_easy_setopt(this->curl, CURLOPT_USERAGENT, net_agent);
+    curl_easy_setopt(this->curl, CURLOPT_WRITEFUNCTION, writer);
+    curl_easy_setopt(this->curl, CURLOPT_WRITEDATA, &this->buffer);
+    curl_easy_setopt(this->curl, CURLOPT_SSL_VERIFYPEER, 0L);
+    curl_easy_setopt(this->curl, CURLOPT_SSL_VERIFYHOST, 0L);
+    curl_easy_setopt(this->curl, CURLOPT_TIMEOUT, 600L);
 }
 
 Net::~Net()
@@ -47,28 +64,11 @@ string Net::send(string url, table_t param, bool post)
     return this->send(url + "?" + paramline);
 }
 
-size_t writer(char* data, size_t size, size_t nmemb, string* buffer)
-{
-    int result = 0;
-    if (buffer != NULL) {
-        buffer->append(data, size * nmemb);
-        result = size * nmemb;
-    }
-    return result;
-}
-
 string Net::send(string url, string params)
 {
     buffer = "";
     if (this->curl) {
-        curl_easy_setopt(this->curl, CURLOPT_ERRORBUFFER, this->errorBuffer);
-        curl_easy_setopt(this->curl, CURLOPT_URL, url.c_str());
-        curl_easy_setopt(this->curl, CURLOPT_USERAGENT, net_agent);
-        curl_easy_setopt(this->curl, CURLOPT_WRITEFUNCTION, writer);
-        curl_easy_setopt(this->curl, CURLOPT_WRITEDATA, &this->buffer);
-        curl_easy_setopt(this->curl, CURLOPT_SSL_VERIFYPEER, 0L);
-        curl_easy_setopt(this->curl, CURLOPT_SSL_VERIFYHOST, 0L);
-        curl_easy_setopt(this->curl, CURLOPT_TIMEOUT, 600L);
+            curl_easy_setopt(this->curl, CURLOPT_URL, url.c_str());
         if (params != "") {
             curl_easy_setopt(curl, CURLOPT_POST, 1);
             curl_easy_setopt(curl, CURLOPT_POSTFIELDS, params.c_str());

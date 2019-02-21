@@ -1,18 +1,25 @@
 #ifndef CMDS_HPP_INCLUDED
 #define CMDS_HPP_INCLUDED
 #include "common.h"
+#include "cmd.h"
 #include "events.h"
 #include "fs.h"
 #include "str.h"
 
-#define cmdHead Event *eventIn, Event *eventOut
-
 using namespace std;
 
+#include <stdio.h>
 string getParamOfPath(string path, string p)
 {
-    string dat = fs::readData(path);
+    FILE *f = fopen(path.c_str(), "r");
+    char buffer[4096];
+    size_t bytes_read;
+    bytes_read = fread(buffer, 1, sizeof(buffer), f);
+    buffer[bytes_read] = '\0';
+
+    string dat(buffer, bytes_read);
     args_t lines = str::words(dat, '\n');
+    //cout << lines[0] << endl;
     for (auto line : lines) {
         args_t param = str::words(line, ':');
         if (str::at(param[0], p))
@@ -38,8 +45,9 @@ void test(cmdHead)
     string myMem = to_string((int)((float)str::fromString(getParamOfPath("/proc/self/status", "VmRSS")) / 1024));
 
     eventOut->msg += "CPU:" + getParamOfPath("/proc/cpuinfo", "model name") + "\n";
-    eventOut->msg += "Потоков занято: " + getParamOfPath("/proc/self/status", "Threads") + "\n";
+    eventOut->msg += "RAM: " + usedMem + "/" + allMem + " Мб\n";
     eventOut->msg += "Я сожрал оперативы: " + myMem + " Мб\n";
+    eventOut->msg += "Потоков занял: " + getParamOfPath("/proc/self/status", "Threads") + "\n";
 }
 
 #endif // CMDS_HPP_INCLUDED

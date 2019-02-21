@@ -11,6 +11,6 @@ typedef std::map<std::string, std::string> table_t;
 
 #include "doc.h"
 
-#define wCount 10
+#define wCount 4
 
 #endif
