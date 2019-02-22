@@ -20,6 +20,7 @@ public:
     std::string urlEncode(std::string str);
     void send(std::string url, std::string params = "");
     void send(std::string url, table_t param, bool post = true);
+    void upload(std::string url, std::string filename, std::string& data);
 };
 
 #endif

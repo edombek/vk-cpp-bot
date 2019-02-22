@@ -85,3 +85,36 @@ void Net::send(string url, string params)
 #endif
     }
 }
+
+void Net::upload(string url, string filename, string& data)
+{
+    this->buffer = "";
+    if (this->curl) {
+        curl_mime* mime = curl_mime_init(curl);
+        if (mime) {
+            curl_mimepart* part = curl_mime_addpart(mime);
+            curl_mime_name(part, filename.c_str());
+            curl_mime_filename(part, filename.c_str());
+            curl_mime_data(part, data.c_str(), data.size());
+            curl_easy_setopt(this->curl, CURLOPT_MIMEPOST, mime);
+        }
+
+        curl_easy_setopt(this->curl, CURLOPT_URL, url.c_str());
+        curl_easy_setopt(this->curl, CURLOPT_WRITEDATA, &this->buffer);
+        curl_easy_setopt(this->curl, CURLOPT_USERAGENT, net_agent);
+        curl_easy_setopt(this->curl, CURLOPT_WRITEFUNCTION, writer);
+        curl_easy_setopt(this->curl, CURLOPT_SSL_VERIFYPEER, 0L);
+        curl_easy_setopt(this->curl, CURLOPT_SSL_VERIFYHOST, 0L);
+        curl_easy_setopt(this->curl, CURLOPT_TIMEOUT, 600L);
+        this->result = curl_easy_perform(curl);
+        if (this->result != CURLE_OK)
+            cout << "CURL ERROR: " << curl_easy_strerror(this->result) << endl;
+#ifdef printOut
+        cout << endl
+             << url << "(" << params << "(" << endl
+             << "	" << buffer << endl;
+#endif
+        if (mime)
+            curl_mime_free(mime);
+    }
+}
