@@ -1,5 +1,5 @@
 CC=g++ -Ofast -ftree-vectorize
-#CC=g++ -g -DDEBUG -fsanitize=address -fsanitize-recover=address -U_FORTIFY_SOURCE -fno-omit-frame-pointer -fno-common
+#CC=g++ -g -DDEBUG -fsanitize-recover=address -U_FORTIFY_SOURCE -fno-omit-frame-pointer -fno-common
 CFLAGS= -std=c++11 -c
 LDFLAGS= -pthread -lcurl
 INCLUDES= -Iinclude
@@ -15,6 +15,7 @@ SOURCES=	\
 	src/str.cpp \
 	src/cmd.cpp \
 	src/cmds.cpp \
+	src/users.cpp \
 	src/main.cpp
 OBJECTS=$(SOURCES:.cpp=.o)
 EXECUTABLE=vkbot

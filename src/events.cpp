@@ -15,6 +15,8 @@ Event::Event(json lpEv)
     this->msg = lpEv["text"];
     this->words = str::words(this->msg);
     this->from_id = lpEv["from_id"];
+    if (this->from_id < 0)
+        return;
     this->timestamp = lpEv["date"];
     if (this->type.find("message_") != this->type.npos) {
         this->peer_id = lpEv["peer_id"];
@@ -89,5 +91,6 @@ Event* Event::getOut()
     event->peer_id = this->peer_id;
     event->id = this->id;
     event->random_id = this->random_id;
+    event->user = this->user;
     return event;
 }

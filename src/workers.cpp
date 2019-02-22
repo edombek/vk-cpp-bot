@@ -66,14 +66,17 @@ void Workers::work()
         Event* event = this->get_event();
         if (event == NULL)
             continue;
-        if (event->msg.size()) {
+        if (event->msg.size() && event->from_id > 0) {
+            event->user = users::getUser(event->from_id, &vk);
             Event* outEvent = event->getOut();
             event->setNet(&net, &vk);
             outEvent->setNet(&net, &vk);
             cout << str::low(event->msg) << endl;
+            outEvent->msg += outEvent->user.name + ", ";
             if (cmd::start(str::low(*event->words.begin()), event, outEvent))
                 outEvent->send();
             delete outEvent;
+            bd.save();
         }
         delete event;
     }

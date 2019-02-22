@@ -77,10 +77,10 @@ void Net::send(string url, string params)
         }
         this->result = curl_easy_perform(curl);
         if (this->result != CURLE_OK)
-            cout << ": CURL ERROR: " << curl_easy_strerror(this->result) << endl;
+            cout << "CURL ERROR: " << curl_easy_strerror(this->result) << endl;
 #ifdef printOut
         cout << endl
-             << ": " << url << "-" << params << endl
+             << url << "(" << params << "(" << endl
              << "	" << buffer << endl;
 #endif
     }

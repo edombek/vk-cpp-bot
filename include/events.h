@@ -1,6 +1,7 @@
 #ifndef EVENTS_H_INCLUDED
 #define EVENTS_H_INCLUDED
 #include "common.h"
+#include "users.h"
 #include "vk.h"
 
 class Event {
@@ -13,13 +14,14 @@ public:
     std::string type;
     std::string msg;
     args_t words;
-    int from_id;
-    int peer_id;
-    int id;
-    int random_id;
-    int timestamp;
+    int32_t from_id;
+    uint32_t peer_id;
+    uint32_t id;
+    uint32_t random_id;
+    time_t timestamp;
     bool is_chat;
     bool copied;
+    users::user user;
     Event* copy();
     Event* getOut();
     std::vector<Doc*> docs;
