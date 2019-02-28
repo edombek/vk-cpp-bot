@@ -46,12 +46,11 @@
 		<Unit filename="include/doc.h" />
 		<Unit filename="include/events.h" />
 		<Unit filename="include/fs.h" />
+		<Unit filename="include/img.h" />
 		<Unit filename="include/lp.h" />
 		<Unit filename="include/net.h" />
 		<Unit filename="include/str.h" />
-		<Unit filename="include/users.h">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
+		<Unit filename="include/users.h" />
 		<Unit filename="include/vk.h" />
 		<Unit filename="include/workers.h" />
 		<Unit filename="src/bd.cpp" />
@@ -60,13 +59,12 @@
 		<Unit filename="src/doc.cpp" />
 		<Unit filename="src/events.cpp" />
 		<Unit filename="src/fs.cpp" />
+		<Unit filename="src/img.cpp" />
 		<Unit filename="src/lp.cpp" />
 		<Unit filename="src/main.cpp" />
 		<Unit filename="src/net.cpp" />
 		<Unit filename="src/str.cpp" />
-		<Unit filename="src/users.cpp">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
+		<Unit filename="src/users.cpp" />
 		<Unit filename="src/vk.cpp" />
 		<Unit filename="src/workers.cpp" />
 		<Unit filename="version.h" />

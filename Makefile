@@ -1,7 +1,7 @@
 CC=g++ -Ofast -ftree-vectorize
 #CC=g++ -g -DDEBUG -fsanitize-recover=address -U_FORTIFY_SOURCE -fno-omit-frame-pointer -fno-common
-CFLAGS= -std=c++11 -c
-LDFLAGS= -pthread -lcurl
+CFLAGS= -std=c++11 -c -DGIT_URL="\"$(shell git config --get remote.origin.url)"\"
+LDFLAGS= -pthread -lcurl -lgd
 INCLUDES= -Iinclude
 SOURCES=	\
 	src/net.cpp \
@@ -16,6 +16,7 @@ SOURCES=	\
 	src/cmd.cpp \
 	src/cmds.cpp \
 	src/users.cpp \
+	src/img.cpp \
 	src/main.cpp
 OBJECTS=$(SOURCES:.cpp=.o)
 EXECUTABLE=vkbot

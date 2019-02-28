@@ -43,8 +43,10 @@ Event::~Event()
         return;
     for (auto fwd : this->fwds)
         delete fwd;
-    for (auto doc : docs)
-        delete doc;
+    for (auto doc : docs) {
+        if (doc)
+            delete doc;
+    }
 }
 
 void Event::setNet(Net* n, Vk* v)
@@ -61,7 +63,8 @@ json Event::send()
         param["random_id"] = std::to_string(this->random_id);
         param["message"] = this->msg;
         for (auto doc : this->docs)
-            param["attachment"] += doc->get() + ",";
+            if (doc)
+                param["attachment"] += doc->get() + ",";
         return this->vk->send("messages.send", param);
     }
     if (this->type.find("wall_post_") != this->type.npos) {

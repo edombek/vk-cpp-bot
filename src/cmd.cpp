@@ -15,11 +15,13 @@ typedef map<string, cmd_t> cmds_t;
 void help(cmdHead);
 void test(cmdHead);
 void con(cmdHead);
+void upload(cmdHead);
 
 cmds_t cmdsList = {
     { "/help", { "вывод команд", &help, 1, true } },
     { "/stat", { "статус бота", &test, 1, true } },
-    { "/con", { "консоль)", &con, 5, true } }
+    { "/con", { "консоль)", &con, 5, true } },
+    { "/u", { "загрузка файла", &upload, 5, true } }
 };
 
 void help(cmdHead)

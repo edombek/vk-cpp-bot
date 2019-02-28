@@ -2,6 +2,7 @@
 #include "common.h"
 #include "events.h"
 #include "fs.h"
+#include "img.h"
 #include "str.h"
 
 using namespace std;
@@ -26,6 +27,7 @@ string getParamOfPath(string path, string p)
 
 #include "../version.h"
 #include <chrono>
+#include <iostream>
 void test(cmdHead)
 {
     std::chrono::time_point<std::chrono::system_clock> begin, end;
@@ -33,7 +35,8 @@ void test(cmdHead)
     eventOut->net->send("http://api.vk.com");
     end = std::chrono::system_clock::now();
     unsigned int t = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
-    eventOut->msg += "http://github.com/EVGESHAd/vk-cpp-bot (" + string(FULLVERSION_STRING) + ")\n";
+    eventOut->msg += GIT_URL;
+    eventOut->msg += " (" + string(FULLVERSION_STRING) + ")\n";
     eventOut->msg += "Обработка VK API за: " + to_string(t) + "мс\n";
     eventOut->msg += "id чата (пользователь/чат): " + to_string(eventIn->from_id) + "/" + to_string(eventIn->peer_id) + "\n";
 
@@ -69,4 +72,12 @@ void con(cmdHead)
     }
     eventOut->msg = "done!";
     pclose(pipe);
+}
+
+void upload(cmdHead)
+{
+    string filename = str::summ(eventIn->words, 1);
+    cout << filename << endl;
+    string dat = fs::readData(filename);
+    eventOut->docs.push_back(new Doc("doc", to_string(eventIn->peer_id), filename, dat, eventIn->net, eventIn->vk));
 }

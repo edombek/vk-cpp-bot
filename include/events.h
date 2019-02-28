@@ -1,6 +1,7 @@
 #ifndef EVENTS_H_INCLUDED
 #define EVENTS_H_INCLUDED
 #include "common.h"
+#include "doc.h"
 #include "users.h"
 #include "vk.h"
 

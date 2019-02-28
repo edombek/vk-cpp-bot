@@ -5,6 +5,7 @@
 #include "win32deps/include/curl/curl.h"
 #endif
 #include "net.h"
+#include <cstdio>
 #include <iostream>
 using namespace std;
 
@@ -12,6 +13,74 @@ using namespace std;
 #ifdef DEBUG
 #define printOut
 #endif // DEBUG
+
+#if LIBCURL_VERSION_NUM >= 0x073d00
+/* In libcurl 7.61.0, support was added for extracting the time in plain
+   microseconds. Older libcurl versions are stuck in using 'double' for this
+   information so we complicate this example a bit by supporting either
+   approach. */
+#define TIME_IN_US 1 /* microseconds */
+#define TIMETYPE curl_off_t
+#define TIMEOPT CURLINFO_TOTAL_TIME_T
+#define MINIMAL_PROGRESS_FUNCTIONALITY_INTERVAL 3000000
+#else
+#define TIMETYPE double
+#define TIMEOPT CURLINFO_TOTAL_TIME
+#define MINIMAL_PROGRESS_FUNCTIONALITY_INTERVAL 3
+#endif
+
+#define STOP_DOWNLOAD_AFTER_THIS_MANY_BYTES 6000
+
+struct myprogress {
+    TIMETYPE lastruntime; /* type depends on version, see above */
+    CURL* curl;
+};
+
+/* this is how the CURLOPT_XFERINFOFUNCTION callback works */
+static int xferinfo(void* p,
+    curl_off_t dltotal, curl_off_t dlnow,
+    curl_off_t ultotal, curl_off_t ulnow)
+{
+    struct myprogress* myp = (struct myprogress*)p;
+    CURL* curl = myp->curl;
+    TIMETYPE curtime = 0;
+
+    curl_easy_getinfo(curl, TIMEOPT, &curtime);
+
+    /* under certain circumstances it may be desirable for certain functionality
+     to only run every N seconds, in order to do this the transaction time can
+     be used */
+    if ((curtime - myp->lastruntime) >= MINIMAL_PROGRESS_FUNCTIONALITY_INTERVAL) {
+        myp->lastruntime = curtime;
+#ifdef TIME_IN_US
+        fprintf(stderr, "TOTAL TIME: %" CURL_FORMAT_CURL_OFF_T ".%06ld\r\n",
+            (curtime / 1000000), (long)(curtime % 1000000));
+#else
+        fprintf(stderr, "TOTAL TIME: %f \r\n", curtime);
+#endif
+    }
+
+    fprintf(stderr, "UP: %" CURL_FORMAT_CURL_OFF_T " of %" CURL_FORMAT_CURL_OFF_T "  DOWN: %" CURL_FORMAT_CURL_OFF_T " of %" CURL_FORMAT_CURL_OFF_T "\r\n",
+        ulnow, ultotal, dlnow, dltotal);
+
+    if (dlnow > STOP_DOWNLOAD_AFTER_THIS_MANY_BYTES)
+        return 1;
+    return 0;
+}
+
+#if LIBCURL_VERSION_NUM < 0x072000
+/* for libcurl older than 7.32.0 (CURLOPT_PROGRESSFUNCTION) */
+static int older_progress(void* p,
+    double dltotal, double dlnow,
+    double ultotal, double ulnow)
+{
+    return xferinfo(p,
+        (curl_off_t)dltotal,
+        (curl_off_t)dlnow,
+        (curl_off_t)ultotal,
+        (curl_off_t)ulnow);
+}
+#endif
 
 size_t writer(char* data, size_t size, size_t nmemb, string* buffer)
 {
@@ -71,6 +140,7 @@ void Net::send(string url, string params)
         curl_easy_setopt(this->curl, CURLOPT_SSL_VERIFYPEER, 0L);
         curl_easy_setopt(this->curl, CURLOPT_SSL_VERIFYHOST, 0L);
         curl_easy_setopt(this->curl, CURLOPT_TIMEOUT, 600L);
+        curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);
         if (params != "") {
             curl_easy_setopt(curl, CURLOPT_POST, 1);
             curl_easy_setopt(curl, CURLOPT_POSTFIELDS, params.c_str());
@@ -80,20 +150,24 @@ void Net::send(string url, string params)
             cout << "CURL ERROR: " << curl_easy_strerror(this->result) << endl;
 #ifdef printOut
         cout << endl
-             << url << "(" << params << "(" << endl
+             << url << "(" << params << ")" << endl
              << "	" << buffer << endl;
 #endif
+        curl_easy_reset(this->curl);
     }
 }
 
 void Net::upload(string url, string filename, string& data)
 {
     this->buffer = "";
+    struct myprogress prog;
     if (this->curl) {
-        curl_mime* mime = curl_mime_init(curl);
+        prog.lastruntime = 0;
+        prog.curl = this->curl;
+        curl_mime* mime = curl_mime_init(this->curl);
         if (mime) {
             curl_mimepart* part = curl_mime_addpart(mime);
-            curl_mime_name(part, filename.c_str());
+            curl_mime_name(part, "file");
             curl_mime_filename(part, filename.c_str());
             curl_mime_data(part, data.c_str(), data.size());
             curl_easy_setopt(this->curl, CURLOPT_MIMEPOST, mime);
@@ -106,15 +180,26 @@ void Net::upload(string url, string filename, string& data)
         curl_easy_setopt(this->curl, CURLOPT_SSL_VERIFYPEER, 0L);
         curl_easy_setopt(this->curl, CURLOPT_SSL_VERIFYHOST, 0L);
         curl_easy_setopt(this->curl, CURLOPT_TIMEOUT, 600L);
+
+#if LIBCURL_VERSION_NUM >= 0x072000
+        curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION, xferinfo);
+        curl_easy_setopt(curl, CURLOPT_XFERINFODATA, &prog);
+#else
+        curl_easy_setopt(curl, CURLOPT_PROGRESSFUNCTION, older_progress);
+        curl_easy_setopt(curl, CURLOPT_PROGRESSDATA, &prog);
+#endif
+        curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0L);
+
         this->result = curl_easy_perform(curl);
         if (this->result != CURLE_OK)
             cout << "CURL ERROR: " << curl_easy_strerror(this->result) << endl;
 #ifdef printOut
         cout << endl
-             << url << "(" << params << "(" << endl
+             << url << endl
              << "	" << buffer << endl;
 #endif
         if (mime)
             curl_mime_free(mime);
+        curl_easy_reset(this->curl);
     }
 }
