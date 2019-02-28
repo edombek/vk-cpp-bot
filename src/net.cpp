@@ -13,7 +13,7 @@ using namespace std;
 #ifdef DEBUG
 #define printOut
 #endif // DEBUG
-
+#define printOut
 #if LIBCURL_VERSION_NUM >= 0x073d00
 /* In libcurl 7.61.0, support was added for extracting the time in plain
    microseconds. Older libcurl versions are stuck in using 'double' for this

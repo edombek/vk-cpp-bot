@@ -35,8 +35,11 @@ Doc::Doc(std::string type, std::string peer_id, std::string filename, std::strin
         params["file"] = res["file"];
         res = vk->send("docs.save", params);
     }
-
-    Doc::setDoc(res["response"]);
+    std::cout << res.dump(4);
+    if (type == "photo")
+        Doc::setDoc({ { "type", "photo" }, { "photo", res["response"][0] } });
+    else
+        Doc::setDoc(res["response"]);
 }
 
 void Doc::setDoc(json lpDoc)

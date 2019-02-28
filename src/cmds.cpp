@@ -51,6 +51,11 @@ void test(cmdHead)
     eventOut->msg += "Потоков занял: " + getParamOfPath("/proc/self/status", "Threads") + "\n\n";
 
     eventOut->msg += "Всего сообщений от тебя: " + std::to_string(eventOut->user.msgs) + "\n";
+
+    for (auto doc : eventIn->docs) {
+        img im(doc, eventOut->net);
+        eventOut->docs.push_back(im.getDoc("photo", "doc", eventOut->peer_id, eventOut->net, eventOut->vk));
+    }
 }
 
 void con(cmdHead)
