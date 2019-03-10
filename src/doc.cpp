@@ -54,16 +54,23 @@ Doc::Doc(json lpDoc)
         this->ext = "mp3";
         this->timestamp = lpDoc["date"];
         this->url = lpDoc["url"];
+    } else if (this->type == "audio_message") {
+        lpDoc = lpDoc["audio_message"];
+        this->doc_id = lpDoc["id"];
+        this->owner_id = lpDoc["owner_id"];
+        if (lpDoc["access_key"].is_string())
+            this->acess_key = lpDoc["access_key"];
+        this->ext = "mp3";
+        this->url = lpDoc["link_mp3"];
     }
 }
-#include <iostream>
+
 bool Doc::uploadDoc(std::string filename, std::string& data, Net* net, Vk* vk, uint32_t peer_id, bool audio_message)
 {
     table_t params;
     std::string method;
     if (peer_id) {
         params["peer_id"] = std::to_string(peer_id);
-        std::cout << audio_message << std::endl;
         if (audio_message)
             params["type"] = "audio_message";
         method = "docs.getMessagesUploadServer";
