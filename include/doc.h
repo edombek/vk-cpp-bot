@@ -5,9 +5,8 @@
 
 class Doc {
 public:
-    Doc(json lpDoc);
-    Doc(std::string type, std::string peer_id, std::string filename, std::string& data, Net* net, Vk* vk);
-    void setDoc(json lpDoc);
+    Doc(json lpDoc = NULL);
+    bool uploadDoc(std::string filename, std::string& data, Net* net, Vk* vk, uint32_t peer_id = 0);
     std::string get();
     std::string type;
     int owner_id;

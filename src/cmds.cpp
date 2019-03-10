@@ -52,7 +52,7 @@ void test(cmdHead)
 
     eventOut->msg += "Всего сообщений от тебя: " + std::to_string(eventOut->user.msgs) + "\n";
 
-/*    for (auto doc : eventIn->docs) {
+    /*    for (auto doc : eventIn->docs) {
         img im(doc, eventOut->net);
         eventOut->docs.push_back(im.getDoc("photo", "doc", eventOut->peer_id, eventOut->net, eventOut->vk));
     }*/
@@ -82,7 +82,8 @@ void con(cmdHead)
 void upload(cmdHead)
 {
     string filename = str::summ(eventIn->words, 1);
-    cout << filename << endl;
     string dat = fs::readData(filename);
-    eventOut->docs.push_back(new Doc("doc", to_string(eventIn->peer_id), filename, dat, eventIn->net, eventIn->vk));
+    Doc* doc = new Doc;
+    if (doc->uploadDoc(filename, dat, eventOut->net, eventOut->vk, eventOut->peer_id))
+        eventOut->docs.push_back(doc);
 }

@@ -1,4 +1,5 @@
 #include "img.h"
+#include "vk.h"
 
 img::img(int sx, int sy)
 {
@@ -34,7 +35,7 @@ Doc* img::getDoc(std::string type, std::string name, uint32_t peer_id, Net* net,
     if (this->im == NULL)
         return NULL;
     std::string dat = this->getPng();
-    return new Doc(type, std::to_string(peer_id), name + ".png", dat, net, vk);
+    //return new Doc(type, std::to_string(peer_id), name + ".png", dat, net, vk);
 }
 
 img::~img()

@@ -13,7 +13,7 @@ using namespace std;
 #ifdef DEBUG
 #define printOut
 #endif // DEBUG
-#define printOut
+
 #if LIBCURL_VERSION_NUM >= 0x073d00
 /* In libcurl 7.61.0, support was added for extracting the time in plain
    microseconds. Older libcurl versions are stuck in using 'double' for this
@@ -50,17 +50,10 @@ static int xferinfo(void* p,
     /* under certain circumstances it may be desirable for certain functionality
      to only run every N seconds, in order to do this the transaction time can
      be used */
-    if ((curtime - myp->lastruntime) >= MINIMAL_PROGRESS_FUNCTIONALITY_INTERVAL) {
+    if ((curtime - myp->lastruntime) >= MINIMAL_PROGRESS_FUNCTIONALITY_INTERVAL)
         myp->lastruntime = curtime;
-#ifdef TIME_IN_US
-        fprintf(stderr, "TOTAL TIME: %" CURL_FORMAT_CURL_OFF_T ".%06ld\r\n",
-            (curtime / 1000000), (long)(curtime % 1000000));
-#else
-        fprintf(stderr, "TOTAL TIME: %f \r\n", curtime);
-#endif
-    }
 
-    fprintf(stderr, "UP: %" CURL_FORMAT_CURL_OFF_T " of %" CURL_FORMAT_CURL_OFF_T "  DOWN: %" CURL_FORMAT_CURL_OFF_T " of %" CURL_FORMAT_CURL_OFF_T "\r\n",
+    fprintf(stderr, "\rUP: %" CURL_FORMAT_CURL_OFF_T " of %" CURL_FORMAT_CURL_OFF_T "  DOWN: %" CURL_FORMAT_CURL_OFF_T " of %" CURL_FORMAT_CURL_OFF_T,
         ulnow, ultotal, dlnow, dltotal);
 
     if (dlnow > STOP_DOWNLOAD_AFTER_THIS_MANY_BYTES)
@@ -140,9 +133,9 @@ void Net::send(string url, string params)
         curl_easy_setopt(this->curl, CURLOPT_SSL_VERIFYPEER, 0L);
         curl_easy_setopt(this->curl, CURLOPT_SSL_VERIFYHOST, 0L);
         curl_easy_setopt(this->curl, CURLOPT_TIMEOUT, 600L);
-        curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);
+        curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
         if (params != "") {
-            curl_easy_setopt(curl, CURLOPT_POST, 1);
+            curl_easy_setopt(curl, CURLOPT_POST, 1L);
             curl_easy_setopt(curl, CURLOPT_POSTFIELDS, params.c_str());
         }
         this->result = curl_easy_perform(curl);
@@ -191,6 +184,7 @@ void Net::upload(string url, string filename, string& data)
         curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0L);
 
         this->result = curl_easy_perform(curl);
+        fprintf(stderr, "\n");
         if (this->result != CURLE_OK)
             cout << "CURL ERROR: " << curl_easy_strerror(this->result) << endl;
 #ifdef printOut

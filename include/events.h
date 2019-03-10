@@ -21,9 +21,7 @@ public:
     uint32_t random_id;
     time_t timestamp;
     bool is_chat;
-    bool copied;
     users::user user;
-    Event* copy();
     Event* getOut();
     std::vector<Doc*> docs;
     std::vector<Event*> fwds;

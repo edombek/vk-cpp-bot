@@ -3,7 +3,6 @@
 #include "str.h"
 Event::Event(json lpEv)
 {
-    this->copied = false;
     if (lpEv == NULL)
         return;
     this->type = lpEv["type"];
@@ -39,14 +38,11 @@ Event::Event(json lpEv)
 
 Event::~Event()
 {
-    if (this->copied)
-        return;
     for (auto fwd : this->fwds)
         delete fwd;
-    for (auto doc : docs) {
+    for (auto doc : docs)
         if (doc)
             delete doc;
-    }
 }
 
 void Event::setNet(Net* n, Vk* v)
@@ -76,14 +72,6 @@ json Event::send()
         return this->vk->send("wall.createComment", param);
     }
     return NULL;
-}
-
-Event* Event::copy()
-{
-    Event* event = new Event;
-    *event = *this;
-    this->copied = true;
-    return event;
 }
 
 Event* Event::getOut()

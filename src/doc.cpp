@@ -4,71 +4,103 @@
 
 Doc::Doc(json lpDoc)
 {
-    this->setDoc(lpDoc);
-}
-#include <iostream>
-Doc::Doc(std::string type, std::string peer_id, std::string filename, std::string& data, Net* net, Vk* vk)
-{
-    json res;
-    table_t params = {
-        { "peer_id", peer_id },
-        { "type", type }
-    };
-    if (type != "audio_message", type != "graffiti")
-        res = vk->send(type + "s.getMessagesUploadServer", params)["response"];
-    else
-        res = vk->send("docs.getMessagesUploadServer", params)["response"];
-    net->upload(res["upload_url"], filename, data);
-    if (net->buffer == "" || str::at(net->buffer, "504 Gateway Time-out")) {
+    if (lpDoc == NULL)
         return;
-    }
-    res = json::parse(net->buffer);
-    if (!res["error"].is_null())
-        return;
-    params = {};
-    if (type == "photo") {
-        params["server"] = std::to_string(res["server"].get<int>());
-        params["photo"] = res["photo"];
-        params["hash"] = res["hash"];
-        res = vk->send("photos.saveMessagesPhoto", params);
-    } else if (type == "doc" || type == "audio_message" || type == "graffiti") {
-        params["file"] = res["file"];
-        res = vk->send("docs.save", params);
-    }
-    std::cout << res.dump(4);
-    if (type == "photo")
-        Doc::setDoc({ { "type", "photo" }, { "photo", res["response"][0] } });
-    else
-        Doc::setDoc(res["response"]);
-}
-
-void Doc::setDoc(json lpDoc)
-{
     this->type = lpDoc["type"];
-    if (this->type != "doc" && this->type != "photo" && this->type != "audio" && this->type != "video" && this->type != "audio_message")
-        return;
-    if (this->type == "doc" || this->type == "photo" || this->type == "audio" || this->type == "video")
-        this->timestamp = lpDoc[this->type]["date"];
-    if (this->type == "doc")
-        this->ext = lpDoc[this->type]["ext"];
-    if (this->type != "photo") {
-        if (this->type == "audio_message") {
-            this->url = lpDoc[this->type]["link_mp3"];
-            this->ext = "mp3";
-        } else if (this->type != "video")
-            this->url = lpDoc[this->type]["url"];
-    } else {
+    if (this->type == "doc") {
+        lpDoc = lpDoc["doc"];
+        this->doc_id = lpDoc["id"];
+        this->owner_id = lpDoc["owner_id"];
+        if (lpDoc["access_key"].is_string())
+            this->acess_key = lpDoc["access_key"];
+        this->ext = lpDoc["ext"];
+        this->timestamp = lpDoc["date"];
+        this->url = lpDoc["url"];
+    } else if (this->type == "photo") {
+        lpDoc = lpDoc["photo"];
+        this->doc_id = lpDoc["id"];
+        this->owner_id = lpDoc["owner_id"];
+        if (lpDoc["access_key"].is_string())
+            this->acess_key = lpDoc["access_key"];
+        this->timestamp = lpDoc["date"];
         uint32_t maxS = 0;
-        for (auto s : lpDoc[this->type]["sizes"])
+        for (auto s : lpDoc["sizes"])
             if (maxS < s["width"].get<int>() * s["height"].get<int>()) {
                 maxS = s["width"].get<int>() * s["height"].get<int>();
                 this->url = s["url"];
             }
+        this->ext = *(str::words(this->url, '.').end() - 1);
+    } else if (this->type == "video") {
+        lpDoc = lpDoc["video"];
+        this->doc_id = lpDoc["id"];
+        this->owner_id = lpDoc["owner_id"];
+        if (lpDoc["access_key"].is_string())
+            this->acess_key = lpDoc["access_key"];
+        this->timestamp = lpDoc["date"];
+    } else if (this->type == "graffiti") {
+        lpDoc = lpDoc["graffiti"];
+        this->doc_id = lpDoc["id"];
+        this->owner_id = lpDoc["owner_id"];
+        if (lpDoc["access_key"].is_string())
+            this->acess_key = lpDoc["access_key"];
+        this->url = lpDoc["url"];
+        this->ext = "png";
+    } else if (this->type == "music") {
+        lpDoc = lpDoc["music"];
+        this->doc_id = lpDoc["id"];
+        this->owner_id = lpDoc["owner_id"];
+        if (lpDoc["access_key"].is_string())
+            this->acess_key = lpDoc["access_key"];
+        this->ext = "mp3";
+        this->timestamp = lpDoc["date"];
+        this->url = lpDoc["url"];
     }
-    if (lpDoc[this->type]["access_key"].is_string())
-        this->acess_key = lpDoc[this->type]["access_key"];
-    this->doc_id = lpDoc[this->type]["id"];
-    this->owner_id = lpDoc[this->type]["owner_id"];
+}
+
+bool Doc::uploadDoc(std::string filename, std::string& data, Net* net, Vk* vk, uint32_t peer_id)
+{
+    table_t params;
+    std::string method;
+    if (peer_id) {
+        params["peer_id"] = std::to_string(peer_id);
+        method = "docs.getMessagesUploadServer";
+    } else
+        method = "docs.getUploadServer";
+    json resp = vk->send(method, params);
+    if (resp["response"]["upload_url"].is_null())
+        return false;
+    net->upload(resp["response"]["upload_url"], filename, data);
+    resp = json::parse(net->buffer);
+    if (resp["file"].is_null())
+        return false;
+    params = {
+        { "file", resp["file"] },
+        { "title", filename }
+    };
+    resp = vk->send("docs.save", params);
+    if (resp["response"].is_null())
+        return false;
+    resp = resp["response"];
+    this->type = resp["type"];
+    if (this->type == "doc") {
+        resp = resp["doc"];
+        this->doc_id = resp["id"];
+        this->owner_id = resp["owner_id"];
+        if (resp["access_key"].is_string())
+            this->acess_key = resp["access_key"];
+        this->ext = resp["ext"];
+        this->timestamp = resp["date"];
+        this->url = resp["url"];
+    } else if (this->type == "graffiti") {
+        resp = resp["graffiti"];
+        this->doc_id = resp["id"];
+        this->owner_id = resp["owner_id"];
+        if (resp["access_key"].is_string())
+            this->acess_key = resp["access_key"];
+        this->url = resp["url"];
+        this->ext = "png";
+    }
+    return true;
 }
 
 std::string Doc::get()

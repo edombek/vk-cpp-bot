@@ -1,6 +1,7 @@
 #ifndef IMG_H
 #define IMG_H
 #include "doc.h"
+#include "vk.h"
 #include <gd.h>
 
 class img {

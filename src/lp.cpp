@@ -32,6 +32,8 @@ void Lp::loop()
     Workers workers(wCount);
     while (true) {
         this->net->send(this->server, { { "act", "a_check" }, { "key", this->key }, { "ts", this->ts }, { "wait", "25" } });
+        while (this->net->buffer == "")
+            this->net->send(this->server, { { "act", "a_check" }, { "key", this->key }, { "ts", this->ts }, { "wait", "25" } });
         json resp = json::parse(this->net->buffer);
         if (resp["failed"].is_number()) {
             switch (resp["failed"].get<int>()) {
