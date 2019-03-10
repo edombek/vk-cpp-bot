@@ -35,7 +35,11 @@ Doc* img::getDoc(std::string type, std::string name, uint32_t peer_id, Net* net,
     if (this->im == NULL)
         return NULL;
     std::string dat = this->getPng();
-    //return new Doc(type, std::to_string(peer_id), name + ".png", dat, net, vk);
+    Doc* doc = new Doc();
+    if (doc->uploadDoc("img.png", dat, net, vk, peer_id))
+        return doc;
+    delete doc;
+    return NULL;
 }
 
 img::~img()

@@ -86,4 +86,6 @@ void upload(cmdHead)
     Doc* doc = new Doc;
     if (doc->uploadDoc(filename, dat, eventOut->net, eventOut->vk, eventOut->peer_id))
         eventOut->docs.push_back(doc);
+    else
+        delete doc;
 }
