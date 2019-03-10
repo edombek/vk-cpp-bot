@@ -30,7 +30,19 @@ std::string img::getPng()
     return std::string((const char*)png, s);
 }
 
-Doc* img::getDoc(std::string type, std::string name, uint32_t peer_id, Net* net, Vk* vk)
+Doc* img::getDoc(uint32_t peer_id, Net* net, Vk* vk)
+{
+    if (this->im == NULL)
+        return NULL;
+    std::string dat = this->getPng();
+    Doc* doc = new Doc();
+    if (doc->uploadDoc("img.png", dat, net, vk, peer_id))
+        return doc;
+    delete doc;
+    return NULL;
+}
+
+Doc* img::getPhoto(uint32_t peer_id, Net* net, Vk* vk)
 {
     if (this->im == NULL)
         return NULL;

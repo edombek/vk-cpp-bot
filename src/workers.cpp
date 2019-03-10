@@ -57,7 +57,6 @@ Event* Workers::get_event()
 
 #include "cmd.h"
 #include "str.h"
-#include <iostream>
 void Workers::work()
 {
     Net net;
@@ -66,10 +65,6 @@ void Workers::work()
         Event* event = this->get_event();
         if (event == NULL)
             continue;
-        for (auto doc : event->docs) {
-            net.send(doc->url);
-            //Doc d(doc->type, to_string(event->peer_id), "doc." + doc->ext, net.buffer, &net, &vk);
-        }
         if (event->msg.size() && event->from_id > 0) {
             event->user = users::getUser(event->from_id, &vk);
             Event* outEvent = event->getOut();

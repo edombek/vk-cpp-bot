@@ -12,7 +12,8 @@ public:
     ~img();
     std::string getPng();
     std::string getGif();
-    Doc* getDoc(std::string type, std::string name, uint32_t peer_id, Net* net, Vk* vk);
+    Doc* getDoc(uint32_t peer_id, Net* net, Vk* vk);
+    Doc* getPhoto(uint32_t peer_id, Net* net, Vk* vk);
     gdImagePtr im;
 };
 

@@ -34,13 +34,15 @@ void help(cmdHead)
     }
 }
 
+#include <cstdio>
 bool cmd::start(std::string comand, Event* eventIn, Event* eventOut)
 {
     if (cmdsList.find(comand) == cmdsList.cend())
         return false;
     if (cmdsList[comand].acess > eventOut->user.acess)
         return false;
-    //eventOut->msg="true";
+    fprintf(stderr, "\n%s vk.com/id%d (%d/%d(%s))", comand.c_str(), eventIn->user.id, eventIn->user.id, eventIn->peer_id, eventIn->type.c_str());
     cmdsList[comand].func(eventIn, eventOut);
+    fprintf(stderr, "\r%s vk.com/id%d (%d/%d(%s))-done!\n", comand.c_str(), eventIn->user.id, eventIn->user.id, eventIn->peer_id, eventIn->type.c_str());
     return true;
 }

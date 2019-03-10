@@ -68,15 +68,13 @@ Doc::Doc(json lpDoc)
 bool Doc::uploadDoc(std::string filename, std::string& data, Net* net, Vk* vk, uint32_t peer_id, bool audio_message)
 {
     table_t params;
-    std::string method;
     if (peer_id) {
         params["peer_id"] = std::to_string(peer_id);
         if (audio_message)
             params["type"] = "audio_message";
-        method = "docs.getMessagesUploadServer";
     } else
         return false;
-    json resp = vk->send(method, params);
+    json resp = vk->send("docs.getMessagesUploadServer", params);
     if (resp["response"]["upload_url"].is_null())
         return false;
     net->upload(resp["response"]["upload_url"], filename, data);
@@ -116,7 +114,47 @@ bool Doc::uploadDoc(std::string filename, std::string& data, Net* net, Vk* vk, u
             this->acess_key = resp["access_key"];
         this->ext = "mp3";
         this->url = resp["link_mp3"];
-    }
+    } else
+        return false;
+    return true;
+}
+
+bool Doc::uploadPhoto(std::string filename, std::string& data, Net* net, Vk* vk, uint32_t peer_id)
+{
+    table_t params;
+    if (peer_id)
+        params["peer_id"] = std::to_string(peer_id);
+    else
+        return false;
+    json resp = vk->send("photos.getMessagesUploadServer", params);
+    if (resp["response"]["upload_url"].is_null())
+        return false;
+    net->upload(resp["response"]["upload_url"], filename, data);
+    resp = json::parse(net->buffer);
+    if (resp["server"].is_null())
+        return false;
+    params = {
+        { "server", std::to_string(resp["server"].get<int>()) },
+        { "photo", resp["photo"] },
+        { "hash", resp["hash"] }
+    };
+    resp = vk->send("photos.saveMessagesPhoto", params);
+    if (resp["response"][0].is_null())
+        return false;
+    resp = resp["response"][0];
+    this->type = "photo";
+    this->doc_id = resp["id"];
+    this->owner_id = resp["owner_id"];
+    if (resp["access_key"].is_string())
+        this->acess_key = resp["access_key"];
+    this->timestamp = resp["date"];
+    uint32_t maxS = 0;
+    for (auto s : resp["sizes"])
+        if (maxS < s["width"].get<int>() * s["height"].get<int>()) {
+            maxS = s["width"].get<int>() * s["height"].get<int>();
+            this->url = s["url"];
+        }
+    this->ext = *(str::words(this->url, '.').end() - 1);
     return true;
 }
 

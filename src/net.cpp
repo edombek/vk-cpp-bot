@@ -182,7 +182,7 @@ void Net::upload(string url, string filename, string& data)
         curl_easy_setopt(curl, CURLOPT_PROGRESSDATA, &prog);
 #endif
         curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0L);
-
+        fprintf(stderr, "\n");
         this->result = curl_easy_perform(curl);
         fprintf(stderr, "\n");
         if (this->result != CURLE_OK)
