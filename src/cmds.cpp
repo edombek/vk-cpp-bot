@@ -89,3 +89,32 @@ void upload(cmdHead)
     else
         delete doc;
 }
+
+void set(cmdHead)
+{
+    if (eventIn->words.size() != 3) // != <cmd, id, level>
+        eventOut->msg += "/set <id> <level>...";
+    else {
+        uint32_t id = str::fromString(eventIn->words[1]);
+        if (!id)
+            eventOut->msg += "/set <id> <level>...";
+        else {
+            users::user user = users::getUser(id, eventOut->vk);
+            user.acess = str::fromString(eventIn->words[2]);
+            user.msgs--;
+            users::changeUser(id, user);
+            eventOut->msg += "done!";
+        }
+    }
+}
+
+void rename(cmdHead)
+{
+    if (eventIn->words.size() < 2) // != <cmd, id, level>
+        eventOut->msg += "/rename <name>...";
+    else {
+        eventIn->user.name = str::summ(eventIn->words, 1);
+        users::changeUser(eventIn->user.id, eventIn->user);
+        eventOut->msg += "done!";
+    }
+}

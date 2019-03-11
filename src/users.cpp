@@ -30,4 +30,12 @@ users::user users::getUser(uint32_t id, Vk* vk)
 
 void users::changeUser(uint32_t id, users::user edited)
 {
+    bd.lock.lock();
+    json& us = bd.get()["users"];
+    std::string strid = std::to_string(id);
+    us[strid]["name"] = edited.name;
+    us[strid]["acess"] = edited.acess;
+    us[strid]["msgs"] = edited.msgs;
+    us[strid]["msgs"] = edited.msgs;
+    bd.lock.unlock();
 }
