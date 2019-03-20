@@ -26,7 +26,7 @@ Vk::Vk(Net* n)
 
 json Vk::send(string method, table_t args, bool user)
 {
-    if(user)
+    if (user)
         args["access_token"] = this->user_token;
     else
         args["access_token"] = this->token;

@@ -126,27 +126,26 @@ void videos(cmdHead)
     else {
         string q = str::summ(eventIn->words, 1);
         int c = str::fromString(eventIn->words[1]);
-        if(!c || c>200)
-            c=200;
-        json resp = eventOut->vk->send("video.search", {{"q",q}, {"count", to_string(c)}, {"adult", "0"}, {"hd", "1"}, {"filters", "mp4"}}, true);
-        if(resp["response"].is_null() || resp["response"]["items"].size() == 0)
-        {
+        if (!c || c > 200)
+            c = 200;
+        json resp = eventOut->vk->send("video.search", { { "q", q }, { "count", to_string(c) }, { "adult", "0" }, { "hd", "1" }, { "filters", "mp4" } }, true);
+        if (resp["response"].is_null() || resp["response"]["items"].size() == 0) {
             eventOut->msg = "nope";
             return;
         }
         string msg = eventOut->msg;
-        string vidc = "/"+to_string(resp["response"]["items"].size());
-        for(uint16_t i = 0; i < resp["response"]["items"].size(); i++)
-        {
+        string vidc = "/" + to_string(resp["response"]["items"].size());
+        for (uint16_t i = 0; i < resp["response"]["items"].size(); i++) {
             json r;
-            r["video"]=resp["response"]["items"][i];
-            r["type"]="video";
-            Doc *doc = new Doc(r);
-            eventOut->docs = {doc};
-            eventOut->msg = msg + to_string(i+1)+vidc;
+            r["video"] = resp["response"]["items"][i];
+            r["type"] = "video";
+            Doc* doc = new Doc(r);
+            eventOut->docs = { doc };
+            eventOut->msg = msg + to_string(i + 1) + vidc;
             eventOut->send();
             delete doc;
         }
-        eventOut->msg = msg+"держи";
+        eventOut->msg = msg + "держи";
+        eventOut->docs = {};
     }
 }
