@@ -19,6 +19,7 @@ void con(cmdHead);
 void upload(cmdHead);
 void set(cmdHead);
 void rename(cmdHead);
+void videos(cmdHead);
 
 //прописываем в системе команд
 cmds_t cmdsList = {
@@ -27,7 +28,8 @@ cmds_t cmdsList = {
     { "/con", { "консоль)", &con, 5, true } },
     { "/u", { "загрузка файла", &upload, 5, true } },
     { "/set", { "установка уровня доступа человеку", &set, 5, true } },
-    { "/rename", { "установить ник в боте", &rename, 1, true } }
+    { "/rename", { "установить ник в боте", &rename, 1, true } },
+    { "/vid", { "поиск видео", &videos, 1, true } }
 };
 
 void help(cmdHead)
