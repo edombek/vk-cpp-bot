@@ -180,7 +180,50 @@ xy_t toXY(ra_t c)
     return xy;
 }
 
-void ball(cmdHead)
+void asin(cmdHead)
+{
+    if (!eventIn->docs.size()) {
+        eventOut->msg += "прикрепи фото";
+        return;
+    }
+
+    for (auto doc : eventIn->docs) {
+        img im(doc, eventIn->net);
+        xy_t o = { im.im->sx / 2.0f, im.im->sy / 2.0f };
+        float r;
+        if (o.x > o.y) {
+            r = o.y;
+            o.x += r - o.x;
+        } else {
+            r = o.x;
+            o.y += r - o.y;
+        }
+        img balled(2 * r, 2 * r);
+        for (uint32_t yc = 0; yc < balled.im->sy; yc++)
+            for (uint32_t xc = 0; xc < balled.im->sx; xc++) {
+                xy_t xy = { (xc - o.x) / r, (yc - o.y) / r };
+                ra_t ra = toRA(xy);
+                if (ra.r * ra.r > 1) {
+                    gdImageSetPixel(balled.im, xc, yc, 0xFFFFFF);
+                    continue;
+                }
+                ra.r = asin(ra.r) / M_PI * 2;
+                xy_t xyO = toXY(ra);
+                gdImageSetPixel(balled.im, xc, yc, gdImageGetPixel(im.im, xyO.x * r + o.x, xyO.y * r + o.y));
+            }
+
+        eventOut->docs.push_back(balled.getPhoto(eventIn->peer_id, eventIn->net, eventIn->vk));
+        eventOut->docs.push_back(balled.getDoc(eventIn->peer_id, eventIn->net, eventIn->vk));
+        eventOut->send();
+        for (auto doc : eventOut->docs)
+            if (doc)
+                delete doc;
+        eventOut->docs = {};
+    }
+    eventOut->msg += "готово)";
+}
+
+void asin(cmdHead)
 {
     if (!eventIn->docs.size()) {
         eventOut->msg += "прикрепи фото";
