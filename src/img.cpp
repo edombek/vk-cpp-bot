@@ -48,7 +48,7 @@ Doc* img::getPhoto(uint32_t peer_id, Net* net, Vk* vk)
         return NULL;
     std::string dat = this->getPng();
     Doc* doc = new Doc();
-    if (doc->uploadDoc("img.png", dat, net, vk, peer_id))
+    if (doc->uploadPhoto("img.png", dat, net, vk, peer_id))
         return doc;
     delete doc;
     return NULL;

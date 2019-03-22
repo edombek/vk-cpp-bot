@@ -15,18 +15,18 @@ namespace AutoVersion{
 	
 	//Standard Version Type
 	#define MAJOR  0
-	#define MINOR  2
-	#define BUILD  26
-	#define REVISION  139
+	#define MINOR  0
+	#define BUILD  1
+	#define REVISION  5
 	
 	//Miscellaneous Version Types
-	#define BUILDS_COUNT  25
-	#define RC_FILEVERSION 0,2,26,139
-	#define RC_FILEVERSION_STRING "0, 2, 26, 139\0"
-	#define FULLVERSION_STRING  "0.2.26.139"
+	#define BUILDS_COUNT  0
+	#define RC_FILEVERSION 0,0,1,5
+	#define RC_FILEVERSION_STRING "0, 0, 1, 5\0"
+	#define FULLVERSION_STRING  "0.0.1.5"
 	
 	//These values are to keep track of your versioning state, don't modify them.
-	#define BUILD_HISTORY  6
+	#define BUILD_HISTORY  1
 	
 
 }

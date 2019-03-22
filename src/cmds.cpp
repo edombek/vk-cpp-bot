@@ -202,7 +202,7 @@ void ball(cmdHead)
                 xy_t xy = { (xc - o.x) / r, (yc - o.y) / r };
                 ra_t ra = toRA(xy);
                 if (ra.r * ra.r > 1) {
-                    gdImageSetPixel(balled.im, xc, yc, 0);
+                    gdImageSetPixel(balled.im, xc, yc, 0xFFFFFF);
                     continue;
                 }
                 ra.r = sin(ra.r * M_PI / 2);
