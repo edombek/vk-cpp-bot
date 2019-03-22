@@ -10,8 +10,8 @@ public:
     img(gdImagePtr New);
     img(Doc* doc, Net* net);
     ~img();
+    img copy();
     std::string getPng();
-    std::string getGif();
     Doc* getDoc(uint32_t peer_id, Net* net, Vk* vk);
     Doc* getPhoto(uint32_t peer_id, Net* net, Vk* vk);
     gdImagePtr im;

@@ -59,3 +59,8 @@ img::~img()
     if (this->im)
         gdImageDestroy(this->im);
 }
+
+img img::copy()
+{
+    return img(gdImageClone(this->im));
+}
