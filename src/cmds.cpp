@@ -191,20 +191,17 @@ void asin(cmdHead)
         img im(doc, eventIn->net);
         xy_t o = { im.im->sx / 2.0f, im.im->sy / 2.0f };
         float r;
-        if (o.x > o.y) {
+        if (o.x > o.y)
             r = o.y;
-            o.x += r - o.x;
-        } else {
+        else
             r = o.x;
-            o.y += r - o.y;
-        }
         img balled(2 * r, 2 * r);
         for (uint32_t yc = 0; yc < balled.im->sy; yc++)
             for (uint32_t xc = 0; xc < balled.im->sx; xc++) {
-                xy_t xy = { (xc - o.x) / r, (yc - o.y) / r };
+                xy_t xy = { (xc - r) / r, (yc - r) / r };
                 ra_t ra = toRA(xy);
                 if (ra.r * ra.r > 1) {
-                    gdImageSetPixel(balled.im, xc, yc, 0xFFFFFF);
+                    gdImageSetPixel(balled.im, xc, yc, 0xFFFFFFFF);
                     continue;
                 }
                 ra.r = asin(ra.r) / M_PI * 2;
@@ -234,20 +231,17 @@ void sin(cmdHead)
         img im(doc, eventIn->net);
         xy_t o = { im.im->sx / 2.0f, im.im->sy / 2.0f };
         float r;
-        if (o.x > o.y) {
+        if (o.x > o.y)
             r = o.y;
-            o.x += r - o.x;
-        } else {
+        else
             r = o.x;
-            o.y += r - o.y;
-        }
         img balled(2 * r, 2 * r);
         for (uint32_t yc = 0; yc < balled.im->sy; yc++)
             for (uint32_t xc = 0; xc < balled.im->sx; xc++) {
-                xy_t xy = { (xc - o.x) / r, (yc - o.y) / r };
+                xy_t xy = { (xc - r) / r, (yc - r) / r };
                 ra_t ra = toRA(xy);
                 if (ra.r * ra.r > 1) {
-                    gdImageSetPixel(balled.im, xc, yc, 0xFFFFFF);
+                    gdImageSetPixel(balled.im, xc, yc, 0xFFFFFFFF);
                     continue;
                 }
                 ra.r = sin(ra.r * M_PI / 2);
