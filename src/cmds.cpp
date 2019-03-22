@@ -207,9 +207,16 @@ void ball(cmdHead)
                 }
                 ra.r = sin(ra.r * M_PI / 2);
                 xy_t xyO = toXY(ra);
-                gdImageSetPixel(balled.im, xy.x * r + o.x, xy.y * r + o.y, gdImageGetPixel(im.im, xyO.x * r + o.x, xyO.y * r + o.y));
+                gdImageSetPixel(balled.im, xc, yc, gdImageGetPixel(im.im, xyO.x * r + o.x, xyO.y * r + o.y));
             }
 
         eventOut->docs.push_back(balled.getPhoto(eventIn->peer_id, eventIn->net, eventIn->vk));
+        eventOut->docs.push_back(balled.getDoc(eventIn->peer_id, eventIn->net, eventIn->vk));
+        eventOut->send();
+        for (auto doc : eventOut->docs)
+            if (doc)
+                delete doc;
+        eventOut->docs = {};
     }
+    eventOut->msg += "готово)";
 }
