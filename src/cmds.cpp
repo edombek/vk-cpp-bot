@@ -223,7 +223,7 @@ void asin(cmdHead)
     eventOut->msg += "готово)";
 }
 
-void asin(cmdHead)
+void sin(cmdHead)
 {
     if (!eventIn->docs.size()) {
         eventOut->msg += "прикрепи фото";
