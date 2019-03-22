@@ -246,11 +246,11 @@ void sin(cmdHead)
             for (uint32_t xc = 0; xc < balled.im->sx; xc++) {
                 xy_t xy = { (xc - o.x) / r, (yc - o.y) / r };
                 ra_t ra = toRA(xy);
+                ra.r = sin(ra.r * M_PI / 2);
                 if (ra.r * ra.r > 1) {
                     gdImageSetPixel(balled.im, xc, yc, 0xFFFFFF);
                     continue;
                 }
-                ra.r = sin(ra.r * M_PI / 2);
                 xy_t xyO = toXY(ra);
                 gdImageSetPixel(balled.im, xc, yc, gdImageGetPixel(im.im, xyO.x * r + o.x, xyO.y * r + o.y));
             }
