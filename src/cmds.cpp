@@ -189,16 +189,18 @@ void ball(cmdHead)
 
     for (auto doc : eventIn->docs) {
         img im(doc, eventIn->net);
-        img balled = im.copy();
         xy_t o = { im.im->sx / 2.0f, im.im->sy / 2.0f };
         float r;
-        if (o.x > o.y)
+        if (o.x > o.y) {
             r = o.y;
-        else
+            o.x += r - o.x;
+        } else {
             r = o.x;
-
-        for (uint32_t yc = 0; yc < im.im->sy; yc++)
-            for (uint32_t xc = 0; xc < im.im->sx; xc++) {
+            o.y += r - o.y;
+        }
+        img balled(2 * r, 2 * r);
+        for (uint32_t yc = 0; yc < balled.im->sy; yc++)
+            for (uint32_t xc = 0; xc < balled.im->sx; xc++) {
                 xy_t xy = { (xc - o.x) / r, (yc - o.y) / r };
                 ra_t ra = toRA(xy);
                 if (ra.r * ra.r > 1) {

@@ -109,11 +109,11 @@ string Net::urlEncode(string str)
     return result;
 }
 
-void Net::send(string url, table_t param, bool post)
+string Net::send(string url, table_t param, bool post)
 {
     if (!param.size())
         return this->send(url);
-    string paramline = "";
+    string paramline;
     for (auto iter = param.begin(); iter != param.end(); iter++) {
         paramline += iter->first + "=" + urlEncode(iter->second) + "&";
     }
@@ -122,12 +122,12 @@ void Net::send(string url, table_t param, bool post)
     return this->send(url + "?" + paramline);
 }
 
-void Net::send(string url, string params)
+string Net::send(string url, string params)
 {
-    this->buffer = "";
+    string buffer;
     if (this->curl) {
         curl_easy_setopt(this->curl, CURLOPT_URL, url.c_str());
-        curl_easy_setopt(this->curl, CURLOPT_WRITEDATA, &this->buffer);
+        curl_easy_setopt(this->curl, CURLOPT_WRITEDATA, &buffer);
         curl_easy_setopt(this->curl, CURLOPT_USERAGENT, net_agent);
         curl_easy_setopt(this->curl, CURLOPT_WRITEFUNCTION, writer);
         curl_easy_setopt(this->curl, CURLOPT_SSL_VERIFYPEER, 0L);
@@ -148,11 +148,12 @@ void Net::send(string url, string params)
 #endif
         curl_easy_reset(this->curl);
     }
+    return buffer;
 }
 
-void Net::upload(string url, string filename, string& data)
+string Net::upload(string url, string filename, string& data)
 {
-    this->buffer = "";
+    string buffer;
     struct myprogress prog;
     if (this->curl) {
         prog.lastruntime = 0;
@@ -167,7 +168,7 @@ void Net::upload(string url, string filename, string& data)
         }
 
         curl_easy_setopt(this->curl, CURLOPT_URL, url.c_str());
-        curl_easy_setopt(this->curl, CURLOPT_WRITEDATA, &this->buffer);
+        curl_easy_setopt(this->curl, CURLOPT_WRITEDATA, &buffer);
         curl_easy_setopt(this->curl, CURLOPT_USERAGENT, net_agent);
         curl_easy_setopt(this->curl, CURLOPT_WRITEFUNCTION, writer);
         curl_easy_setopt(this->curl, CURLOPT_SSL_VERIFYPEER, 0L);
@@ -196,4 +197,5 @@ void Net::upload(string url, string filename, string& data)
             curl_mime_free(mime);
         curl_easy_reset(this->curl);
     }
+    return buffer;
 }

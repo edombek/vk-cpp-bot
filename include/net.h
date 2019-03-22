@@ -15,12 +15,11 @@ private:
 public:
     Net();
     ~Net();
-    std::string buffer;
     static void init();
     std::string urlEncode(std::string str);
-    void send(std::string url, std::string params = "");
-    void send(std::string url, table_t param, bool post = true);
-    void upload(std::string url, std::string filename, std::string& data);
+    std::string send(std::string url, std::string params = "");
+    std::string send(std::string url, table_t param, bool post = true);
+    std::string upload(std::string url, std::string filename, std::string& data);
 };
 
 #endif

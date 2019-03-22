@@ -32,6 +32,5 @@ json Vk::send(string method, table_t args, bool user)
         args["access_token"] = this->token;
     if (args.find("v") == args.cend())
         args["v"] = ver;
-    this->net->send("https://api.vk.com/method/" + method, args);
-    return json::parse(this->net->buffer);
+    return json::parse(this->net->send("https://api.vk.com/method/" + method, args));
 }

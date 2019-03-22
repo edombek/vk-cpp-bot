@@ -31,10 +31,10 @@ void Lp::loop()
 {
     Workers workers(wCount);
     while (true) {
-        this->net->send(this->server, { { "act", "a_check" }, { "key", this->key }, { "ts", this->ts }, { "wait", "25" } });
-        while (this->net->buffer == "")
-            this->net->send(this->server, { { "act", "a_check" }, { "key", this->key }, { "ts", this->ts }, { "wait", "25" } });
-        json resp = json::parse(this->net->buffer);
+        string buff = this->net->send(this->server, { { "act", "a_check" }, { "key", this->key }, { "ts", this->ts }, { "wait", "25" } });
+        while (buff == "")
+            string buff = this->net->send(this->server, { { "act", "a_check" }, { "key", this->key }, { "ts", this->ts }, { "wait", "25" } });
+        json resp = json::parse(buff);
         if (resp["failed"].is_number()) {
             switch (resp["failed"].get<int>()) {
             case 1:

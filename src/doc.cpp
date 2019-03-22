@@ -77,8 +77,7 @@ bool Doc::uploadDoc(std::string filename, std::string& data, Net* net, Vk* vk, u
     json resp = vk->send("docs.getMessagesUploadServer", params);
     if (resp["response"]["upload_url"].is_null())
         return false;
-    net->upload(resp["response"]["upload_url"], filename, data);
-    resp = json::parse(net->buffer);
+    resp = json::parse(net->upload(resp["response"]["upload_url"], filename, data));
     if (resp["file"].is_null())
         return false;
     params = {
@@ -129,8 +128,7 @@ bool Doc::uploadPhoto(std::string filename, std::string& data, Net* net, Vk* vk,
     json resp = vk->send("photos.getMessagesUploadServer", params);
     if (resp["response"]["upload_url"].is_null())
         return false;
-    net->upload(resp["response"]["upload_url"], filename, data);
-    resp = json::parse(net->buffer);
+    resp = json::parse(net->upload(resp["response"]["upload_url"], filename, data));
     if (resp["server"].is_null())
         return false;
     params = {

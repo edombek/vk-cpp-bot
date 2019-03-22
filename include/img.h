@@ -11,6 +11,7 @@ public:
     img(Doc* doc, Net* net);
     ~img();
     img copy();
+    img copyCrop(uint32_t x, uint32_t y, uint32_t sx, uint32_t sy); //влом пока
     std::string getPng();
     Doc* getDoc(uint32_t peer_id, Net* net, Vk* vk);
     Doc* getPhoto(uint32_t peer_id, Net* net, Vk* vk);

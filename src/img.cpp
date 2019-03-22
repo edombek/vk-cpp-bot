@@ -14,20 +14,23 @@ img::img(gdImagePtr New)
 img::img(Doc* doc, Net* net)
 {
     this->im = NULL;
-    net->send(doc->url);
+    std::string buff = net->send(doc->url);
     if (doc->ext == "jpg" || doc->ext == "jpeg" || doc->ext == "JPG" || doc->ext == "")
-        this->im = gdImageCreateFromJpegPtr(net->buffer.size(), (void*)net->buffer.c_str());
+        this->im = gdImageCreateFromJpegPtr(buff.size(), (void*)buff.c_str());
     else if (doc->ext == "png")
-        this->im = gdImageCreateFromPngPtr(net->buffer.size(), (void*)net->buffer.c_str());
+        this->im = gdImageCreateFromPngPtr(buff.size(), (void*)buff.c_str());
     else if (doc->ext == "bmp" || doc->ext == "BMP")
-        this->im = gdImageCreateFromBmpPtr(net->buffer.size(), (void*)net->buffer.c_str());
+        this->im = gdImageCreateFromBmpPtr(buff.size(), (void*)buff.c_str());
 }
 
 std::string img::getPng()
 {
     int s;
     void* png = gdImagePngPtrEx(this->im, &s, 0);
-    return std::string((const char*)png, s);
+    std::string buff = std::string((const char*)png, s);
+    if (png)
+        gdFree(png);
+    return buff;
 }
 
 Doc* img::getDoc(uint32_t peer_id, Net* net, Vk* vk)
