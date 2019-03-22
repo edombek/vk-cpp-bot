@@ -165,7 +165,7 @@ ra_t toRA(xy_t c)
 {
     ra_t ra;
     ra.a = atan(c.y / c.x);
-    if (c.x > 0)
+    if (c.x >= 0)
         ra.r = sqrt(c.x * c.x + c.y * c.y);
     else
         ra.r = -sqrt(c.x * c.x + c.y * c.y);
