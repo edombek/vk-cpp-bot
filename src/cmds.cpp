@@ -149,3 +149,67 @@ void videos(cmdHead)
         eventOut->docs = {};
     }
 }
+
+typedef struct {
+    float x;
+    float y;
+} xy_t;
+
+typedef struct {
+    float r;
+    float a;
+} ra_t;
+
+#include <cmath>
+ra_t toRA(xy_t c)
+{
+    ra_t ra;
+    ra.a = atan(c.y / c.x);
+    if (c.x > 0)
+        ra.r = sqrt(c.x * c.x + c.y * c.y);
+    else
+        ra.r = -sqrt(c.x * c.x + c.y * c.y);
+    return ra;
+}
+
+xy_t toXY(ra_t c)
+{
+    xy_t xy;
+    xy.x = c.r * cos(c.a);
+    xy.y = c.r * sin(c.a);
+    return xy;
+}
+
+void ball(cmdHead)
+{
+    if (!eventIn->docs.size()) {
+        eventOut->msg += "прикрепи фото";
+        return;
+    }
+
+    for (auto doc : eventIn->docs) {
+        img im(doc, eventIn->net);
+        img balled = im.copy();
+        xy_t o = { im.im->sx / 2.0f, im.im->sy / 2.0f };
+        float r;
+        if (o.x > o.y)
+            r = o.y;
+        else
+            r = o.x;
+
+        for (uint32_t yc = 0; yc < im.im->sy; yc++)
+            for (uint32_t xc = 0; xc < im.im->sx; xc++) {
+                xy_t xy = { (xc - o.x) / r, (yc - o.y) / r };
+                ra_t ra = toRA(xy);
+                if (ra.r * ra.r > 1) {
+                    gdImageSetPixel(balled.im, xc, yc, 0);
+                    continue;
+                }
+                ra.r = sin(ra.r * M_PI / 2);
+                xy_t xyO = toXY(ra);
+                gdImageSetPixel(balled.im, xy.x * r + o.x, xy.y * r + o.y, gdImageGetPixel(im.im, xyO.x * r + o.x, xyO.y * r + o.y));
+            }
+
+        eventOut->docs.push_back(balled.getPhoto(eventIn->peer_id, eventIn->net, eventIn->vk));
+    }
+}
