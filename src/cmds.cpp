@@ -26,7 +26,6 @@ string getParamOfPath(string path, string p)
     return "";
 }
 
-#include "../version.h"
 #include <chrono>
 void test(cmdHead)
 {
@@ -36,7 +35,7 @@ void test(cmdHead)
     end = std::chrono::system_clock::now();
     unsigned int t = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
     eventOut->msg += GIT_URL;
-    eventOut->msg += " (" + string(FULLVERSION_STRING) + ")\n";
+    eventOut->msg += " (" + string(GIT_VER) + ")\n";
     eventOut->msg += "Обработка VK API за: " + to_string(t) + "мс\n";
     eventOut->msg += "id чата (пользователь/чат): " + to_string(eventIn->from_id) + "/" + to_string(eventIn->peer_id) + "\n";
 
@@ -186,6 +185,11 @@ void asin(cmdHead)
         eventOut->msg += "прикрепи фото";
         return;
     }
+    int32_t c;
+    if (eventIn->words.size() > 1)
+        c = str::fromString(eventIn->words[1]);
+    if (c < 1)
+        c = 1;
 
     for (auto doc : eventIn->docs) {
         img im(doc, eventIn->net);
@@ -204,7 +208,8 @@ void asin(cmdHead)
                     gdImageSetPixel(balled.im, xc, yc, 0xFFFFFFFF);
                     continue;
                 }
-                ra.r = asin(ra.r) / M_PI * 2;
+                for (int32_t i = 0; i < c; i++)
+                    ra.r = asin(ra.r) / M_PI * 2;
                 xy_t xyO = toXY(ra);
                 gdImageSetPixel(balled.im, xc, yc, gdImageGetPixel(im.im, xyO.x * r + o.x, xyO.y * r + o.y));
             }
@@ -226,7 +231,11 @@ void sin(cmdHead)
         eventOut->msg += "прикрепи фото";
         return;
     }
-
+    int32_t c;
+    if (eventIn->words.size() > 1)
+        c = str::fromString(eventIn->words[1]);
+    if (c < 1)
+        c = 1;
     for (auto doc : eventIn->docs) {
         img im(doc, eventIn->net);
         xy_t o = { im.im->sx / 2.0f, im.im->sy / 2.0f };
@@ -244,7 +253,8 @@ void sin(cmdHead)
                     gdImageSetPixel(balled.im, xc, yc, 0xFFFFFFFF);
                     continue;
                 }
-                ra.r = sin(ra.r * M_PI / 2);
+                for (int32_t i = 0; i < c; i++)
+                    ra.r = sin(ra.r * M_PI / 2);
                 xy_t xyO = toXY(ra);
                 gdImageSetPixel(balled.im, xc, yc, gdImageGetPixel(im.im, xyO.x * r + o.x, xyO.y * r + o.y));
             }
