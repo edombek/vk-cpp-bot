@@ -26,7 +26,8 @@ img::img(Doc* doc, Net* net)
 std::string img::getPng()
 {
     int s;
-    void* png = gdImagePngPtrEx(this->im, &s, 0);
+    //void* png = gdImagePngPtrEx(this->im, &s, 0);
+    void* png = gdImagePngPtr(this->im, &s);
     std::string buff((const char*)png, s);
     if (png)
         gdFree(png);
