@@ -27,7 +27,7 @@ std::string img::getPng()
 {
     int s;
     void* png = gdImagePngPtrEx(this->im, &s, 0);
-    std::string buff = std::string((const char*)png, s);
+    std::string buff((const char*)png, s);
     if (png)
         gdFree(png);
     return buff;
