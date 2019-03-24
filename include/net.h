@@ -14,7 +14,7 @@ private:
 
 public:
     Net();
-    ~Net();
+    virtual ~Net();
     static void init();
     std::string urlEncode(std::string str);
     std::string send(std::string url, std::string params = "");

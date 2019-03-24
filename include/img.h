@@ -9,7 +9,7 @@ public:
     img(int sx, int xy);
     img(gdImagePtr New);
     img(Doc* doc, Net* net);
-    ~img();
+    virtual ~img();
     img copy();
     img copyCrop(uint32_t x, uint32_t y, uint32_t sx, uint32_t sy); //влом пока
     std::string getPng();

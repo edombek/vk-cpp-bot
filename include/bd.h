@@ -10,7 +10,7 @@ private:
 
 public:
     BD(std::string path);
-    ~BD();
+    virtual ~BD();
     std::mutex lock;
     json& get();
     void save();

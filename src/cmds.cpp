@@ -27,7 +27,7 @@ string getParamOfPath(string path, string p)
 }
 
 #include <chrono>
-void test(cmdHead)
+void stat(cmdHead)
 {
     std::chrono::time_point<std::chrono::system_clock> begin, end;
     begin = std::chrono::system_clock::now();
@@ -200,17 +200,21 @@ void asin(cmdHead)
         else
             r = o.x;
         img balled(2 * r, 2 * r);
+        xy_t xy;
+        ra_t ra;
+        xy_t xyO;
         for (uint32_t yc = 0; yc < balled.im->sy; yc++)
             for (uint32_t xc = 0; xc < balled.im->sx; xc++) {
-                xy_t xy = { (xc - r) / r, (yc - r) / r };
-                ra_t ra = toRA(xy);
+                xy.x = (xc - r) / r;
+                xy.y = (yc - r) / r;
+                ra = toRA(xy);
                 if (ra.r * ra.r > 1) {
                     gdImageSetPixel(balled.im, xc, yc, 0xFFFFFFFF);
                     continue;
                 }
                 for (int32_t i = 0; i < c; i++)
                     ra.r = asin(ra.r) / M_PI * 2;
-                xy_t xyO = toXY(ra);
+                xyO = toXY(ra);
                 gdImageSetPixel(balled.im, xc, yc, gdImageGetPixel(im.im, xyO.x * r + o.x, xyO.y * r + o.y));
             }
 
@@ -245,17 +249,21 @@ void sin(cmdHead)
         else
             r = o.x;
         img balled(2 * r, 2 * r);
+        xy_t xy;
+        ra_t ra;
+        xy_t xyO;
         for (uint32_t yc = 0; yc < balled.im->sy; yc++)
             for (uint32_t xc = 0; xc < balled.im->sx; xc++) {
-                xy_t xy = { (xc - r) / r, (yc - r) / r };
-                ra_t ra = toRA(xy);
+                xy.x = (xc - r) / r;
+                xy.y = (yc - r) / r;
+                ra = toRA(xy);
                 if (ra.r * ra.r > 1) {
                     gdImageSetPixel(balled.im, xc, yc, 0xFFFFFFFF);
                     continue;
                 }
                 for (int32_t i = 0; i < c; i++)
                     ra.r = sin(ra.r * M_PI / 2);
-                xy_t xyO = toXY(ra);
+                xyO = toXY(ra);
                 gdImageSetPixel(balled.im, xc, yc, gdImageGetPixel(im.im, xyO.x * r + o.x, xyO.y * r + o.y));
             }
 
