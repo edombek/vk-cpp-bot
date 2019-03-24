@@ -6,7 +6,7 @@
 class Lp {
 public:
     Lp();
-    virtual ~Lp();
+    ~Lp();
     void getServer();
     void loop();
 

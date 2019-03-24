@@ -10,7 +10,7 @@ public:
     Net* net;
     Vk* vk;
     Event(json lpEv = NULL);
-    virtual ~Event();
+    ~Event();
     void setNet(Net* n, Vk* v);
     std::string type;
     std::string msg;

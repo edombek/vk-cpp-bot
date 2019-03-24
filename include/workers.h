@@ -19,7 +19,7 @@ private:
 
 public:
     Workers(uint8_t c = 1);
-    virtual ~Workers();
+    ~Workers();
     void add_event(Event*);
     Event* get_event();
     void work();
