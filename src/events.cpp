@@ -1,7 +1,9 @@
 #include "events.h"
 #include "common.h"
 #include "str.h"
-Event::Event(json lpEv)
+Event::Event(Net& n, Vk& v, json lpEv)
+    : net(n)
+    , vk(v)
 {
     if (lpEv == NULL)
         return;
@@ -20,10 +22,10 @@ Event::Event(json lpEv)
     if (this->type.find("message_") != this->type.npos) {
         this->peer_id = lpEv["peer_id"];
         if (!lpEv["reply_message"].is_null())
-            this->fwds.push_back(new Event({ { "type", this->type }, { "object", lpEv["reply_message"] } }));
+            this->fwds.push_back(Event(this->net, this->vk, { { "type", this->type }, { "object", lpEv["reply_message"] } }));
         if (!lpEv["fwd_messages"].is_null())
             for (auto fwd : lpEv["fwd_messages"])
-                this->fwds.push_back(new Event({ { "type", this->type }, { "object", fwd } }));
+                this->fwds.push_back(Event(this->net, this->vk, { { "type", this->type }, { "object", fwd } }));
     }
     if (this->type.find("wall_post_") != this->type.npos) {
         this->peer_id = lpEv["owner_id"];
@@ -32,23 +34,8 @@ Event::Event(json lpEv)
     this->is_chat = !this->id && this->from_id == this->peer_id;
     if (!lpEv["attachments"].is_null()) {
         for (auto attach : lpEv["attachments"])
-            this->docs.push_back(new Doc(attach));
+            this->docs.push_back(Doc(attach));
     }
-}
-
-Event::~Event()
-{
-    for (auto fwd : this->fwds)
-        delete fwd;
-    for (auto doc : docs)
-        if (doc)
-            delete doc;
-}
-
-void Event::setNet(Net* n, Vk* v)
-{
-    this->net = n;
-    this->vk = v;
 }
 
 json Event::send()
@@ -59,29 +46,28 @@ json Event::send()
         param["random_id"] = std::to_string(this->random_id);
         param["message"] = this->msg;
         for (auto doc : this->docs)
-            if (doc)
-                param["attachment"] += doc->get() + ",";
-        return this->vk->send("messages.send", param);
+            param["attachment"] += doc.get() + ",";
+        return this->vk.send("messages.send", param);
     }
     if (this->type.find("wall_post_") != this->type.npos) {
         param["post_id"] = std::to_string(this->id);
         param["message"] = this->msg;
         param["owner_id"] = std::to_string(this->peer_id);
         for (auto doc : this->docs)
-            param["attachment"] += doc->get() + ",";
-        return this->vk->send("wall.createComment", param);
+            param["attachment"] += doc.get() + ",";
+        return this->vk.send("wall.createComment", param);
     }
     return NULL;
 }
 
-Event* Event::getOut()
+Event Event::getOut()
 {
-    Event* event = new Event;
-    event->type = this->type;
-    event->from_id = this->from_id;
-    event->peer_id = this->peer_id;
-    event->id = this->id;
-    event->random_id = this->random_id;
-    event->user = this->user;
+    Event event(this->net, this->vk);
+    event.type = this->type;
+    event.from_id = this->from_id;
+    event.peer_id = this->peer_id;
+    event.id = this->id;
+    event.random_id = this->random_id;
+    event.user = this->user;
     return event;
 }

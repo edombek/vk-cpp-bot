@@ -6,7 +6,6 @@
 class Lp {
 public:
     Lp();
-    ~Lp();
     void getServer();
     void loop();
 
@@ -15,8 +14,8 @@ private:
     std::string server;
     std::string ts;
     std::string key;
-    Net* net;
-    Vk* vk;
+    Net net;
+    Vk vk;
 };
 
 #endif // LP_H

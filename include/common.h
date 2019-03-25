@@ -9,6 +9,6 @@ typedef std::vector<std::string> args_t;
 #include <map>
 typedef std::map<std::string, std::string> table_t;
 
-#define wCount 2
+#define wCount 4
 
 #endif

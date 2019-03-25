@@ -2,16 +2,16 @@
 #include "bd.h"
 #include <iostream>
 
-json users::newUser(uint32_t id, Vk* vk)
+json users::newUser(uint32_t id, Vk& vk)
 {
     json u = {};
     u["acess"] = 1;
     u["msgs"] = 0;
-    u["name"] = vk->send("users.get", { { "user_ids", std::to_string(id) } })["response"][0]["first_name"];
+    u["name"] = vk.send("users.get", { { "user_ids", std::to_string(id) } })["response"][0]["first_name"];
     return u;
 }
 
-users::user users::getUser(uint32_t id, Vk* vk)
+users::user users::getUser(uint32_t id, Vk& vk)
 {
     users::user u;
     bd.lock.lock();

@@ -3,7 +3,7 @@
 
 using namespace std;
 
-typedef void (*msg_func_t)(Event* eventIn, Event* eventOut); // func(eventIn, eventOut)
+typedef void (*msg_func_t)(Event& eventIn, Event& eventOut); // func(eventIn, eventOut)
 typedef struct {
     string info;
     msg_func_t func;
@@ -38,23 +38,23 @@ cmds_t cmdsList = {
 
 void help(cmdHead)
 {
-    eventOut->msg += "твой уровень прав: " + to_string(eventOut->user.acess) + "\n";
+    eventOut.msg += "твой уровень прав: " + to_string(eventOut.user.acess) + "\n";
     for (auto cmdInfo : cmdsList) {
-        if (!cmdInfo.second.disp && eventOut->user.acess < cmdInfo.second.acess)
+        if (!cmdInfo.second.disp && eventOut.user.acess < cmdInfo.second.acess)
             continue;
-        eventOut->msg += cmdInfo.first + " - " + cmdInfo.second.info + " (" + to_string(cmdInfo.second.acess) + ")\n";
+        eventOut.msg += cmdInfo.first + " - " + cmdInfo.second.info + " (" + to_string(cmdInfo.second.acess) + ")\n";
     }
 }
 
 #include <cstdio>
-bool cmd::start(std::string comand, Event* eventIn, Event* eventOut)
+bool cmd::start(std::string comand, Event& eventIn, Event& eventOut)
 {
     if (cmdsList.find(comand) == cmdsList.cend())
         return false;
-    if (cmdsList[comand].acess > eventOut->user.acess)
+    if (cmdsList[comand].acess > eventOut.user.acess)
         return false;
-    fprintf(stderr, "\n%s vk.com/id%d (%d/%d(%s))", comand.c_str(), eventIn->user.id, eventIn->user.id, eventIn->peer_id, eventIn->type.c_str());
+    fprintf(stderr, "\n%s vk.com/id%d (%d/%d(%s))", comand.c_str(), eventIn.user.id, eventIn.user.id, eventIn.peer_id, eventIn.type.c_str());
     cmdsList[comand].func(eventIn, eventOut);
-    fprintf(stderr, "\r%s vk.com/id%d (%d/%d(%s))-done!\n", comand.c_str(), eventIn->user.id, eventIn->user.id, eventIn->peer_id, eventIn->type.c_str());
+    fprintf(stderr, "\r%s vk.com/id%d (%d/%d(%s))-done!\n", comand.c_str(), eventIn.user.id, eventIn.user.id, eventIn.peer_id, eventIn.type.c_str());
     return true;
 }

@@ -31,29 +31,29 @@ void stat(cmdHead)
 {
     std::chrono::time_point<std::chrono::system_clock> begin, end;
     begin = std::chrono::system_clock::now();
-    eventOut->net->send("http://api.vk.com");
+    eventOut.net.send("http://api.vk.com");
     end = std::chrono::system_clock::now();
     unsigned int t = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
-    eventOut->msg += GIT_URL;
-    eventOut->msg += " (" + string(GIT_VER) + ")\n";
-    eventOut->msg += "Обработка VK API за: " + to_string(t) + "мс\n";
-    eventOut->msg += "id чата (пользователь/чат): " + to_string(eventIn->from_id) + "/" + to_string(eventIn->peer_id) + "\n";
+    eventOut.msg += GIT_URL;
+    eventOut.msg += " (" + string(GIT_VER) + ")\n";
+    eventOut.msg += "Обработка VK API за: " + to_string(t) + "мс\n";
+    eventOut.msg += "id чата (пользователь/чат): " + to_string(eventIn.from_id) + "/" + to_string(eventIn.peer_id) + "\n";
 
     //получаем использование памяти
     string allMem = to_string((int)((float)str::fromString(getParamOfPath("/proc/meminfo", "MemTotal")) / 1024));
     string usedMem = to_string((int)((float)(str::fromString(getParamOfPath("/proc/meminfo", "MemTotal")) - str::fromString(getParamOfPath("/proc/meminfo", "MemAvailable"))) / 1024));
     string myMem = to_string((int)((float)str::fromString(getParamOfPath("/proc/self/status", "VmRSS")) / 1024));
 
-    eventOut->msg += "CPU:" + getParamOfPath("/proc/cpuinfo", "model name") + "\n";
-    eventOut->msg += "RAM: " + usedMem + "/" + allMem + " Мб\n";
-    eventOut->msg += "Я сожрал оперативы: " + myMem + " Мб\n";
-    eventOut->msg += "Потоков занял: " + getParamOfPath("/proc/self/status", "Threads") + "\n\n";
+    eventOut.msg += "CPU:" + getParamOfPath("/proc/cpuinfo", "model name") + "\n";
+    eventOut.msg += "RAM: " + usedMem + "/" + allMem + " Мб\n";
+    eventOut.msg += "Я сожрал оперативы: " + myMem + " Мб\n";
+    eventOut.msg += "Потоков занял: " + getParamOfPath("/proc/self/status", "Threads") + "\n\n";
 
-    eventOut->msg += "Всего сообщений от тебя: " + std::to_string(eventOut->user.msgs) + "\n";
+    eventOut.msg += "Всего сообщений от тебя: " + std::to_string(eventOut.user.msgs) + "\n";
 
-    /*    for (auto doc : eventIn->docs) {
-        img im(doc, eventOut->net);
-        eventOut->docs.push_back(im.getDoc("photo", "doc", eventOut->peer_id, eventOut->net, eventOut->vk));
+    /*    for (auto doc : eventIn.docs) {
+        img im(doc, eventOut.net);
+        eventOut.docs.push_back(im.getDoc("photo", "doc", eventOut.peer_id, eventOut.net, eventOut.vk));
     }*/
 }
 
@@ -61,91 +61,88 @@ void con(cmdHead)
 {
     char buffer[512];
 #ifdef __linux__
-    args_t commands = str::words(str::summ(eventIn->words, 1), '\n');
+    args_t commands = str::words(str::summ(eventIn.words, 1), '\n');
     string c = "";
     for (auto command : commands)
         c += command + " 2>&1\n";
 #elif _WIN32
-    string c = str::summ(eventIn->words, 1);
+    string c = str::summ(eventIn.words, 1);
 #endif
 
     FILE* pipe = popen(c.c_str(), "r");
     while (fgets(buffer, sizeof buffer, pipe) != NULL) {
-        eventOut->msg = buffer;
-        eventOut->send();
+        eventOut.msg = buffer;
+        eventOut.send();
     }
-    eventOut->msg = "done!";
+    eventOut.msg = "done!";
     pclose(pipe);
 }
 
 void upload(cmdHead)
 {
-    string filename = str::summ(eventIn->words, 1);
+    string filename = str::summ(eventIn.words, 1);
     string dat = fs::readData(filename);
-    Doc* doc = new Doc;
-    if (doc->uploadDoc(filename, dat, eventOut->net, eventOut->vk, eventOut->peer_id))
-        eventOut->docs.push_back(doc);
-    else
-        delete doc;
+    Doc doc;
+    if (doc.uploadDoc(filename, dat, eventOut.net, eventOut.vk, eventOut.peer_id))
+        eventOut.docs.push_back(doc);
 }
 
 void set(cmdHead)
 {
-    if (eventIn->words.size() != 3) // != <cmd, id, level>
-        eventOut->msg += "/set <id> <level>...";
+    if (eventIn.words.size() != 3) // != <cmd, id, level>
+        eventOut.msg += "/set <id> <level>...";
     else {
-        uint32_t id = str::fromString(eventIn->words[1]);
+        uint32_t id = str::fromString(eventIn.words[1]);
         if (!id)
-            eventOut->msg += "/set <id> <level>...";
+            eventOut.msg += "/set <id> <level>...";
         else {
-            users::user user = users::getUser(id, eventOut->vk);
-            user.acess = str::fromString(eventIn->words[2]);
+            users::user user = users::getUser(id, eventOut.vk);
+            user.acess = str::fromString(eventIn.words[2]);
             user.msgs--;
             users::changeUser(id, user);
-            eventOut->msg += "done!";
+            eventOut.msg += "done!";
         }
     }
 }
 
 void rename(cmdHead)
 {
-    if (eventIn->words.size() < 2) // != <cmd, id, level>
-        eventOut->msg += "/rename <name>...";
+    if (eventIn.words.size() < 2) // != <cmd, id, level>
+        eventOut.msg += "/rename <name>...";
     else {
-        eventIn->user.name = str::summ(eventIn->words, 1);
-        users::changeUser(eventIn->user.id, eventIn->user);
-        eventOut->msg += "done!";
+        eventIn.user.name = str::summ(eventIn.words, 1);
+        users::changeUser(eventIn.user.id, eventIn.user);
+        eventOut.msg += "done!";
     }
 }
 
 void videos(cmdHead)
 {
-    if (eventIn->words.size() < 2)
-        eventOut->msg += "/vid <count> <q>";
+    if (eventIn.words.size() < 2)
+        eventOut.msg += "/vid <count> <q>";
     else {
-        string q = str::summ(eventIn->words, 1);
-        int c = str::fromString(eventIn->words[1]);
+        string q = str::summ(eventIn.words, 1);
+        int c = str::fromString(eventIn.words[1]);
         if (!c || c > 200)
             c = 200;
-        json resp = eventOut->vk->send("video.search", { { "q", q }, { "count", to_string(c) }, { "adult", "0" }, { "hd", "1" }, { "filters", "mp4" } }, true);
+        json resp = eventOut.vk.send("video.search", { { "q", q }, { "count", to_string(c) }, { "adult", "0" }, { "hd", "1" }, { "filters", "mp4" } }, true);
         if (resp["response"].is_null() || resp["response"]["items"].size() == 0) {
-            eventOut->msg = "nope";
+            eventOut.msg = "nope";
             return;
         }
-        string msg = eventOut->msg;
+        string msg = eventOut.msg;
         string vidc = "/" + to_string(resp["response"]["items"].size());
         for (uint16_t i = 0; i < resp["response"]["items"].size(); i++) {
             json r;
             r["video"] = resp["response"]["items"][i];
             r["type"] = "video";
-            Doc* doc = new Doc(r);
-            eventOut->docs = { doc };
-            eventOut->msg = msg + to_string(i + 1) + vidc;
-            eventOut->send();
-            delete doc;
+            Doc doc(r);
+            eventOut.docs = { doc };
+            eventOut.msg = msg + to_string(i + 1) + vidc;
+            eventOut.send();
         }
-        eventOut->msg = msg + "держи";
-        eventOut->docs = {};
+        eventOut.msg = msg + "держи";
+        eventOut.docs = {};
     }
 }
 
@@ -181,18 +178,18 @@ xy_t toXY(ra_t c)
 
 void asin(cmdHead)
 {
-    if (!eventIn->docs.size()) {
-        eventOut->msg += "прикрепи фото";
+    if (!eventIn.docs.size()) {
+        eventOut.msg += "прикрепи фото";
         return;
     }
     int32_t c;
-    if (eventIn->words.size() > 1)
-        c = str::fromString(eventIn->words[1]);
+    if (eventIn.words.size() > 1)
+        c = str::fromString(eventIn.words[1]);
     if (c < 1)
         c = 1;
 
-    for (auto doc : eventIn->docs) {
-        img im(doc, eventIn->net);
+    for (auto doc : eventIn.docs) {
+        img im(doc, eventIn.net);
         xy_t o = { im.im->sx / 2.0f, im.im->sy / 2.0f };
         float r;
         if (o.x > o.y)
@@ -218,30 +215,27 @@ void asin(cmdHead)
                 gdImageSetPixel(balled.im, xc, yc, gdImageGetPixel(im.im, xyO.x * r + o.x, xyO.y * r + o.y));
             }
 
-        eventOut->docs.push_back(balled.getPhoto(eventIn->peer_id, eventIn->net, eventIn->vk));
-        eventOut->docs.push_back(balled.getDoc(eventIn->peer_id, eventIn->net, eventIn->vk));
-        eventOut->send();
-        for (auto doc : eventOut->docs)
-            if (doc)
-                delete doc;
-        eventOut->docs = {};
+        eventOut.docs.push_back(balled.getPhoto(eventIn.peer_id, eventIn.net, eventIn.vk));
+        eventOut.docs.push_back(balled.getDoc(eventIn.peer_id, eventIn.net, eventIn.vk));
+        eventOut.send();
+        eventOut.docs = {};
     }
-    eventOut->msg += "готово)";
+    eventOut.msg += "готово)";
 }
 
 void sin(cmdHead)
 {
-    if (!eventIn->docs.size()) {
-        eventOut->msg += "прикрепи фото";
+    if (!eventIn.docs.size()) {
+        eventOut.msg += "прикрепи фото";
         return;
     }
     int32_t c;
-    if (eventIn->words.size() > 1)
-        c = str::fromString(eventIn->words[1]);
+    if (eventIn.words.size() > 1)
+        c = str::fromString(eventIn.words[1]);
     if (c < 1)
         c = 1;
-    for (auto doc : eventIn->docs) {
-        img im(doc, eventIn->net);
+    for (auto doc : eventIn.docs) {
+        img im(doc, eventIn.net);
         xy_t o = { im.im->sx / 2.0f, im.im->sy / 2.0f };
         float r;
         if (o.x > o.y)
@@ -267,13 +261,10 @@ void sin(cmdHead)
                 gdImageSetPixel(balled.im, xc, yc, gdImageGetPixel(im.im, xyO.x * r + o.x, xyO.y * r + o.y));
             }
 
-        eventOut->docs.push_back(balled.getPhoto(eventIn->peer_id, eventIn->net, eventIn->vk));
-        eventOut->docs.push_back(balled.getDoc(eventIn->peer_id, eventIn->net, eventIn->vk));
-        eventOut->send();
-        for (auto doc : eventOut->docs)
-            if (doc)
-                delete doc;
-        eventOut->docs = {};
+        eventOut.docs.push_back(balled.getPhoto(eventIn.peer_id, eventIn.net, eventIn.vk));
+        eventOut.docs.push_back(balled.getDoc(eventIn.peer_id, eventIn.net, eventIn.vk));
+        eventOut.send();
+        eventOut.docs = {};
     }
-    eventOut->msg += "готово)";
+    eventOut.msg += "готово)";
 }

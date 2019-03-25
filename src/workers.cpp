@@ -6,7 +6,7 @@ Workers::Workers(uint8_t c)
 {
     this->thrs = new thread[c];
     this->thrs_count = c;
-    this->events = new Event*[maxEvents];
+    this->events = new json[maxEvents];
     this->event_read = 0;
     this->event_write = 0;
     this->event_size = 0;
@@ -23,7 +23,7 @@ Workers::~Workers()
     delete events;
 }
 
-void Workers::add_event(Event* event)
+void Workers::add_event(json event)
 {
     this->events_lock.lock();
     if (this->event_size == maxEvents) {
@@ -38,14 +38,14 @@ void Workers::add_event(Event* event)
     this->getter_lock.unlock();
 }
 
-Event* Workers::get_event()
+json Workers::get_event()
 {
-    Event* event = NULL;
+    json event;
     this->getter_lock.lock();
     this->events_lock.lock();
     if (this->event_size) {
-
         event = this->events[this->event_read];
+        this->events[this->event_read] = json::value_t::null;
         this->event_read = (this->event_read + 1) % maxEvents;
         this->event_size--;
     }
@@ -57,25 +57,23 @@ Event* Workers::get_event()
 
 #include "cmd.h"
 #include "str.h"
+#include <iostream>
 void Workers::work()
 {
     Net net;
-    Vk vk(&net);
+    Vk vk(net);
     while (true) {
-        Event* event = this->get_event();
-        if (event == NULL)
+        json event = this->get_event();
+        if (event.is_null())
             continue;
-        if (event->msg.size() && event->from_id > 0) {
-            event->user = users::getUser(event->from_id, &vk);
-            Event* outEvent = event->getOut();
-            event->setNet(&net, &vk);
-            outEvent->setNet(&net, &vk);
-            outEvent->msg += outEvent->user.name + ", ";
-            if (cmd::start(str::low(*event->words.begin()), event, outEvent))
-                outEvent->send();
-            delete outEvent;
+        Event eventOut(net, vk, event);
+        if (eventOut.msg.size() && eventOut.from_id > 0) {
+            eventOut.user = users::getUser(eventOut.from_id, vk);
+            Event outEvent = eventOut.getOut();
+            outEvent.msg += outEvent.user.name + ", ";
+            if (cmd::start(str::low(*eventOut.words.begin()), eventOut, outEvent))
+                outEvent.send();
             bd.save();
         }
-        delete event;
     }
 }

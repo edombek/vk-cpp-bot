@@ -10,7 +10,7 @@ class Workers {
 private:
     std::thread* thrs;
     uint8_t thrs_count;
-    Event** events;
+    json* events;
     uint8_t event_read;
     uint8_t event_write;
     uint8_t event_size;
@@ -20,8 +20,8 @@ private:
 public:
     Workers(uint8_t c = 1);
     ~Workers();
-    void add_event(Event*);
-    Event* get_event();
+    void add_event(json);
+    json get_event();
     void work();
 };
 

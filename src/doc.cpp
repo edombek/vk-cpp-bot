@@ -65,7 +65,7 @@ Doc::Doc(json lpDoc)
     }
 }
 
-bool Doc::uploadDoc(std::string filename, std::string& data, Net* net, Vk* vk, uint32_t peer_id, bool audio_message)
+bool Doc::uploadDoc(std::string filename, std::string& data, Net& net, Vk& vk, uint32_t peer_id, bool audio_message)
 {
     table_t params;
     if (peer_id) {
@@ -74,16 +74,16 @@ bool Doc::uploadDoc(std::string filename, std::string& data, Net* net, Vk* vk, u
             params["type"] = "audio_message";
     } else
         return false;
-    json resp = vk->send("docs.getMessagesUploadServer", params);
+    json resp = vk.send("docs.getMessagesUploadServer", params);
     if (resp["response"]["upload_url"].is_null())
         return false;
-    resp = json::parse(net->upload(resp["response"]["upload_url"], filename, data));
+    resp = json::parse(net.upload(resp["response"]["upload_url"], filename, data));
     if (resp["file"].is_null())
         return false;
     params = {
         { "file", resp["file"] }
     };
-    resp = vk->send("docs.save", params);
+    resp = vk.send("docs.save", params);
     if (resp["response"].is_null())
         return false;
     resp = resp["response"];
@@ -118,17 +118,17 @@ bool Doc::uploadDoc(std::string filename, std::string& data, Net* net, Vk* vk, u
     return true;
 }
 
-bool Doc::uploadPhoto(std::string filename, std::string& data, Net* net, Vk* vk, uint32_t peer_id)
+bool Doc::uploadPhoto(std::string filename, std::string& data, Net& net, Vk& vk, uint32_t peer_id)
 {
     table_t params;
     if (peer_id)
         params["peer_id"] = std::to_string(peer_id);
     else
         return false;
-    json resp = vk->send("photos.getMessagesUploadServer", params);
+    json resp = vk.send("photos.getMessagesUploadServer", params);
     if (resp["response"]["upload_url"].is_null())
         return false;
-    resp = json::parse(net->upload(resp["response"]["upload_url"], filename, data));
+    resp = json::parse(net.upload(resp["response"]["upload_url"], filename, data));
     if (resp["server"].is_null())
         return false;
     params = {
@@ -136,7 +136,7 @@ bool Doc::uploadPhoto(std::string filename, std::string& data, Net* net, Vk* vk,
         { "photo", resp["photo"] },
         { "hash", resp["hash"] }
     };
-    resp = vk->send("photos.saveMessagesPhoto", params);
+    resp = vk.send("photos.saveMessagesPhoto", params);
     if (resp["response"][0].is_null())
         return false;
     resp = resp["response"][0];

@@ -8,10 +8,10 @@ class Vk {
 private:
     std::string token;
     std::string user_token;
-    Net* net;
+    Net& net;
 
 public:
-    Vk(Net* n);
+    Vk(Net& n);
     json send(std::string method, table_t args = {}, bool user = false);
 };
 

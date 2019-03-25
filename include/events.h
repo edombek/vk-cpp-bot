@@ -7,11 +7,9 @@
 
 class Event {
 public:
-    Net* net;
-    Vk* vk;
-    Event(json lpEv = NULL);
-    ~Event();
-    void setNet(Net* n, Vk* v);
+    Net& net;
+    Vk& vk;
+    Event(Net& n, Vk& v, json lpEv = NULL);
     std::string type;
     std::string msg;
     args_t words;
@@ -22,9 +20,9 @@ public:
     time_t timestamp;
     bool is_chat;
     users::user user;
-    Event* getOut();
-    std::vector<Doc*> docs;
-    std::vector<Event*> fwds;
+    Event getOut();
+    std::vector<Doc> docs;
+    std::vector<Event> fwds;
     json send();
 };
 

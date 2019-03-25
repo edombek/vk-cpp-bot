@@ -11,15 +11,16 @@ img::img(gdImagePtr New)
     this->im = New;
 }
 
-img::img(Doc* doc, Net* net)
+#include "str.h"
+img::img(Doc doc, Net& net)
 {
     this->im = NULL;
-    std::string buff = net->send(doc->url);
-    if (doc->ext == "jpg" || doc->ext == "jpeg" || doc->ext == "JPG" || doc->ext == "")
+    std::string buff = net.send(doc.url);
+    if (str::low(doc.ext) == "jpg" || str::low(doc.ext) == "jpeg")
         this->im = gdImageCreateFromJpegPtr(buff.size(), (void*)buff.c_str());
-    else if (doc->ext == "png")
+    else if (str::low(doc.ext) == "png")
         this->im = gdImageCreateFromPngPtr(buff.size(), (void*)buff.c_str());
-    else if (doc->ext == "bmp" || doc->ext == "BMP")
+    else if (str::low(doc.ext) == "bmp")
         this->im = gdImageCreateFromBmpPtr(buff.size(), (void*)buff.c_str());
 }
 
@@ -34,28 +35,26 @@ std::string img::getPng()
     return buff;
 }
 
-Doc* img::getDoc(uint32_t peer_id, Net* net, Vk* vk)
+Doc img::getDoc(uint32_t peer_id, Net& net, Vk& vk)
 {
     if (this->im == NULL)
-        return NULL;
+        return Doc();
     std::string dat = this->getPng();
-    Doc* doc = new Doc();
-    if (doc->uploadDoc("img.png", dat, net, vk, peer_id))
+    Doc doc;
+    if (doc.uploadDoc("img.png", dat, net, vk, peer_id))
         return doc;
-    delete doc;
-    return NULL;
+    return doc;
 }
 
-Doc* img::getPhoto(uint32_t peer_id, Net* net, Vk* vk)
+Doc img::getPhoto(uint32_t peer_id, Net& net, Vk& vk)
 {
     if (this->im == NULL)
-        return NULL;
+        return Doc();
     std::string dat = this->getPng();
-    Doc* doc = new Doc();
-    if (doc->uploadPhoto("img.png", dat, net, vk, peer_id))
+    Doc doc;
+    if (doc.uploadPhoto("img.png", dat, net, vk, peer_id))
         return doc;
-    delete doc;
-    return NULL;
+    return doc;
 }
 
 img::~img()
