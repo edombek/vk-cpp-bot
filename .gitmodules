@@ -1,0 +1,3 @@
+[submodule "win32deps"]
+	path = win32deps
+	url = https://github.com/edombek/vk-cpp-bot-win32deps

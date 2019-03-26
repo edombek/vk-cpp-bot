@@ -1,13 +1,11 @@
-#ifdef __linux__
-#include <curl/curl.h>
-#elif _WIN32
-#pragma comment(lib, "libcurl.lib")
-#include "win32deps/include/curl/curl.h"
-#endif
 #include "net.h"
 #include <cstdio>
 #include <iostream>
 using namespace std;
+
+#ifdef WIN32
+#pragma comment(lib, "libcurl.lib")
+#endif
 
 #define net_agent "EVGESHAd vk-cpp-bot"
 #ifdef DEBUG

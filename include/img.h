@@ -4,6 +4,10 @@
 #include "vk.h"
 #include <gd.h>
 
+#ifdef WIN32
+#pragma comment(lib, "libgd.lib")
+#endif
+
 class img {
 public:
     img(int sx, int xy);

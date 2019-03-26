@@ -33,9 +33,11 @@ void stat(cmdHead)
     begin = std::chrono::system_clock::now();
     eventOut.net.send("http://api.vk.com");
     end = std::chrono::system_clock::now();
-    unsigned int t = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
+	uint32_t t = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
+#ifndef WIN32
     eventOut.msg += GIT_URL;
     eventOut.msg += " (" + string(GIT_VER) + ")\n";
+#endif
     eventOut.msg += "Обработка VK API за: " + to_string(t) + "мс\n";
     eventOut.msg += "id чата (пользователь/чат): " + to_string(eventIn.from_id) + "/" + to_string(eventIn.peer_id) + "\n";
 
@@ -57,6 +59,10 @@ void stat(cmdHead)
     }*/
 }
 
+#ifdef WIN32 //винда чо ¯\_(ツ)_/¯
+#define popen _popen
+#define pclose _pclose
+#endif
 void con(cmdHead)
 {
     char buffer[512];
@@ -65,7 +71,7 @@ void con(cmdHead)
     string c = "";
     for (auto command : commands)
         c += command + " 2>&1\n";
-#elif _WIN32
+#elif WIN32
     string c = str::summ(eventIn.words, 1);
 #endif
 

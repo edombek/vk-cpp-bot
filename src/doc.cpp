@@ -23,7 +23,7 @@ Doc::Doc(json lpDoc)
         if (lpDoc["access_key"].is_string())
             this->acess_key = lpDoc["access_key"];
         this->timestamp = lpDoc["date"];
-        uint32_t maxS = 0;
+        int maxS = 0;
         for (auto s : lpDoc["sizes"])
             if (maxS < s["width"].get<int>() * s["height"].get<int>()) {
                 maxS = s["width"].get<int>() * s["height"].get<int>();
@@ -146,7 +146,7 @@ bool Doc::uploadPhoto(std::string filename, std::string& data, Net& net, Vk& vk,
     if (resp["access_key"].is_string())
         this->acess_key = resp["access_key"];
     this->timestamp = resp["date"];
-    uint32_t maxS = 0;
+    int maxS = 0;
     for (auto s : resp["sizes"])
         if (maxS < s["width"].get<int>() * s["height"].get<int>()) {
             maxS = s["width"].get<int>() * s["height"].get<int>();

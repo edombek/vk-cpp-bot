@@ -1,0 +1,1 @@
+copy win32deps\libs\ .
