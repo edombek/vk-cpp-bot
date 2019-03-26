@@ -33,7 +33,7 @@ void stat(cmdHead)
     begin = std::chrono::system_clock::now();
     eventOut.net.send("http://api.vk.com");
     end = std::chrono::system_clock::now();
-	uint32_t t = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
+    uint32_t t = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
 #ifndef WIN32
     eventOut.msg += GIT_URL;
     eventOut.msg += " (" + string(GIT_VER) + ")\n";

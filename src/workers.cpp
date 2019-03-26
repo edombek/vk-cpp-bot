@@ -17,10 +17,10 @@ Workers::Workers(uint8_t c)
 
 Workers::~Workers()
 {
-	for (int i = 0; i < this->thrs_count; i++) {
-		this->thrs[i]->join();
-		delete this->thrs[i];
-	}
+    for (int i = 0; i < this->thrs_count; i++) {
+        this->thrs[i]->join();
+        delete this->thrs[i];
+    }
     delete[] thrs;
     delete[] this->events;
 }
@@ -36,8 +36,8 @@ void Workers::add_event(json event)
     this->events[this->event_write] = event;
     this->event_write = (this->event_write + 1) % maxEvents;
     this->events_lock.unlock();
-    if(this->getter_lock.try_lock())
-		this->getter_lock.unlock();
+    if (this->getter_lock.try_lock())
+        this->getter_lock.unlock();
 }
 
 json Workers::get_event()
