@@ -61,14 +61,11 @@ void stat(cmdHead)
 void con(cmdHead)
 {
     char buffer[512];
-#ifdef __linux__
+
     args_t commands = str::words(str::summ(eventIn.words, 1), '\n');
     string c = "";
     for (auto command : commands)
         c += command + " 2>&1\n";
-#elif WIN32
-    string c = str::summ(eventIn.words, 1);
-#endif
 
     FILE* pipe = popen(c.c_str(), "r");
     while (fgets(buffer, sizeof buffer, pipe) != NULL) {
