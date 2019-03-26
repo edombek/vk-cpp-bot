@@ -8,6 +8,7 @@ using namespace std;
 #endif
 
 #define net_agent "EVGESHAd vk-cpp-bot"
+
 #ifdef DEBUG
 #define printOut
 #endif // DEBUG

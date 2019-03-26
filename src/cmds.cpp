@@ -40,7 +40,7 @@ void stat(cmdHead)
 #endif
     eventOut.msg += "Обработка VK API за: " + to_string(t) + "мс\n";
     eventOut.msg += "id чата (пользователь/чат): " + to_string(eventIn.from_id) + "/" + to_string(eventIn.peer_id) + "\n";
-
+#ifndef WIN32
     //получаем использование памяти
     string allMem = to_string((int)((float)str::fromString(getParamOfPath("/proc/meminfo", "MemTotal")) / 1024));
     string usedMem = to_string((int)((float)(str::fromString(getParamOfPath("/proc/meminfo", "MemTotal")) - str::fromString(getParamOfPath("/proc/meminfo", "MemAvailable"))) / 1024));
@@ -50,13 +50,8 @@ void stat(cmdHead)
     eventOut.msg += "RAM: " + usedMem + "/" + allMem + " Мб\n";
     eventOut.msg += "Я сожрал оперативы: " + myMem + " Мб\n";
     eventOut.msg += "Потоков занял: " + getParamOfPath("/proc/self/status", "Threads") + "\n\n";
-
+#endif
     eventOut.msg += "Всего сообщений от тебя: " + std::to_string(eventOut.user.msgs) + "\n";
-
-    /*    for (auto doc : eventIn.docs) {
-        img im(doc, eventOut.net);
-        eventOut.docs.push_back(im.getDoc("photo", "doc", eventOut.peer_id, eventOut.net, eventOut.vk));
-    }*/
 }
 
 #ifdef WIN32 //винда чо ¯\_(ツ)_/¯
@@ -188,7 +183,7 @@ void asin(cmdHead)
         eventOut.msg += "прикрепи фото";
         return;
     }
-    int32_t c;
+    int32_t c = 1;
     if (eventIn.words.size() > 1)
         c = str::fromString(eventIn.words[1]);
     if (c < 1)
@@ -235,7 +230,7 @@ void sin(cmdHead)
         eventOut.msg += "прикрепи фото";
         return;
     }
-    int32_t c;
+    int32_t c = 1;
     if (eventIn.words.size() > 1)
         c = str::fromString(eventIn.words[1]);
     if (c < 1)

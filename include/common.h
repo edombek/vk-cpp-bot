@@ -1,6 +1,5 @@
 #ifndef COMMON_H_INCLUDED
 #define COMMON_H_INCLUDED
-
 #include "json.hpp"
 using json = nlohmann::json;
 #include <string>

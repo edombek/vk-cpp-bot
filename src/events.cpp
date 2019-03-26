@@ -22,10 +22,10 @@ Event::Event(Net& n, Vk& v, json lpEv)
     if (this->type.find("message_") != this->type.npos) {
         this->peer_id = lpEv["peer_id"];
         if (!lpEv["reply_message"].is_null())
-            this->fwds.push_back(Event(this->net, this->vk, { { "type", this->type }, { "object", lpEv["reply_message"] } }));
+            this->fwds.emplace_back(Event(this->net, this->vk, { { "type", this->type }, { "object", lpEv["reply_message"] } }));
         if (!lpEv["fwd_messages"].is_null())
             for (auto fwd : lpEv["fwd_messages"])
-                this->fwds.push_back(Event(this->net, this->vk, { { "type", this->type }, { "object", fwd } }));
+                this->fwds.emplace_back(Event(this->net, this->vk, { { "type", this->type }, { "object", fwd } }));
     }
     if (this->type.find("wall_post_") != this->type.npos) {
         this->peer_id = lpEv["owner_id"];
@@ -34,7 +34,7 @@ Event::Event(Net& n, Vk& v, json lpEv)
     this->is_chat = !this->id && this->from_id == this->peer_id;
     if (!lpEv["attachments"].is_null()) {
         for (auto attach : lpEv["attachments"])
-            this->docs.push_back(Doc(attach));
+            this->docs.emplace_back(Doc(attach));
     }
 }
 
