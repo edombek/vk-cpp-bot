@@ -14,8 +14,8 @@ private:
     uint8_t event_read;
     uint8_t event_write;
     uint8_t event_size;
-    std::recursive_mutex events_lock;
-    std::recursive_mutex getter_lock;
+    std::timed_mutex events_lock;
+    std::timed_mutex getter_lock;
 
 public:
     Workers(uint8_t c = 1);

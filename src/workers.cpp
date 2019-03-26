@@ -36,7 +36,7 @@ void Workers::add_event(json event)
     this->events[this->event_write] = event;
     this->event_write = (this->event_write + 1) % maxEvents;
     this->events_lock.unlock();
-    if (this->getter_lock.try_lock())
+    if (!this->getter_lock.try_lock())
         this->getter_lock.unlock();
 }
 
