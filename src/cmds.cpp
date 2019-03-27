@@ -105,8 +105,8 @@ void set(cmdHead)
 
 void stop(cmdHead)
 {
-	eventOut.msg += "done!\nwaiting lp...";
-	worker->stop();
+    eventOut.msg += "done!\nwaiting lp...";
+    worker->stop();
 }
 
 void rename(cmdHead)

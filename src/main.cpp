@@ -14,6 +14,6 @@ int main()
     Net::init();
     Lp lp;
     lp.loop();
-	Net::deinit();
+    Net::deinit();
     return 0;
 }

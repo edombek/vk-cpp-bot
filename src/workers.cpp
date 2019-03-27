@@ -13,7 +13,7 @@ Workers::Workers(uint8_t c)
     for (int i = 0; i < c; i++) {
         this->thrs[i] = new thread(&Workers::work, this);
     }
-	stopped = false;
+    stopped = false;
 }
 
 Workers::~Workers()
@@ -28,9 +28,9 @@ Workers::~Workers()
 
 void Workers::stop()
 {
-	for (int i = 0; i < maxEvents; i++)
-		this->add_event("stop");
-	this->stopped = true;
+    for (int i = 0; i < maxEvents; i++)
+        this->add_event("stop");
+    this->stopped = true;
 }
 
 void Workers::add_event(json event)
@@ -76,8 +76,8 @@ void Workers::work()
         json event = this->get_event();
         if (event.is_null())
             continue;
-		if (event.is_string() && event == "stop")
-			return;
+        if (event.is_string() && event == "stop")
+            return;
         Event eventOut(net, vk, event);
         if (eventOut.msg.size() && eventOut.from_id > 0) {
             eventOut.user = users::getUser(eventOut.from_id, vk);

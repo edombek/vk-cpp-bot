@@ -40,7 +40,7 @@ void Net::init()
 
 void Net::deinit()
 {
-	curl_global_cleanup();
+    curl_global_cleanup();
 }
 
 string Net::urlEncode(string str)

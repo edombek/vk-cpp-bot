@@ -1,6 +1,4 @@
-CC=g++ -Ofast
-#CC=g++ -Ofast -g -DDEBUG
-#CC=g++ -g -DDEBUG -fsanitize-recover=address -U_FORTIFY_SOURCE -fno-omit-frame-pointer -fno-common
+CC=g++ -Ofast -g
 CFLAGS= -std=c++11 -c -DGIT_URL="\"$(shell git config --get remote.origin.url)"\" -DGIT_VER="\"$(firstword $(shell git rev-parse --short=6 HEAD) unknown)"\"
 LDFLAGS= -pthread -lcurl -lgd
 INCLUDES= -Iinclude
