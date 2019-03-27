@@ -35,7 +35,12 @@ Net::~Net()
 
 void Net::init()
 {
-    curl_global_init(CURL_GLOBAL_ALL);
+    curl_global_init(CURL_GLOBAL_DEFAULT);
+}
+
+void Net::deinit()
+{
+	curl_global_cleanup();
 }
 
 string Net::urlEncode(string str)

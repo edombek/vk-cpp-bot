@@ -12,6 +12,7 @@ public:
     Net();
     ~Net();
     static void init();
+	static void deinit();
     std::string urlEncode(std::string str);
     std::string send(std::string url, std::string params = "");
     std::string send(std::string url, table_t param, bool post = true);

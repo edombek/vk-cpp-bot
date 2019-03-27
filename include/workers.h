@@ -4,6 +4,7 @@
 #include "events.h"
 #include "vk.h"
 #include <mutex>
+#include <atomic>
 #include <thread>
 #define maxEvents 64
 class Workers {
@@ -20,6 +21,8 @@ private:
 public:
     Workers(uint8_t c = 1);
     ~Workers();
+	std::atomic_bool stopped;
+	void stop();
     void add_event(json);
     json get_event();
     void work();
