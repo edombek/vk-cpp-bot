@@ -41,13 +41,13 @@ args_t str::words(const string& s, char delim)
 // Convert UTF-8 byte string to wstring
 wstring to_wstring(string const& s)
 {
-    wstring_convert<codecvt_utf8<wchar_t>> converter{};
+    wstring_convert<codecvt_utf8<wchar_t>> converter {};
     return converter.from_bytes(s);
 }
 
 string to_string(wstring const& s)
 {
-    wstring_convert<codecvt_utf8<wchar_t>> converter{};
+    wstring_convert<codecvt_utf8<wchar_t>> converter {};
     return converter.to_bytes(s);
 }
 

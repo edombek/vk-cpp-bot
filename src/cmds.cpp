@@ -273,3 +273,62 @@ void sin(cmdHead)
     }
     eventOut.msg += "готово)";
 }
+
+#define openweathermap_msg "get token on openweathermap.org"
+void weather(cmdHead)
+{
+    if (eventIn.words.size() < 2) {
+        eventOut.msg += "мб город введёшь?";
+        return;
+    }
+
+    //вытаскиваем токен от сервиса
+    conf.lock.lock();
+    json& c = conf.get();
+    if (c["openweathermap_token"].is_null() || c["openweathermap_token"] == openweathermap_msg) {
+        c["openweathermap_token"] = openweathermap_msg;
+        conf.lock.unlock();
+        conf.save();
+        eventOut.msg += "передайте админу что он лентяй)";
+        return;
+    }
+    string appid(c["openweathermap_token"]);
+    conf.lock.unlock();
+
+    table_t params = {
+        { "lang", "ru" },
+        { "units", "metric" },
+        { "APPID", appid },
+        { "q", str::summ(eventIn.words, 1) }
+    };
+    json weather = json::parse(eventIn.net.send("http://api.openweathermap.org/data/2.5/weather", params, false));
+    if (weather["main"].is_null()) {
+        eventOut.msg += "чтота пошло не так, возможно надо ввести город транслитом или требуется вмешательство внешних сил(админа)";
+        return;
+    }
+    string temp = "";
+    temp += "погода в " + weather["sys"]["country"].get<string>() + "/" + weather["name"].get<string>() + ":";
+    //temp += "\n¤" + other::getTime(weather["dt"]) + ":\n";
+    temp += "\n•температура: " + to_string((int)weather["main"]["temp"]) + "°C\n•скорость ветра: " + to_string((int)weather["wind"]["speed"]) + "м/с\n•влажность: " + to_string((int)weather["main"]["humidity"]) + "%\n•описание: " + weather["weather"][0]["description"].get<string>() + "\n";
+    eventOut.msg += temp;
+}
+
+void setCfg(cmdHead)
+{
+    if (eventIn.words.size() < 2 || eventIn.words.size() > 3) {
+        eventOut.msg += "<param> <value> or <param>";
+    }
+    string param = eventIn.words[1];
+    conf.lock.lock();
+    if (eventIn.words.size() == 2) {
+        if (!conf.get()[param].is_null())
+            eventOut.msg += conf.get()[param].dump();
+        else
+            eventOut.msg += "NULL";
+        conf.lock.unlock();
+        return;
+    }
+    conf.get()[param] = json::parse(eventIn.words[2]);
+    conf.lock.unlock();
+    conf.save();
+}

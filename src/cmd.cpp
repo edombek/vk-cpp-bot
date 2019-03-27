@@ -14,6 +14,7 @@ typedef map<string, cmd_t> cmds_t;
 
 //объявляем команды
 void help(cmdHead);
+void setCfg(cmdHead);
 void stat(cmdHead);
 void con(cmdHead);
 void upload(cmdHead);
@@ -23,10 +24,12 @@ void rename(cmdHead);
 void videos(cmdHead);
 void asin(cmdHead);
 void sin(cmdHead);
+void weather(cmdHead);
 
 //прописываем в системе команд
 cmds_t cmdsList = {
     { "/help", { "вывод команд", &help, 1, true } },
+    { "/setc", { "редактор конфига", &setCfg, 5, true } },
     { "/stat", { "статус бота", &stat, 1, true } },
     { "/con", { "консоль)", &con, 5, true } },
     { "/u", { "загрузка файла", &upload, 5, true } },
@@ -35,14 +38,15 @@ cmds_t cmdsList = {
     { "/rename", { "установить ник в боте", &rename, 1, true } },
     { "/vid", { "поиск видео", &videos, 1, true } },
     { "/sin", { "изменить преспективу", &sin, 1, true } },
-    { "/asin", { "изменить преспективу", &asin, 1, true } }
+    { "/asin", { "изменить преспективу", &asin, 1, true } },
+    { "/w", { "погода", &weather, 1, true } }
 };
 
 void help(cmdHead)
 {
     eventOut.msg += "твой уровень прав: " + to_string(eventOut.user.acess) + "\n";
     for (auto cmdInfo : cmdsList) {
-        if (!cmdInfo.second.disp && eventOut.user.acess < cmdInfo.second.acess)
+        if (!cmdInfo.second.disp || eventOut.user.acess < cmdInfo.second.acess)
             continue;
         eventOut.msg += cmdInfo.first + " - " + cmdInfo.second.info + " (" + to_string(cmdInfo.second.acess) + ")\n";
     }
