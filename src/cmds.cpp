@@ -15,6 +15,7 @@ string getParamOfPath(string path, string p)
     char buffer[4096];
     size_t bytes_read;
     bytes_read = fread(buffer, 1, sizeof(buffer), f);
+    fclose(f);
     string dat(buffer, bytes_read);
     args_t lines = str::words(dat, '\n');
     //cout << lines[0] << endl;
