@@ -38,18 +38,17 @@ args_t str::words(const string& s, char delim)
     return elems;
 }
 
-auto converter = new wstring_convert<codecvt_utf8<wchar_t>>();
 // Convert UTF-8 byte string to wstring
 wstring to_wstring(string const& s)
 {
-    wstring data = converter->from_bytes(s);
-    return data;
+    wstring_convert<codecvt_utf8<wchar_t>> converter();
+    return converter.from_bytes(s);
 }
 
 string to_string(wstring const& s)
 {
-    string data = converter->to_bytes(s);
-    return data;
+    wstring_convert<codecvt_utf8<wchar_t>> converter();
+    return converter.to_bytes(s);
 }
 
 string str::summ(args_t words, unsigned int s)
