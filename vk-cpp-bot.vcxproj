@@ -120,10 +120,10 @@
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\net.cpp" />
     <ClCompile Include="src\str.cpp" />
+    <ClCompile Include="src\timer.cpp" />
     <ClCompile Include="src\users.cpp" />
     <ClCompile Include="src\vk.cpp" />
     <ClCompile Include="src\workers.cpp" />
-    <ClCompile Include="time.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\bd.h" />
@@ -137,10 +137,10 @@
     <ClInclude Include="include\lp.h" />
     <ClInclude Include="include\net.h" />
     <ClInclude Include="include\str.h" />
+    <ClInclude Include="include\timer.h" />
     <ClInclude Include="include\users.h" />
     <ClInclude Include="include\vk.h" />
     <ClInclude Include="include\workers.h" />
-    <ClInclude Include="time.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -5,6 +5,7 @@
 #include "img.h"
 #include "str.h"
 #include <iostream>
+#include "timer.h"
 
 using namespace std;
 
@@ -27,20 +28,18 @@ string getParamOfPath(string path, string p)
     return "";
 }
 
-#include <chrono>
 void stat(cmdHead)
 {
     std::chrono::time_point<std::chrono::system_clock> begin, end;
-    begin = std::chrono::system_clock::now();
+	timer t;
     eventOut.net.send("http://api.vk.com");
-    end = std::chrono::system_clock::now();
-    uint32_t t = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
 #ifndef WIN32
     eventOut.msg += GIT_URL;
     eventOut.msg += " (" + string(GIT_VER) + ")\n";
 #endif
-    eventOut.msg += "Обработка VK API за: " + to_string(t) + "мс\n";
+    eventOut.msg += "Обработка VK API за: " + to_string(t.getWorked()) + "мс\n";
     eventOut.msg += "id чата (пользователь/чат): " + to_string(eventIn.from_id) + "/" + to_string(eventIn.peer_id) + "\n";
+	eventOut.msg += "Работаю: " + timer::getWorkTime() + "\n";
 #ifndef WIN32
     //получаем использование памяти
     string allMem = to_string((int)((float)str::fromString(getParamOfPath("/proc/meminfo", "MemTotal")) / 1024));

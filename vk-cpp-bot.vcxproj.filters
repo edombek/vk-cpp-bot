@@ -57,7 +57,7 @@
     <ClCompile Include="src\workers.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="time.cpp">
+    <ClCompile Include="src\timer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -104,7 +104,7 @@
     <ClInclude Include="include\json.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="time.h">
+    <ClInclude Include="include\timer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
