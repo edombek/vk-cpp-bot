@@ -1,5 +1,4 @@
-#ifndef WORKERS_H
-#define WORKERS_H
+#pragma once
 #include "common.h"
 #include "events.h"
 #include "vk.h"
@@ -27,5 +26,3 @@ public:
     json get_event();
     void work();
 };
-
-#endif // WORKERS_H

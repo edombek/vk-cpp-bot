@@ -1,5 +1,4 @@
-#ifndef VK_H_INCLUDED
-#define VK_H_INCLUDED
+#pragma once
 #include "bd.h"
 #include "common.h"
 #include "net.h"
@@ -14,5 +13,3 @@ public:
     Vk(Net& n);
     json send(std::string method, table_t args = {}, bool user = false);
 };
-
-#endif // VK_H_INCLUDED

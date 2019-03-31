@@ -292,7 +292,7 @@ void weather(cmdHead)
         eventOut.msg += "передайте админу что он лентяй)";
         return;
     }
-    string appid(c["openweathermap_token"]);
+    string appid(c["openweathermap_token"].get<string>());
     conf.lock.unlock();
 
     table_t params = {

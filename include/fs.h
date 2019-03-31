@@ -1,5 +1,4 @@
-#ifndef FS_H_INCLUDED
-#define FS_H_INCLUDED
+#pragma once
 #include <fstream>
 
 #define FS_READ std::ios::in
@@ -38,5 +37,3 @@ std::string readData(std::string path);
 std::string getRootPath();
 void rename(std::string oldname, std::string newname);
 }
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef STR_H_INCLUDED
-#define STR_H_INCLUDED
+#pragma once
 #include "common.h"
 
 namespace str {
@@ -11,5 +10,3 @@ std::string low(std::string str);
 std::string replase(std::string str, std::string findstr, std::string replasestr);
 std::string convertHtml(std::string str);
 }
-
-#endif

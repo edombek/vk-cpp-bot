@@ -1,5 +1,4 @@
-#ifndef IMG_H
-#define IMG_H
+#pragma once
 #include "doc.h"
 #include "vk.h"
 #include <gd.h>
@@ -21,5 +20,3 @@ public:
     Doc getPhoto(uint32_t peer_id, Net& net, Vk& vk);
     gdImagePtr im;
 };
-
-#endif // IMG_H

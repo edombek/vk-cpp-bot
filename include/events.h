@@ -1,5 +1,4 @@
-#ifndef EVENTS_H_INCLUDED
-#define EVENTS_H_INCLUDED
+#pragma once
 #include "common.h"
 #include "doc.h"
 #include "users.h"
@@ -25,5 +24,3 @@ public:
     std::vector<Event> fwds;
     json send();
 };
-
-#endif // EVENTS_H_INCLUDED

@@ -1,5 +1,4 @@
-#ifndef USERS_H_INCLUDED
-#define USERS_H_INCLUDED
+#pragma once
 
 #include "common.h"
 #include "vk.h"
@@ -15,5 +14,3 @@ json newUser(uint32_t id, Vk& vk);
 user getUser(uint32_t id, Vk& vk);
 void changeUser(uint32_t id, user edited);
 }
-
-#endif // USERS_H_INCLUDED

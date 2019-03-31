@@ -1,5 +1,4 @@
-#ifndef NET_H_INCLUDED
-#define NET_H_INCLUDED
+#pragma once
 #include "common.h"
 #include <curl/curl.h>
 
@@ -18,5 +17,3 @@ public:
     std::string send(std::string url, table_t param, bool post = true);
     std::string upload(std::string url, std::string filename, std::string& data);
 };
-
-#endif

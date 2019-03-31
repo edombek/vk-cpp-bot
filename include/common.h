@@ -1,5 +1,4 @@
-#ifndef COMMON_H_INCLUDED
-#define COMMON_H_INCLUDED
+#pragma once
 #include "json.hpp"
 using json = nlohmann::json;
 #include <string>
@@ -9,5 +8,3 @@ typedef std::vector<std::string> args_t;
 typedef std::map<std::string, std::string> table_t;
 
 #define wCount 4
-
-#endif

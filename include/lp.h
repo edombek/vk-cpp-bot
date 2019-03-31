@@ -1,5 +1,4 @@
-#ifndef LP_H
-#define LP_H
+#pragma once
 #include "common.h"
 #include "vk.h"
 
@@ -17,5 +16,3 @@ private:
     Net net;
     Vk vk;
 };
-
-#endif // LP_H

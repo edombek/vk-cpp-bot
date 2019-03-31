@@ -1,5 +1,4 @@
-#ifndef CMD_H_INCLUDED
-#define CMD_H_INCLUDED
+#pragma once
 
 #include "common.h"
 #include "events.h"
@@ -9,5 +8,3 @@
 namespace cmd {
 bool start(std::string comand, cmdHead);
 }
-
-#endif // CMD_H_INCLUDED

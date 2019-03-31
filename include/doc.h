@@ -1,5 +1,4 @@
-#ifndef DOC_H_INCLUDED
-#define DOC_H_INCLUDED
+#pragma once
 #include "common.h"
 #include "vk.h"
 
@@ -17,5 +16,3 @@ public:
     std::string url;
     int timestamp;
 };
-
-#endif // DOC_H_INCLUDED

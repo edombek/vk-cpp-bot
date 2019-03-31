@@ -1,5 +1,4 @@
-#ifndef BD_H_INCLUDED
-#define BD_H_INCLUDED
+#pragma once
 #include "common.h"
 #include <mutex>
 
@@ -18,5 +17,3 @@ public:
 
 extern BD conf;
 extern BD bd;
-
-#endif // BD_H_INCLUDED
