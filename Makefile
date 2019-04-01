@@ -16,6 +16,7 @@ SOURCES=	\
 	src/cmds.cpp \
 	src/users.cpp \
 	src/img.cpp \
+	src/timer.cpp \
 	src/main.cpp
 OBJECTS=$(SOURCES:.cpp=.o)
 EXECUTABLE=vkbot
