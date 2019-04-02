@@ -4,18 +4,17 @@
 #include <ctime>
 #include <string>
 
-class timer
-{
+class timer {
 private:
-	std::chrono::time_point<std::chrono::system_clock> begin;
+    std::chrono::time_point<std::chrono::system_clock> begin;
+
 public:
-	timer();
-	~timer();
+    timer();
+    ~timer();
 
-	uintmax_t getWorked();
+    uintmax_t getWorked();
 
-	static void init();
-	static std::string getTime(time_t tp);
-	static std::string getWorkTime();
+    static void init();
+    static std::string getTime(time_t tp);
+    static std::string getWorkTime();
 };
-

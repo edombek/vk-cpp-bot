@@ -4,8 +4,8 @@
 #include "fs.h"
 #include "img.h"
 #include "str.h"
-#include <iostream>
 #include "timer.h"
+#include <iostream>
 
 using namespace std;
 
@@ -31,7 +31,7 @@ string getParamOfPath(string path, string p)
 void stat(cmdHead)
 {
     std::chrono::time_point<std::chrono::system_clock> begin, end;
-	timer t;
+    timer t;
     eventOut.net.send("http://api.vk.com");
 #ifndef WIN32
     eventOut.msg += GIT_URL;
@@ -39,7 +39,7 @@ void stat(cmdHead)
 #endif
     eventOut.msg += "Обработка VK API за: " + to_string(t.getWorked()) + "мс\n";
     eventOut.msg += "id чата (пользователь/чат): " + to_string(eventIn.from_id) + "/" + to_string(eventIn.peer_id) + "\n";
-	eventOut.msg += "Работаю: " + timer::getWorkTime() + "\n";
+    eventOut.msg += "Работаю: " + timer::getWorkTime() + "\n";
 #ifndef WIN32
     //получаем использование памяти
     string allMem = to_string((int)((float)str::fromString(getParamOfPath("/proc/meminfo", "MemTotal")) / 1024));
@@ -125,11 +125,15 @@ void videos(cmdHead)
     if (eventIn.words.size() < 2)
         eventOut.msg += "/vid <count> <q>";
     else {
-        string q = str::summ(eventIn.words, 1);
+        string q;
         int c = str::fromString(eventIn.words[1]);
+        if (c)
+            q = str::summ(eventIn.words, 2);
+        else
+            q = str::summ(eventIn.words, 1);
         if (!c || c > 200)
             c = 200;
-        json resp = eventOut.vk.send("video.search", { { "q", q }, { "count", to_string(c) }, { "adult", "0" }, { "hd", "1" }, { "filters", "mp4" } }, true);
+        json resp = eventOut.vk.send("video.search", { { "q", q }, { "count", to_string(c) }, { "adult", "1" }, { "hd", "0" }, { "filters", "mp4" } }, true);
         if (resp["response"].is_null() || resp["response"]["items"].size() == 0) {
             eventOut.msg = "nope";
             return;
