@@ -320,6 +320,7 @@ void setCfg(cmdHead)
 {
     if (eventIn.words.size() < 2 || eventIn.words.size() > 3) {
         eventOut.msg += "<param> <value> or <param>";
+        return;
     }
     string param = eventIn.words[1];
     conf.lock.lock();
