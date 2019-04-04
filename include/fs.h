@@ -5,8 +5,10 @@
 #define FS_WRITE std::ios::out
 #define FS_BINARY std::ios::binary
 
-namespace fs {
-class file {
+namespace fs
+{
+class file
+{
 private:
     std::fstream _stream;
 
@@ -19,7 +21,8 @@ public:
     void close();
 };
 
-class exception {
+class exception
+{
     std::string what_str;
 
 public:

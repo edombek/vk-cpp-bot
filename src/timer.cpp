@@ -47,3 +47,18 @@ string timer::getWorkTime()
 
     return str;
 }
+
+#ifdef __linux__
+#include <unistd.h>
+#elif _WIN32
+#include <windows.h>
+#endif
+
+void timer::sleep(int ms)
+{
+#ifdef __linux__
+    usleep(ms * 1000);
+#elif _WIN32
+    Sleep(ms);
+#endif
+}

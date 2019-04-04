@@ -25,7 +25,8 @@ args_t& split(const string& s, char delim, vector<string>& elems)
 {
     stringstream ss(s);
     string item;
-    while (getline(ss, item, delim)) {
+    while (getline(ss, item, delim))
+    {
         elems.push_back(item);
     }
     return elems;
@@ -56,7 +57,8 @@ string str::summ(args_t words, unsigned int s)
     string r = "";
     if (s + 1 > words.size())
         return r;
-    for (unsigned int i = s; i < words.size(); i++) {
+    for (unsigned int i = s; i < words.size(); i++)
+    {
         r += words[i];
         r += " ";
     }
@@ -74,7 +76,8 @@ bool str::at(string str1, string str2)
 string str::low(string str)
 {
     auto ss = to_wstring(str);
-    for (auto& c : ss) {
+    for (auto& c : ss)
+    {
         c = tolower(c, utf8);
     }
     return to_string(ss);
@@ -83,7 +86,8 @@ string str::low(string str)
 string str::replase(string str, string findstr, string replasestr)
 {
     string::size_type index;
-    while ((index = str.find(findstr)) != string::npos) {
+    while ((index = str.find(findstr)) != string::npos)
+    {
         str.replace(index, findstr.size(), replasestr);
     }
     return str;

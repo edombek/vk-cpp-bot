@@ -20,7 +20,8 @@ string getParamOfPath(string path, string p)
     string dat(buffer, bytes_read);
     args_t lines = str::words(dat, '\n');
     //cout << lines[0] << endl;
-    for (auto line : lines) {
+    for (auto line : lines)
+    {
         args_t param = str::words(line, ':');
         if (str::at(param[0], p))
             return str::replase(param[1], "  ", " ");
@@ -68,7 +69,8 @@ void con(cmdHead)
         c += command + " 2>&1\n";
 
     FILE* pipe = popen(c.c_str(), "r");
-    while (fgets(buffer, sizeof buffer, pipe) != NULL) {
+    while (fgets(buffer, sizeof buffer, pipe) != NULL)
+    {
         eventOut.msg = buffer;
         eventOut.send();
     }
@@ -89,11 +91,13 @@ void set(cmdHead)
 {
     if (eventIn.words.size() != 3) // != <cmd, id, level>
         eventOut.msg += "/set <id> <level>...";
-    else {
+    else
+    {
         uint32_t id = str::fromString(eventIn.words[1]);
         if (!id)
             eventOut.msg += "/set <id> <level>...";
-        else {
+        else
+        {
             users::user user = users::getUser(id, eventOut.vk);
             user.acess = str::fromString(eventIn.words[2]);
             user.msgs--;
@@ -113,7 +117,8 @@ void rename(cmdHead)
 {
     if (eventIn.words.size() < 2) // != <cmd, id, level>
         eventOut.msg += "/rename <name>...";
-    else {
+    else
+    {
         eventIn.user.name = str::summ(eventIn.words, 1);
         users::changeUser(eventIn.user.id, eventIn.user);
         eventOut.msg += "done!";
@@ -124,7 +129,8 @@ void videos(cmdHead)
 {
     if (eventIn.words.size() < 2)
         eventOut.msg += "/vid <count> <q>";
-    else {
+    else
+    {
         string q;
         int c = str::fromString(eventIn.words[1]);
         if (c)
@@ -134,13 +140,15 @@ void videos(cmdHead)
         if (!c || c > 200)
             c = 200;
         json resp = eventOut.vk.send("video.search", { { "q", q }, { "count", to_string(c) }, { "adult", "1" }, { "hd", "0" }, { "filters", "mp4" } }, true);
-        if (resp["response"].is_null() || resp["response"]["items"].size() == 0) {
+        if (resp["response"].is_null() || resp["response"]["items"].size() == 0)
+        {
             eventOut.msg = "nope";
             return;
         }
         string msg = eventOut.msg;
         string vidc = "/" + to_string(resp["response"]["items"].size());
-        for (uint16_t i = 0; i < resp["response"]["items"].size(); i++) {
+        for (uint16_t i = 0; i < resp["response"]["items"].size(); i++)
+        {
             json r;
             r["video"] = resp["response"]["items"][i];
             r["type"] = "video";
@@ -154,12 +162,14 @@ void videos(cmdHead)
     }
 }
 
-typedef struct {
+typedef struct
+{
     float x;
     float y;
 } xy_t;
 
-typedef struct {
+typedef struct
+{
     float r;
     float a;
 } ra_t;
@@ -186,7 +196,8 @@ xy_t toXY(ra_t c)
 
 void asin(cmdHead)
 {
-    if (!eventIn.docs.size()) {
+    if (!eventIn.docs.size())
+    {
         eventOut.msg += "прикрепи фото";
         return;
     }
@@ -196,7 +207,8 @@ void asin(cmdHead)
     if (c < 1)
         c = 1;
 
-    for (auto doc : eventIn.docs) {
+    for (auto doc : eventIn.docs)
+    {
         img im(doc, eventIn.net);
         xy_t o = { im.im->sx / 2.0f, im.im->sy / 2.0f };
         float r;
@@ -209,11 +221,13 @@ void asin(cmdHead)
         ra_t ra;
         xy_t xyO;
         for (uint32_t yc = 0; yc < balled.im->sy; yc++)
-            for (uint32_t xc = 0; xc < balled.im->sx; xc++) {
+            for (uint32_t xc = 0; xc < balled.im->sx; xc++)
+            {
                 xy.x = (xc - r) / r;
                 xy.y = (yc - r) / r;
                 ra = toRA(xy);
-                if (ra.r * ra.r > 1) {
+                if (ra.r * ra.r > 1)
+                {
                     gdImageSetPixel(balled.im, xc, yc, 0xFFFFFFFF);
                     continue;
                 }
@@ -233,7 +247,8 @@ void asin(cmdHead)
 
 void sin(cmdHead)
 {
-    if (!eventIn.docs.size()) {
+    if (!eventIn.docs.size())
+    {
         eventOut.msg += "прикрепи фото";
         return;
     }
@@ -242,7 +257,8 @@ void sin(cmdHead)
         c = str::fromString(eventIn.words[1]);
     if (c < 1)
         c = 1;
-    for (auto doc : eventIn.docs) {
+    for (auto doc : eventIn.docs)
+    {
         img im(doc, eventIn.net);
         xy_t o = { im.im->sx / 2.0f, im.im->sy / 2.0f };
         float r;
@@ -255,11 +271,13 @@ void sin(cmdHead)
         ra_t ra;
         xy_t xyO;
         for (uint32_t yc = 0; yc < balled.im->sy; yc++)
-            for (uint32_t xc = 0; xc < balled.im->sx; xc++) {
+            for (uint32_t xc = 0; xc < balled.im->sx; xc++)
+            {
                 xy.x = (xc - r) / r;
                 xy.y = (yc - r) / r;
                 ra = toRA(xy);
-                if (ra.r * ra.r > 1) {
+                if (ra.r * ra.r > 1)
+                {
                     gdImageSetPixel(balled.im, xc, yc, 0xFFFFFFFF);
                     continue;
                 }
@@ -280,7 +298,8 @@ void sin(cmdHead)
 #define openweathermap_msg "get token on openweathermap.org"
 void weather(cmdHead)
 {
-    if (eventIn.words.size() < 2) {
+    if (eventIn.words.size() < 2)
+    {
         eventOut.msg += "мб город введёшь?";
         return;
     }
@@ -288,7 +307,8 @@ void weather(cmdHead)
     //вытаскиваем токен от сервиса
     conf.lock.lock();
     json& c = conf.get();
-    if (c["openweathermap_token"].is_null() || c["openweathermap_token"] == openweathermap_msg) {
+    if (c["openweathermap_token"].is_null() || c["openweathermap_token"] == openweathermap_msg)
+    {
         c["openweathermap_token"] = openweathermap_msg;
         conf.lock.unlock();
         conf.save();
@@ -298,14 +318,16 @@ void weather(cmdHead)
     string appid(c["openweathermap_token"].get<string>());
     conf.lock.unlock();
 
-    table_t params = {
+    table_t params =
+    {
         { "lang", "ru" },
         { "units", "metric" },
         { "APPID", appid },
         { "q", str::summ(eventIn.words, 1) }
     };
     json weather = json::parse(eventIn.net.send("http://api.openweathermap.org/data/2.5/weather", params, false));
-    if (weather["main"].is_null()) {
+    if (weather["main"].is_null())
+    {
         eventOut.msg += "чтота пошло не так, возможно надо ввести город транслитом или требуется вмешательство внешних сил(админа)";
         return;
     }
@@ -318,13 +340,15 @@ void weather(cmdHead)
 
 void setCfg(cmdHead)
 {
-    if (eventIn.words.size() < 2 || eventIn.words.size() > 3) {
+    if (eventIn.words.size() < 2 || eventIn.words.size() > 3)
+    {
         eventOut.msg += "<param> <value> or <param>";
         return;
     }
     string param = eventIn.words[1];
     conf.lock.lock();
-    if (eventIn.words.size() == 2) {
+    if (eventIn.words.size() == 2)
+    {
         if (!conf.get()[param].is_null())
             eventOut.msg += conf.get()[param].dump();
         else

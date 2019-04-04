@@ -3,7 +3,8 @@
 #include "common.h"
 #include "net.h"
 
-class Vk {
+class Vk
+{
 private:
     std::string token;
     std::string user_token;

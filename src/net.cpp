@@ -16,7 +16,8 @@ using namespace std;
 size_t writer(char* data, size_t size, size_t nmemb, string* buffer)
 {
     int result = 0;
-    if (buffer != NULL) {
+    if (buffer != NULL)
+    {
         buffer->append(data, size * nmemb);
         result = size * nmemb;
     }
@@ -57,7 +58,8 @@ string Net::send(string url, table_t param, bool post)
     if (!param.size())
         return this->send(url);
     string paramline;
-    for (auto iter = param.begin(); iter != param.end(); iter++) {
+    for (auto iter = param.begin(); iter != param.end(); iter++)
+    {
         paramline += iter->first + "=" + urlEncode(iter->second) + "&";
     }
     if (post)
@@ -68,14 +70,16 @@ string Net::send(string url, table_t param, bool post)
 string Net::send(string url, string params)
 {
     string buffer;
-    if (this->curl) {
+    if (this->curl)
+    {
         curl_easy_setopt(this->curl, CURLOPT_URL, url.c_str());
         curl_easy_setopt(this->curl, CURLOPT_WRITEDATA, &buffer);
         curl_easy_setopt(this->curl, CURLOPT_USERAGENT, net_agent);
         curl_easy_setopt(this->curl, CURLOPT_WRITEFUNCTION, writer);
         curl_easy_setopt(this->curl, CURLOPT_TIMEOUT, 600L);
         curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-        if (params != "") {
+        if (params != "")
+        {
             curl_easy_setopt(curl, CURLOPT_POST, 1L);
             curl_easy_setopt(curl, CURLOPT_POSTFIELDS, params.c_str());
         }
@@ -95,9 +99,11 @@ string Net::send(string url, string params)
 string Net::upload(string url, string filename, string& data)
 {
     string buffer;
-    if (this->curl) {
+    if (this->curl)
+    {
         curl_mime* mime = curl_mime_init(this->curl);
-        if (mime) {
+        if (mime)
+        {
             curl_mimepart* part = curl_mime_addpart(mime);
             curl_mime_name(part, "file");
             curl_mime_filename(part, filename.c_str());

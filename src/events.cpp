@@ -19,7 +19,8 @@ Event::Event(Net& n, Vk& v, json lpEv)
     if (this->from_id < 0)
         return;
     this->timestamp = lpEv["date"];
-    if (this->type.find("message_") != this->type.npos) {
+    if (this->type.find("message_") != this->type.npos)
+    {
         this->peer_id = lpEv["peer_id"];
         if (!lpEv["reply_message"].is_null())
             this->fwds.emplace_back(Event(this->net, this->vk, { { "type", this->type }, { "object", lpEv["reply_message"] } }));
@@ -27,12 +28,14 @@ Event::Event(Net& n, Vk& v, json lpEv)
             for (auto fwd : lpEv["fwd_messages"])
                 this->fwds.emplace_back(Event(this->net, this->vk, { { "type", this->type }, { "object", fwd } }));
     }
-    if (this->type.find("wall_post_") != this->type.npos) {
+    if (this->type.find("wall_post_") != this->type.npos)
+    {
         this->peer_id = lpEv["owner_id"];
         this->id = lpEv["id"];
     }
     this->is_chat = !this->id && this->from_id == this->peer_id;
-    if (!lpEv["attachments"].is_null()) {
+    if (!lpEv["attachments"].is_null())
+    {
         for (auto attach : lpEv["attachments"])
             this->docs.emplace_back(Doc(attach));
     }
@@ -41,7 +44,8 @@ Event::Event(Net& n, Vk& v, json lpEv)
 json Event::send()
 {
     table_t param;
-    if (this->type.find("message_") != this->type.npos) {
+    if (this->type.find("message_") != this->type.npos)
+    {
         param["peer_id"] = std::to_string(this->peer_id);
         param["random_id"] = std::to_string(this->random_id);
         param["message"] = this->msg;
@@ -49,7 +53,8 @@ json Event::send()
             param["attachment"] += doc.get() + ",";
         return this->vk.send("messages.send", param);
     }
-    if (this->type.find("wall_post_") != this->type.npos) {
+    if (this->type.find("wall_post_") != this->type.npos)
+    {
         param["post_id"] = std::to_string(this->id);
         param["message"] = this->msg;
         param["owner_id"] = std::to_string(this->peer_id);

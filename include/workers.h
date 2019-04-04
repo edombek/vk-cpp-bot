@@ -6,7 +6,8 @@
 #include <mutex>
 #include <thread>
 #define maxEvents 64
-class Workers {
+class Workers
+{
 private:
     std::thread** thrs;
     uint8_t thrs_count;

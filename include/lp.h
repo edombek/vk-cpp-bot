@@ -2,7 +2,8 @@
 #include "common.h"
 #include "vk.h"
 
-class Lp {
+class Lp
+{
 public:
     Lp();
     void getServer();

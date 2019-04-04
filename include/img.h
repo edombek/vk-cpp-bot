@@ -7,7 +7,8 @@
 #pragma comment(lib, "libgd.lib")
 #endif
 
-class img {
+class img
+{
 public:
     img(int sx, int xy);
     img(gdImagePtr New);

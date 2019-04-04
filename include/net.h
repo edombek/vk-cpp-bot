@@ -2,7 +2,8 @@
 #include "common.h"
 #include <curl/curl.h>
 
-class Net {
+class Net
+{
 private:
     CURL* curl;
     CURLcode result;

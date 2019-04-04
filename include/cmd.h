@@ -5,6 +5,7 @@
 #include "workers.h"
 
 #define cmdHead Event &eventIn, Event &eventOut, Workers *worker
-namespace cmd {
+namespace cmd
+{
 bool start(std::string comand, cmdHead);
 }

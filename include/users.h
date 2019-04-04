@@ -3,8 +3,10 @@
 #include "common.h"
 #include "vk.h"
 
-namespace users {
-typedef struct {
+namespace users
+{
+typedef struct
+{
     std::string name;
     uint32_t id;
     uint8_t acess;

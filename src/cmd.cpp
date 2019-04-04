@@ -4,7 +4,8 @@
 using namespace std;
 
 typedef void (*msg_func_t)(cmdHead); // func(cmdHead)
-typedef struct {
+typedef struct
+{
     string info;
     msg_func_t func;
     uint8_t acess;
@@ -27,7 +28,8 @@ void sin(cmdHead);
 void weather(cmdHead);
 
 //прописываем в системе команд
-cmds_t cmdsList = {
+cmds_t cmdsList =
+{
     { "/help", { "вывод команд", &help, 1, true } },
     { "/setc", { "редактор конфига", &setCfg, 5, true } },
     { "/stat", { "статус бота", &stat, 1, true } },
@@ -45,7 +47,8 @@ cmds_t cmdsList = {
 void help(cmdHead)
 {
     eventOut.msg += "твой уровень прав: " + to_string(eventOut.user.acess) + "\n";
-    for (auto cmdInfo : cmdsList) {
+    for (auto cmdInfo : cmdsList)
+    {
         if (!cmdInfo.second.disp || eventOut.user.acess < cmdInfo.second.acess)
             continue;
         eventOut.msg += cmdInfo.first + " - " + cmdInfo.second.info + " (" + to_string(cmdInfo.second.acess) + ")\n";

@@ -2,7 +2,8 @@
 #include "common.h"
 #include <mutex>
 
-class BD {
+class BD
+{
 private:
     json dat;
     std::string file;

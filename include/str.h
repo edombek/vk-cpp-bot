@@ -1,7 +1,8 @@
 #pragma once
 #include "common.h"
 
-namespace str {
+namespace str
+{
 long long int fromString(std::string s);
 args_t words(const std::string& s, char delim = ' ');
 std::string summ(args_t words, unsigned int s);

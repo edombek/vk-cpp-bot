@@ -46,6 +46,7 @@
 		<Unit filename="include/users.h" />
 		<Unit filename="include/vk.h" />
 		<Unit filename="include/workers.h" />
+		<Unit filename="include/timer.h" />
 		<Unit filename="src/bd.cpp" />
 		<Unit filename="src/cmd.cpp" />
 		<Unit filename="src/cmds.cpp" />
@@ -60,6 +61,7 @@
 		<Unit filename="src/users.cpp" />
 		<Unit filename="src/vk.cpp" />
 		<Unit filename="src/workers.cpp" />
+		<Unit filename="src/timer.cpp" />
 		<Extensions>
 			<code_completion />
 			<debugger />

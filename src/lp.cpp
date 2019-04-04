@@ -23,15 +23,18 @@ void Lp::getServer()
 void Lp::loop()
 {
     Workers workers(wCount);
-    while (true) {
+    while (true)
+    {
         if (workers.stopped)
             return;
         string buff = this->net.send(this->server, { { "act", "a_check" }, { "key", this->key }, { "ts", this->ts }, { "wait", "25" } });
         while (buff == "")
             string buff = this->net.send(this->server, { { "act", "a_check" }, { "key", this->key }, { "ts", this->ts }, { "wait", "25" } });
         json resp = json::parse(buff);
-        if (resp["failed"].is_number()) {
-            switch (resp["failed"].get<int>()) {
+        if (resp["failed"].is_number())
+        {
+            switch (resp["failed"].get<int>())
+            {
             case 1:
                 this->ts = resp["ts"];
                 break;
@@ -39,9 +42,12 @@ void Lp::loop()
                 this->getServer();
                 break;
             }
-        } else {
+        }
+        else
+        {
             this->ts = resp["ts"];
-            for (json update : resp["updates"]) {
+            for (json update : resp["updates"])
+            {
                 workers.add_event(update);
             }
         }

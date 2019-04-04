@@ -4,7 +4,8 @@
 #include "users.h"
 #include "vk.h"
 
-class Event {
+class Event
+{
 public:
     Net& net;
     Vk& vk;

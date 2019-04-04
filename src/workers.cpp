@@ -10,7 +10,8 @@ Workers::Workers(uint8_t c)
     this->event_read = 0;
     this->event_write = 0;
     this->event_size = 0;
-    for (int i = 0; i < c; i++) {
+    for (int i = 0; i < c; i++)
+    {
         this->thrs[i] = new thread(&Workers::work, this);
     }
     stopped = false;
@@ -18,7 +19,8 @@ Workers::Workers(uint8_t c)
 
 Workers::~Workers()
 {
-    for (int i = 0; i < this->thrs_count; i++) {
+    for (int i = 0; i < this->thrs_count; i++)
+    {
         this->thrs[i]->join();
         delete this->thrs[i];
     }
@@ -36,7 +38,8 @@ void Workers::stop()
 void Workers::add_event(json event)
 {
     this->events_lock.lock();
-    if (this->event_size == maxEvents) {
+    if (this->event_size == maxEvents)
+    {
         this->events_lock.unlock();
         return;
     }
@@ -53,7 +56,8 @@ json Workers::get_event()
     json event;
     this->getter_lock.lock();
     this->events_lock.lock();
-    if (this->event_size) {
+    if (this->event_size)
+    {
         event = this->events[this->event_read];
         this->events[this->event_read] = json::value_t::null;
         this->event_read = (this->event_read + 1) % maxEvents;
@@ -72,14 +76,16 @@ void Workers::work()
 {
     Net net;
     Vk vk(net);
-    while (true) {
+    while (true)
+    {
         json event = this->get_event();
         if (event.is_null())
             continue;
         if (event.is_string() && event == "stop")
             return;
         Event eventOut(net, vk, event);
-        if (eventOut.msg.size() && eventOut.from_id > 0) {
+        if (eventOut.msg.size() && eventOut.from_id > 0)
+        {
             eventOut.user = users::getUser(eventOut.from_id, vk);
             Event outEvent = eventOut.getOut();
             outEvent.msg += outEvent.user.name + ", ";
