@@ -148,13 +148,16 @@ void videos(cmdHead)
         string msg = eventOut.msg;
         eventOut.msg = msg + "держи";
         string vidc = "/" + to_string(resp["response"]["items"].size());
+        uint8_t s = 5;
+        if (eventOut.type.find("wall_post_") != eventOut.type.npos)
+            s = 2;
         for (uint16_t i = 0; i < resp["response"]["items"].size(); i++)
         {
             json r;
             r["video"] = resp["response"]["items"][i];
             r["type"] = "video";
             eventOut.docs.emplace_back(r);
-            if(eventOut.docs.size() == 5)
+            if(eventOut.docs.size() == s)
             {
                 eventOut.send();
                 eventOut.docs = {};
