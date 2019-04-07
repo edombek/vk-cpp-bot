@@ -146,19 +146,21 @@ void videos(cmdHead)
             return;
         }
         string msg = eventOut.msg;
+        eventOut.msg = msg + "держи";
         string vidc = "/" + to_string(resp["response"]["items"].size());
         for (uint16_t i = 0; i < resp["response"]["items"].size(); i++)
         {
             json r;
             r["video"] = resp["response"]["items"][i];
             r["type"] = "video";
-            Doc doc(r);
-            eventOut.docs = { doc };
-            eventOut.msg = msg + to_string(i + 1) + vidc;
-            eventOut.send();
+            eventOut.docs.emplace_back(r);
+            if(eventOut.docs.size() == 5)
+            {
+                eventOut.send();
+                eventOut.docs = {};
+            }
         }
-        eventOut.msg = msg + "держи";
-        eventOut.docs = {};
+        eventOut.msg = msg + "всё)";
     }
 }
 
