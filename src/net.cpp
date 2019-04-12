@@ -77,7 +77,7 @@ string Net::send(string url, string params)
         curl_easy_setopt(this->curl, CURLOPT_WRITEDATA, &buffer);
         curl_easy_setopt(this->curl, CURLOPT_USERAGENT, net_agent);
         curl_easy_setopt(this->curl, CURLOPT_WRITEFUNCTION, writer);
-        curl_easy_setopt(this->curl, CURLOPT_TIMEOUT, 10L);
+        curl_easy_setopt(this->curl, CURLOPT_TIMEOUT, 600L);
         curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
         if (params != "")
         {
@@ -85,14 +85,15 @@ string Net::send(string url, string params)
             curl_easy_setopt(curl, CURLOPT_POSTFIELDS, params.c_str());
         }
         this->result = curl_easy_perform(curl);
-        while(this->result == CURLE_COULDNT_RESOLVE_HOST || this->result == CURLE_OPERATION_TIMEDOUT)
-        {
-            timer::sleep(1000);
-            cout << "wait internet connection..." << endl;
-            this->result = curl_easy_perform(curl);
-        }
         if (this->result != CURLE_OK)
             cout << "CURL ERROR(" << this->result << "): " << curl_easy_strerror(this->result) << endl;
+        if (this->result == CURLE_COULDNT_RESOLVE_HOST || this->result == CURLE_OPERATION_TIMEDOUT)
+        {
+            cout << "wait internet connection..." << endl;
+            timer::sleep(1000);
+            curl_easy_reset(this->curl);
+            return this->send(url, params);
+        }
 #ifdef printOut
         cout << endl
              << url << "(" << params << ")" << endl
@@ -124,14 +125,17 @@ string Net::upload(string url, string filename, string& data)
         curl_easy_setopt(this->curl, CURLOPT_WRITEFUNCTION, writer);
         curl_easy_setopt(this->curl, CURLOPT_TIMEOUT, 600L);
         this->result = curl_easy_perform(curl);
-        while(this->result == CURLE_COULDNT_RESOLVE_HOST || this->result == CURLE_OPERATION_TIMEDOUT)
-        {
-            timer::sleep(1000);
-            cout << "wait internet connection..." << endl;
-            this->result = curl_easy_perform(curl);
-        }
         if (this->result != CURLE_OK)
             cout << "CURL ERROR(" << this->result << "): " << curl_easy_strerror(this->result) << endl;
+        if (this->result == CURLE_COULDNT_RESOLVE_HOST || this->result == CURLE_OPERATION_TIMEDOUT)
+        {
+            cout << "wait internet connection..." << endl;
+            timer::sleep(1000);
+            if (mime)
+                curl_mime_free(mime);
+            curl_easy_reset(this->curl);
+            return this->upload(url, filename, data);
+        }
 #ifdef printOut
         cout << endl
              << url << endl
