@@ -42,6 +42,10 @@ json Vk::send(string method, table_t args, bool user)
             timer::sleep(10000);
             return this->send(method, args, user);
             break;
+        case 6: // ограничение запросов в секунду
+            timer::sleep(1000);
+            return this->send(method, args, user);
+            break;
         default:
             break;
         }
