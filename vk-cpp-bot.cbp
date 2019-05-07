@@ -8,7 +8,7 @@
 		<Option compiler="gcc" />
 		<MakeCommands>
 			<Build command="$make -f $makefile" />
-			<CompileFile command="$make -f $makefile" />
+			<CompileFile command="$make -f $makefile $file" />
 			<Clean command="$make -f $makefile clean" />
 			<DistClean command="$make -f $makefile distclean$target" />
 			<AskRebuildNeeded command="0" />
@@ -22,7 +22,7 @@
 				<Option compiler="gcc" />
 				<MakeCommands>
 					<Build command="$make -f $makefile" />
-					<CompileFile command="$make -f $makefile" />
+					<CompileFile command="$make -f $makefile $file" />
 					<Clean command="$make -f $makefile clean" />
 					<DistClean command="$make -f $makefile distclean$target" />
 					<AskRebuildNeeded command="0" />
@@ -43,10 +43,10 @@
 		<Unit filename="include/lp.h" />
 		<Unit filename="include/net.h" />
 		<Unit filename="include/str.h" />
+		<Unit filename="include/timer.h" />
 		<Unit filename="include/users.h" />
 		<Unit filename="include/vk.h" />
 		<Unit filename="include/workers.h" />
-		<Unit filename="include/timer.h" />
 		<Unit filename="src/bd.cpp" />
 		<Unit filename="src/cmd.cpp" />
 		<Unit filename="src/cmds.cpp" />
@@ -58,10 +58,10 @@
 		<Unit filename="src/main.cpp" />
 		<Unit filename="src/net.cpp" />
 		<Unit filename="src/str.cpp" />
+		<Unit filename="src/timer.cpp" />
 		<Unit filename="src/users.cpp" />
 		<Unit filename="src/vk.cpp" />
 		<Unit filename="src/workers.cpp" />
-		<Unit filename="src/timer.cpp" />
 		<Extensions>
 			<code_completion />
 			<debugger />
