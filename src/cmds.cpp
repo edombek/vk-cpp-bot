@@ -216,26 +216,17 @@ void asin(cmdHead)
     {
         img im(doc, eventIn.net);
         xy_t o = { im.im->sx / 2.0f, im.im->sy / 2.0f };
-        float r;
-        if (o.x > o.y)
-            r = o.y;
-        else
-            r = o.x;
-        img balled(2 * r, 2 * r);
+        float r = sqrt(im.im->sx * im.im->sx + im.im->sy * im.im->sy) / 2;
+        img balled(im.im->sx, im.im->sy);
         xy_t xy;
         ra_t ra;
         xy_t xyO;
         for (uint32_t yc = 0; yc < balled.im->sy; yc++)
             for (uint32_t xc = 0; xc < balled.im->sx; xc++)
             {
-                xy.x = (xc - r) / r;
-                xy.y = (yc - r) / r;
+                xy.x = (xc - o.x) / r;
+                xy.y = (yc - o.y) / r;
                 ra = toRA(xy);
-                if (ra.r * ra.r > 1)
-                {
-                    gdImageSetPixel(balled.im, xc, yc, 0xFFFFFFFF);
-                    continue;
-                }
                 for (int32_t i = 0; i < c; i++)
                     ra.r = asin(ra.r) / M_PI * 2;
                 xyO = toXY(ra);
@@ -266,26 +257,17 @@ void sin(cmdHead)
     {
         img im(doc, eventIn.net);
         xy_t o = { im.im->sx / 2.0f, im.im->sy / 2.0f };
-        float r;
-        if (o.x > o.y)
-            r = o.y;
-        else
-            r = o.x;
-        img balled(2 * r, 2 * r);
+        float r = sqrt(im.im->sx * im.im->sx + im.im->sx * im.im->sx) / 2;
+        img balled(im.im->sx, im.im->sy);
         xy_t xy;
         ra_t ra;
         xy_t xyO;
         for (uint32_t yc = 0; yc < balled.im->sy; yc++)
             for (uint32_t xc = 0; xc < balled.im->sx; xc++)
             {
-                xy.x = (xc - r) / r;
-                xy.y = (yc - r) / r;
+                xy.x = (xc - o.x) / r;
+                xy.y = (yc - o.y) / r;
                 ra = toRA(xy);
-                if (ra.r * ra.r > 1)
-                {
-                    gdImageSetPixel(balled.im, xc, yc, 0xFFFFFFFF);
-                    continue;
-                }
                 for (int32_t i = 0; i < c; i++)
                     ra.r = sin(ra.r * M_PI / 2);
                 xyO = toXY(ra);
