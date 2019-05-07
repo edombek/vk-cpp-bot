@@ -21,7 +21,8 @@ Event::Event(Net& n, Vk& v, json lpEv)
     this->timestamp = lpEv["date"];
     if (this->type.find("message_") != this->type.npos)
     {
-        this->peer_id = lpEv["peer_id"];
+        if(lpEv["peer_id"].is_number())
+            this->peer_id = lpEv["peer_id"];
         if (!lpEv["reply_message"].is_null())
             this->fwds.emplace_back(Event(this->net, this->vk, { { "type", this->type }, { "object", lpEv["reply_message"] } }));
         if (!lpEv["fwd_messages"].is_null())
