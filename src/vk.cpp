@@ -39,7 +39,8 @@ json Vk::send(string method, table_t args, bool user)
         switch(buff["error"]["error_code"].get<int>())
         {
         case 9: // исправление пропуска при флуде
-            timer::sleep(10000);
+        case 10: // тоже самое, просто вк зараза
+            timer::sleep(3600000);
             return this->send(method, args, user);
             break;
         case 6: // ограничение запросов в секунду
