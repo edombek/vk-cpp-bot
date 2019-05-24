@@ -7,6 +7,9 @@
 #include "timer.h"
 #include <iostream>
 
+#define MAX(a,b) ((a) > (b) ? (a) : (b))
+#define MIN(a,b) ((a) < (b) ? (a) : (b))
+
 using namespace std;
 
 #include <stdio.h>
@@ -217,22 +220,26 @@ void asin(cmdHead)
         img im(doc, eventIn.net);
         xy_t o = { im.im->sx / 2.0f, im.im->sy / 2.0f };
         float r = sqrt(im.im->sx * im.im->sx + im.im->sy * im.im->sy) / 2;
-        img balled(im.im->sx, im.im->sy);
+        xy_t s = {im.im->sx / 1.0f, im.im->sy / 1.0f};
+        for (int32_t i = 0; i < c; i++)
+            s = {(float)(asin(s.x/r/2)*r*2 / M_PI * 2.0f), (float)(asin(s.y/r/2)*r*2 / M_PI * 2.0f)};
+        float rB = sqrt(s.x*s.x + s.y*s.y) / 2;
+        img balled(s.x, s.y);
         xy_t xy;
         ra_t ra;
         xy_t xyO;
+        xy_t oB = { balled.im->sx / 2.0f, balled.im->sy / 2.0f };
         for (uint32_t yc = 0; yc < balled.im->sy; yc++)
             for (uint32_t xc = 0; xc < balled.im->sx; xc++)
             {
-                xy.x = (xc - o.x) / r;
-                xy.y = (yc - o.y) / r;
+                xy.x = (xc - oB.x) / rB;
+                xy.y = (yc - oB.y) / rB;
                 ra = toRA(xy);
                 for (int32_t i = 0; i < c; i++)
                     ra.r = asin(ra.r) / M_PI * 2;
                 xyO = toXY(ra);
                 gdImageSetPixel(balled.im, xc, yc, gdImageGetPixel(im.im, xyO.x * r + o.x, xyO.y * r + o.y));
             }
-
         eventOut.docs.push_back(balled.getPhoto(eventIn.peer_id, eventIn.net, eventIn.vk));
         eventOut.docs.push_back(balled.getDoc(eventIn.peer_id, eventIn.net, eventIn.vk));
         eventOut.send();
@@ -257,7 +264,7 @@ void sin(cmdHead)
     {
         img im(doc, eventIn.net);
         xy_t o = { im.im->sx / 2.0f, im.im->sy / 2.0f };
-        float r = sqrt(im.im->sx * im.im->sx + im.im->sx * im.im->sx) / 2;
+        float r = sqrt(im.im->sx * im.im->sx + im.im->sy * im.im->sy) / 2;
         img balled(im.im->sx, im.im->sy);
         xy_t xy;
         ra_t ra;
@@ -273,7 +280,6 @@ void sin(cmdHead)
                 xyO = toXY(ra);
                 gdImageSetPixel(balled.im, xc, yc, gdImageGetPixel(im.im, xyO.x * r + o.x, xyO.y * r + o.y));
             }
-
         eventOut.docs.push_back(balled.getPhoto(eventIn.peer_id, eventIn.net, eventIn.vk));
         eventOut.docs.push_back(balled.getDoc(eventIn.peer_id, eventIn.net, eventIn.vk));
         eventOut.send();
