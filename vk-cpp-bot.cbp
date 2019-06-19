@@ -20,6 +20,9 @@
 				<Option object_output="obj/Release/" />
 				<Option type="1" />
 				<Option compiler="gcc" />
+				<Compiler>
+					<Add directory="include" />
+				</Compiler>
 				<MakeCommands>
 					<Build command="$make -f $makefile" />
 					<CompileFile command="$make -f $makefile $file" />
@@ -39,6 +42,7 @@
 		<Unit filename="include/doc.h" />
 		<Unit filename="include/events.h" />
 		<Unit filename="include/fs.h" />
+		<Unit filename="include/game.h" />
 		<Unit filename="include/img.h" />
 		<Unit filename="include/lp.h" />
 		<Unit filename="include/net.h" />
@@ -53,6 +57,7 @@
 		<Unit filename="src/doc.cpp" />
 		<Unit filename="src/events.cpp" />
 		<Unit filename="src/fs.cpp" />
+		<Unit filename="src/game.cpp" />
 		<Unit filename="src/img.cpp" />
 		<Unit filename="src/lp.cpp" />
 		<Unit filename="src/main.cpp" />

@@ -8,3 +8,5 @@ typedef std::vector<std::string> args_t;
 typedef std::map<std::string, std::string> table_t;
 
 #define wCount 4
+
+#define findinmap(map, q) (map).find(q) != (map).cend()

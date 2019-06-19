@@ -353,3 +353,99 @@ void setCfg(cmdHead)
     conf.lock.unlock();
     conf.save();
 }
+
+#include "game.h"
+map<int, game*> gameNew = {}; // новые игры в чате
+map<int, map<int, game*>> gameUsers = {}; // все игры в [chat][user]
+mutex gameL;
+
+void cleanGames(game *t, uint32_t peer_id) // удаляем игры в каталогах пользователей и саму игру
+{
+    gameUsers[peer_id].erase(t->users_id[0]);
+    if(t->users_id[1])
+        gameUsers[peer_id].erase(t->users_id[1]);
+    if(!gameUsers[peer_id].size())
+        gameUsers.erase(peer_id);
+    delete t;
+}
+
+void gameF(cmdHead)
+{
+    if(!eventIn.is_chat)
+    {
+        eventOut.msg = "только для бесед!";
+        return;
+    }
+    gameL.lock();
+    game* t;
+
+    if(findinmap(gameUsers, eventIn.peer_id) && findinmap(gameUsers[eventIn.peer_id], eventIn.user.id) && gameUsers[eventIn.peer_id][eventIn.user.id]->users_id[1])//игра готова?
+        t = gameUsers[eventIn.peer_id][eventIn.user.id];
+    else
+    {
+        if(findinmap(gameNew, eventIn.peer_id) && !gameNew[eventIn.peer_id]->users_id[1])//есть ли созданная в чате но без второго игрока?
+        {
+            if(gameNew[eventIn.peer_id]->users_id[0]==eventIn.user.id)
+            {
+                eventOut.msg+="нельзя создать игру с самим собой! Удаляем эту игру!";
+                cleanGames(gameNew[eventIn.peer_id], eventIn.peer_id);
+                gameNew.erase(eventIn.peer_id);
+                gameL.unlock();
+                return;
+            }
+            t=gameNew[eventIn.peer_id];
+            t->users_id[1] = eventIn.user.id;
+            gameUsers[eventIn.peer_id][eventIn.user.id] = t;
+            gameNew.erase(eventIn.peer_id);
+            goto printMap;
+        }
+        else  //создаём новую игру, ожидаем
+        {
+            t = new game;
+            t->users_id[0] = eventIn.user.id;
+            gameNew[eventIn.peer_id] = t;
+            gameUsers[eventIn.peer_id][eventIn.user.id] = t;
+
+            eventOut.msg += "игра создана, ожидаем второго игрока";
+            gameL.unlock();
+            return;
+        }
+    }
+
+    if(eventIn.words.size() > 1 && eventIn.words[1] == "stop")
+    {
+        eventOut.msg+="игра остановлена!";
+        cleanGames(t, eventIn.peer_id);
+        gameL.unlock();
+        return;
+    }
+    if(eventIn.user.id!=t->users_id[t->user])
+    {
+        eventOut.msg+="не твой ход!";
+        gameL.unlock();
+        return;
+    }
+    if(eventIn.words.size() < 3)
+    {
+        eventOut.msg+="кординату введи...";
+        gameL.unlock();
+        return;
+    }
+
+    t->gameUplevel(str::fromString(eventIn.words[1]), str::fromString(eventIn.words[2]));
+
+printMap:
+    eventOut.msg+="\n"+t->nexStep();
+    eventOut.send();
+
+    if(t->isWin()) //выйграл?
+    {
+        eventOut.msg="выйграл!";
+        cleanGames(t, eventIn.peer_id);
+        gameL.unlock();
+        return;
+    }
+
+    eventOut.msg="Ходит @id" + to_string(t->users_id[t->user]);
+    gameL.unlock();
+}

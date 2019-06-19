@@ -34,7 +34,7 @@ Event::Event(Net& n, Vk& v, json lpEv)
         this->peer_id = lpEv["owner_id"];
         this->id = lpEv["id"];
     }
-    this->is_chat = !this->id && this->from_id == this->peer_id;
+    this->is_chat = !this->id && this->from_id != this->peer_id;
     if (!lpEv["attachments"].is_null())
     {
         for (auto attach : lpEv["attachments"])

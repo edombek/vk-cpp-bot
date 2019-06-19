@@ -26,6 +26,7 @@ void videos(cmdHead);
 void asin(cmdHead);
 void sin(cmdHead);
 void weather(cmdHead);
+void gameF(cmdHead);
 
 //прописываем в системе команд
 cmds_t cmdsList =
@@ -38,10 +39,11 @@ cmds_t cmdsList =
     { "/set", { "установка уровня доступа человеку", &set, 5, true } },
     { "/stop", { "остановить бота", &stop, 5, true } },
     { "/rename", { "установить ник в боте", &rename, 1, true } },
-    { "/vid", { "поиск видео", &videos, 1, true } },
+//    { "/vid", { "поиск видео", &videos, 1, true } },
     { "/sin", { "изменить преспективу", &sin, 1, true } },
     { "/asin", { "изменить преспективу", &asin, 1, true } },
-    { "/w", { "погода", &weather, 1, true } }
+    { "/w", { "погода", &weather, 1, true } },
+    { "/g", { "игра", &gameF, 1, true } }
 };
 
 void help(cmdHead)
@@ -58,7 +60,7 @@ void help(cmdHead)
 #include <cstdio>
 bool cmd::start(std::string comand, cmdHead)
 {
-    if (cmdsList.find(comand) == cmdsList.cend())
+    if (!(findinmap(cmdsList, comand)))
         return false;
     if (cmdsList[comand].acess > eventOut.user.acess)
         return false;
