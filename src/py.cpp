@@ -39,17 +39,18 @@ std::string pyF::error()
     return py::extract<std::string>(py::str("").join(format_exception(hexc, hval, htb)));
 }
 
+boost::function<void(std::string)> _pyprint;
 std::string pyF::exec(std::string &code)
 {
     py::object main_module = py::import("__main__");
     py::object main_namespace = main_module.attr("__dict__");
-    boost::function<void(std::string)> _pyprint = boost::bind( &pyF::print, this, _1);
+    _pyprint = boost::bind( &pyF::print, this, _1);
+    void (*pyprint) (py::object obj) = [](py::object obj)
+    {
+        _pyprint(py::extract<std::string>(py::str(obj)));
+    };
     try
     {
-        void (*pyprint) (py::object obj) = [](py::object obj)
-        {
-            _pyprint(py::extract<std::string>(py::str(obj)));
-        };
         main_module.attr("print") = pyprint;
         py::exec(py::str(code), main_namespace);
     }
