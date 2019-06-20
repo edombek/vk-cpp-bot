@@ -39,13 +39,11 @@ std::string pyF::error()
     return py::extract<std::string>(py::str("").join(format_exception(hexc, hval, htb)));
 }
 
-boost::function<void(std::string)> _pyprint;
-
 std::string pyF::exec(std::string &code)
 {
     py::object main_module = py::import("__main__");
     py::object main_namespace = main_module.attr("__dict__");
-    _pyprint = boost::bind( &pyF::print, this, _1);
+    boost::function<void(std::string)> _pyprint = boost::bind( &pyF::print, this, _1);
     try
     {
         void (*pyprint) (py::object obj) = [](py::object obj)
