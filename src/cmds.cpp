@@ -478,3 +478,22 @@ err:
     return;
 }
 
+#ifndef NO_PYTHON
+#include "py.h"
+#endif // NO_PYTHON
+void pycmd(cmdHead)
+{
+    #ifndef NO_PYTHON
+    std::string str(str::summ(eventIn.words, 1));
+    pyF interpreter(eventOut);
+    str = interpreter.exec(str);
+    if(str.size())
+        eventOut.msg = str;
+    else
+        eventOut.msg = "done!";
+    #elif
+        eventOut.msg = "не собрано";
+    #endif
+}
+
+

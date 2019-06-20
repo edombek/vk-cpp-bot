@@ -25,6 +25,19 @@ EXECUTABLE=vkbot
 
 CFLAGS+= -Wno-psabi -Wno-write-strings -Wno-unused-result
 
+ifdef NO_PYTHON
+	CFLAGS+= -DNO_PYTHON
+else
+	INCLUDES+= $(shell pkg-config --cflags python3)
+	LDFLAGS+= $(shell pkg-config --libs python3)
+	ifdef TERMUX
+		LDFLAGS+= -lboost_python36
+	else
+		LDFLAGS+= -lboost_python3
+	endif
+	SOURCES+= 	src/py.cpp
+endif
+
 all: $(SOURCES) $(EXECUTABLE)
 
 $(EXECUTABLE): $(OBJECTS)

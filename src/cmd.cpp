@@ -28,6 +28,7 @@ void sin(cmdHead);
 void weather(cmdHead);
 void gameF(cmdHead);
 void apod(cmdHead);
+void pycmd(cmdHead);
 
 //прописываем в системе команд
 cmds_t cmdsList =
@@ -45,7 +46,8 @@ cmds_t cmdsList =
     { "/asin", { "изменить преспективу", &asin, 1, true } },
     { "/w", { "погода", &weather, 1, true } },
     { "/g", { "игра", &gameF, 1, true } },
-    { "/apod", { "астрофото на каждый день", &apod, 1, true } }
+    { "/apod", { "астрофото на каждый день", &apod, 1, true } },
+    {"/py", { "интерпретатор душманского змия", &pycmd, 5, true }}
 };
 
 void help(cmdHead)
