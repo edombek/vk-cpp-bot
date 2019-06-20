@@ -27,6 +27,7 @@ void asin(cmdHead);
 void sin(cmdHead);
 void weather(cmdHead);
 void gameF(cmdHead);
+void apod(cmdHead);
 
 //прописываем в системе команд
 cmds_t cmdsList =
@@ -43,7 +44,8 @@ cmds_t cmdsList =
     { "/sin", { "изменить преспективу", &sin, 1, true } },
     { "/asin", { "изменить преспективу", &asin, 1, true } },
     { "/w", { "погода", &weather, 1, true } },
-    { "/g", { "игра", &gameF, 1, true } }
+    { "/g", { "игра", &gameF, 1, true } },
+    { "/apod", { "астрофото на каждый день", &apod, 1, true } }
 };
 
 void help(cmdHead)

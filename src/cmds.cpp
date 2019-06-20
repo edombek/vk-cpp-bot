@@ -449,3 +449,32 @@ printMap:
     eventOut.msg="Ходит @id" + to_string(t->users_id[t->user]);
     gameL.unlock();
 }
+
+void apod(cmdHead)
+{
+    json resp = json::parse(eventIn.net.send("https://api.nasa.gov/planetary/apod", {{"api_key", "DEMO_KEY"}}, false));
+    string imgurl;
+    Doc img;
+    string dat;
+    if(resp["title"].is_null())
+        goto err;
+    eventOut.msg+= resp["title"].get<string>()+":\n\n";
+    if(resp["hdurl"].is_null())
+        if(resp["url"].is_null())
+            goto err;
+        else
+            imgurl = resp["url"];
+    else
+        imgurl = resp["hdurl"];
+    if(!resp["explanation"].is_null())
+        eventOut.msg+=resp["explanation"].get<string>();
+    dat = eventIn.net.send(imgurl);
+    if(img.uploadPhoto("img.jpg", dat, eventIn.net, eventIn.vk, eventIn.peer_id))
+        eventOut.docs.push_back(img);
+
+    return;
+err:
+    eventOut.msg+="что-то пошло не так, перешлите сообщение разработчику\n\n"+resp.dump(4);
+    return;
+}
+
