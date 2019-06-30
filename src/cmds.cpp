@@ -468,9 +468,16 @@ void apod(cmdHead)
         imgurl = resp["hdurl"];
     if(!resp["explanation"].is_null())
         eventOut.msg+=resp["explanation"].get<string>();
-    dat = eventIn.net.send(imgurl);
-    if(img.uploadPhoto("img.jpg", dat, eventIn.net, eventIn.vk, eventIn.peer_id))
-        eventOut.docs.push_back(img);
+    if(resp["media_type"]=="image")
+    {
+        dat = eventIn.net.send(imgurl);
+        if(img.uploadPhoto("img.jpg", dat, eventIn.net, eventIn.vk, eventIn.peer_id))
+            eventOut.docs.push_back(img);
+    }
+    else if(resp["media_type"]=="video")
+        eventOut.msg+="\n\n"+imgurl;
+    else
+        goto err;
 
     return;
 err:
