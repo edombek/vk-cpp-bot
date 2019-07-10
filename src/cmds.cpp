@@ -498,7 +498,7 @@ void pycmd(cmdHead)
         eventOut.msg = str;
     else
         eventOut.msg = "done!";
-#elif
+#else
     eventOut.msg = "не собрано";
 #endif
 }
