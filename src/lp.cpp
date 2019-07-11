@@ -1,6 +1,6 @@
 #include "lp.h"
 #include "common.h"
-#include "workers.h"
+#include "worker.h"
 #include <iostream>
 
 using namespace std;
@@ -22,11 +22,9 @@ void Lp::getServer()
 
 void Lp::loop()
 {
-    Workers workers(wCount);
+    Worker worker;
     while (true)
     {
-        if (workers.stopped)
-            return;
         string buff = this->net.send(this->server, { { "act", "a_check" }, { "key", this->key }, { "ts", this->ts }, { "wait", "25" } });
         while (buff == "")
             string buff = this->net.send(this->server, { { "act", "a_check" }, { "key", this->key }, { "ts", this->ts }, { "wait", "25" } });
@@ -48,7 +46,7 @@ void Lp::loop()
             this->ts = resp["ts"];
             for (json update : resp["updates"])
             {
-                workers.add_event(update);
+                worker.add_event(update);
             }
         }
     }

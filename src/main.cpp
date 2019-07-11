@@ -1,7 +1,7 @@
 #include "bd.h"
 #include "lp.h"
 #include "timer.h"
-#include "workers.h"
+#include "worker.h"
 #ifdef WIN32
 #include <vld.h>
 #endif

@@ -11,7 +11,7 @@ SOURCES=	\
 	src/fs.cpp \
 	src/doc.cpp \
 	src/events.cpp \
-	src/workers.cpp \
+	src/worker.cpp \
 	src/str.cpp \
 	src/cmd.cpp \
 	src/cmds.cpp \

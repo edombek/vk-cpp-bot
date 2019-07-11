@@ -20,7 +20,6 @@ void stat(cmdHead);
 void con(cmdHead);
 void upload(cmdHead);
 void set(cmdHead);
-void stop(cmdHead);
 void rename(cmdHead);
 void videos(cmdHead);
 void asin(cmdHead);
@@ -39,7 +38,6 @@ cmds_t cmdsList =
     { "/con", { "консоль)", &con, 5, true } },
     { "/u", { "загрузка файла", &upload, 5, true } },
     { "/set", { "установка уровня доступа человеку", &set, 5, true } },
-    { "/stop", { "остановить бота", &stop, 5, true } },
     { "/rename", { "установить ник в боте", &rename, 1, true } },
     { "/vid", { "поиск видео", &videos, 1, true } },
     { "/sin", { "изменить преспективу", &sin, 1, true } },

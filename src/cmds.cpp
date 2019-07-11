@@ -110,12 +110,6 @@ void set(cmdHead)
     }
 }
 
-void stop(cmdHead)
-{
-    eventOut.msg += "done!\nwaiting lp...";
-    worker->stop();
-}
-
 void rename(cmdHead)
 {
     if (eventIn.words.size() < 2) // != <cmd, id, level>

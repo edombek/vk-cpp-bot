@@ -7,12 +7,12 @@
 		<Option pch_mode="2" />
 		<Option compiler="gcc" />
 		<MakeCommands>
-			<Build command="$make -f $makefile" />
+			<Build command="$make -f $makefile NO_PYTHON=1" />
 			<CompileFile command="$make -f $makefile $file" />
 			<Clean command="$make -f $makefile clean" />
 			<DistClean command="$make -f $makefile distclean$target" />
 			<AskRebuildNeeded command="0" />
-			<SilentBuild command="$make -f $makefile &gt; $(CMD_NULL)" />
+			<SilentBuild command="$make -f $makefile NO_PYTHON=1 &gt; $(CMD_NULL)" />
 		</MakeCommands>
 		<Build>
 			<Target title="Release">
@@ -24,12 +24,12 @@
 					<Add directory="include" />
 				</Compiler>
 				<MakeCommands>
-					<Build command="$make -f $makefile" />
+					<Build command="$make -f $makefile NO_PYTHON=1" />
 					<CompileFile command="$make -f $makefile $file" />
 					<Clean command="$make -f $makefile clean" />
 					<DistClean command="$make -f $makefile distclean$target" />
 					<AskRebuildNeeded command="0" />
-					<SilentBuild command="$make -f $makefile &gt; $(CMD_NULL)" />
+					<SilentBuild command="$make -f $makefile NO_PYTHON=1 &gt; $(CMD_NULL)" />
 				</MakeCommands>
 			</Target>
 		</Build>
@@ -51,7 +51,7 @@
 		<Unit filename="include/timer.h" />
 		<Unit filename="include/users.h" />
 		<Unit filename="include/vk.h" />
-		<Unit filename="include/workers.h" />
+		<Unit filename="include/worker.h" />
 		<Unit filename="src/bd.cpp" />
 		<Unit filename="src/cmd.cpp" />
 		<Unit filename="src/cmds.cpp" />
@@ -68,7 +68,7 @@
 		<Unit filename="src/timer.cpp" />
 		<Unit filename="src/users.cpp" />
 		<Unit filename="src/vk.cpp" />
-		<Unit filename="src/workers.cpp" />
+		<Unit filename="src/worker.cpp" />
 		<Extensions>
 			<code_completion />
 			<debugger />

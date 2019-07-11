@@ -2,9 +2,9 @@
 
 #include "common.h"
 #include "events.h"
-#include "workers.h"
+#include "worker.h"
 
-#define cmdHead Event &eventIn, Event &eventOut, Workers *worker
+#define cmdHead Event &eventIn, Event &eventOut, Worker *worker
 namespace cmd
 {
 bool start(std::string comand, cmdHead);
