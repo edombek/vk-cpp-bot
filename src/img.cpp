@@ -67,3 +67,19 @@ img img::copy()
 {
     return img(gdImageClone(this->im));
 }
+
+img::img(cv::Mat matIm)
+{
+    std::vector<uint8_t> buff;
+    cv::imencode(".png", matIm, buff);
+    std::string pngBuff(buff.begin(), buff.end());
+    this->im = gdImageCreateFromPngPtr(pngBuff.size(), (void*)pngBuff.c_str());
+}
+
+cv::Mat img::getCVim()
+{
+    std::string data = this->getPng();
+    std::vector<uint8_t> vectordata(data.begin(),data.end());
+    cv::Mat data_mat(vectordata,true);
+    return cv::imdecode(data_mat,1);
+}

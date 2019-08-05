@@ -7,8 +7,13 @@
 #include "timer.h"
 #include <iostream>
 
+#ifndef MAX
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
+#endif // MAX
+
+#ifndef MIN
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
+#endif // MIN
 
 using namespace std;
 
@@ -56,6 +61,15 @@ void stat(cmdHead)
     eventOut.msg += "Потоков занял: " + getParamOfPath("/proc/self/status", "Threads") + "\n\n";
 #endif
     eventOut.msg += "Всего сообщений от тебя: " + std::to_string(eventOut.user.msgs) + "\n";
+
+    //test imgs
+    for (auto doc : eventIn.docs)
+    {
+        img im(doc, eventIn.net);
+        cv::Mat CVim = im.getCVim();
+        img GDim(CVim);
+        eventOut.docs.push_back(GDim.getPhoto(eventIn.peer_id, eventIn.net, eventIn.vk));
+    }
 }
 
 #ifdef WIN32 //винда чо ¯\_(ツ)_/¯

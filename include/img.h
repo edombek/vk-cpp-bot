@@ -2,6 +2,8 @@
 #include "doc.h"
 #include "vk.h"
 #include <gd.h>
+#include <opencv2/imgcodecs/imgcodecs.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
 
 #ifdef WIN32
 #pragma comment(lib, "libgd.lib")
@@ -20,4 +22,7 @@ public:
     Doc getDoc(uint32_t peer_id, Net& net, Vk& vk);
     Doc getPhoto(uint32_t peer_id, Net& net, Vk& vk);
     gdImagePtr im;
+
+    img(cv::Mat matIm);
+    cv::Mat getCVim();
 };
