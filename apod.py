@@ -29,6 +29,11 @@ urllib.request.urlretrieve(resp['hdurl'], 'temp.jpg')
 upload = vk_api.VkUpload(vk_session)
 photo = upload.photo_wall(photos='temp.jpg', group_id = group_id)
 photo = 'photo{}_{}_{}'.format(photo[0]['owner_id'], photo[0]['id'], photo[0]['access_key'])
+print(resp)
+try:
+	resp['copyright']
+except:
+	resp['copyright'] = None
 text = 'Astronomy Picture of the Day (apod.nasa.gov)\n\n{}\n\n{}\n\n©{}'.format(resp['title'], resp['explanation'], resp['copyright'])
 
 #постим
