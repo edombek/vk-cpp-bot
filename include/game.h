@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common.h"
-#define sizeGame 3
+#define sizeGame 4
 
 class game
 {
