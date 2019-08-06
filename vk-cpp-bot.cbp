@@ -36,6 +36,7 @@
 		<Unit filename="Makefile" />
 		<Unit filename="README.md" />
 		<Unit filename="config.json" />
+		<Unit filename="include/FaceSwapper.h" />
 		<Unit filename="include/bd.h" />
 		<Unit filename="include/cmd.h" />
 		<Unit filename="include/common.h" />
@@ -52,6 +53,7 @@
 		<Unit filename="include/users.h" />
 		<Unit filename="include/vk.h" />
 		<Unit filename="include/worker.h" />
+		<Unit filename="src/FaceSwapper.cpp" />
 		<Unit filename="src/bd.cpp" />
 		<Unit filename="src/cmd.cpp" />
 		<Unit filename="src/cmds.cpp" />

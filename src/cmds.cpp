@@ -66,9 +66,12 @@ void stat(cmdHead)
     for (auto doc : eventIn.docs)
     {
         img im(doc, eventIn.net);
+        if(!im.im) // если приложение не картинка
+            continue;
         cv::Mat CVim = im.getCVim();
         img GDim(CVim);
-        eventOut.docs.push_back(GDim.getPhoto(eventIn.peer_id, eventIn.net, eventIn.vk));
+        if(GDim.im)
+            eventOut.docs.push_back(GDim.getPhoto(eventIn.peer_id, eventIn.net, eventIn.vk));
     }
 }
 
@@ -511,4 +514,32 @@ void pycmd(cmdHead)
 #endif
 }
 
+#include "FaceSwapper.h"
+cv::Rect dlibRectangleToCV(dlib::rectangle r)
+{
+    return cv::Rect(cv::Point2i(r.left(), r.top()), cv::Point2i(r.right() + 1, r.bottom() + 1));
+}
 
+void faceswap(cmdHead)
+{
+    FaceSwapper face_swapper("shape_predictor_68_face_landmarks.dat");
+    dlib::frontal_face_detector detector = dlib::get_frontal_face_detector();
+    for(auto doc : eventIn.docs)
+    {
+        img im(doc, eventIn.net);
+        if(!im.im)
+            continue;
+        cv::Mat imcv = im.getCVim();
+        dlib::cv_image<dlib::bgr_pixel> cimg(imcv);
+        vector<dlib::rectangle> faces = detector(cimg);
+        for (uint32_t i = 0; i < faces.size() - 1; i++)
+        {
+            cv::Rect rect1 = dlibRectangleToCV(faces[i]);
+            cv::Rect rect2 = dlibRectangleToCV(faces[i + 1]);
+            face_swapper.swapFaces(imcv, rect1, rect2);
+        }
+        img outim(imcv);
+        if(outim.im)
+            eventOut.docs.push_back(outim.getPhoto(eventIn.peer_id, eventIn.net, eventIn.vk));
+    }
+}

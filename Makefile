@@ -1,7 +1,7 @@
 CC=g++ -Ofast
 #CC=g++ -g -DDEBUG
 CFLAGS= -std=c++11 -c -DGIT_URL="\"$(shell git config --get remote.origin.url)"\" -DGIT_VER="\"$(firstword $(shell git rev-parse --short=6 HEAD) unknown)"\"
-LDFLAGS= -pthread -lcurl -lgd -lopencv_core -lopencv_objdetect -lopencv_photo -lgif -ljpeg -lopencv_imgproc -lopencv_imgcodecs
+LDFLAGS= -pthread -lcurl -lgd -lopencv_core -lopencv_objdetect -lopencv_photo -lgif -ljpeg -lopencv_imgproc -lopencv_imgcodecs -llapack -lcblas -ldlib
 INCLUDES= -Iinclude -I/usr/include/opencv4
 SOURCES=	\
 	src/net.cpp \
@@ -19,6 +19,7 @@ SOURCES=	\
 	src/img.cpp \
 	src/timer.cpp \
 	src/game.cpp \
+	src/FaceSwapper.cpp \
 	src/main.cpp
 OBJECTS=$(SOURCES:.cpp=.o)
 EXECUTABLE=vkbot
