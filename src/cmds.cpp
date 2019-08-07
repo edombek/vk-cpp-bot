@@ -532,7 +532,9 @@ void faceswap(cmdHead)
         cv::Mat imcv = im.getCVim();
         dlib::cv_image<dlib::bgr_pixel> cimg(imcv);
         vector<dlib::rectangle> faces = detector(cimg);
-        for (uint32_t i = 0; i < faces.size() - 1; i++)
+        if(faces.size() < 2)
+            continue;
+        for (uint8_t i = 0; i < faces.size() - 1; i++)
         {
             cv::Rect rect1 = dlibRectangleToCV(faces[i]);
             cv::Rect rect2 = dlibRectangleToCV(faces[i + 1]);
