@@ -550,8 +550,8 @@ void faceswap(cmdHead)
 
 #define imgdelta 16
 #define imgcolorsinch 8
-#define imgcolorscoff 256/imgcolorsinch
-#define imgcolorcorr(c) round((float(c)/256)*imgcolorsinch)*imgcolorscoff
+#define imgcolorscoff 255/imgcolorsinch
+#define imgcolorcorr(c) round(round((float(c)/255)*imgcolorsinch)*imgcolorscoff)
 void pix(cmdHead)
 {
     for(auto doc : eventIn.docs)
