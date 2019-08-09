@@ -7,6 +7,8 @@
 #include "timer.h"
 #include <iostream>
 
+#include <cmath>
+
 #ifndef MAX
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
 #endif // MAX
@@ -543,5 +545,38 @@ void faceswap(cmdHead)
         img outim(imcv);
         if(outim.im)
             eventOut.docs.push_back(outim.getPhoto(eventIn.peer_id, eventIn.net, eventIn.vk));
+    }
+}
+
+#define imgdelta 16
+#define imgcolorsinch 8
+#define imgcolorscoff 256/imgcolorsinch
+#define imgcolorcorr(c) round((float(c)/256)*imgcolorsinch)*imgcolorscoff
+void pix(cmdHead)
+{
+    for(auto doc : eventIn.docs)
+    {
+        img im(doc, eventIn.net);
+        uint32_t sx = im.im->sx/imgdelta;
+        uint32_t sy = im.im->sy/imgdelta;
+        img blured(gdImageCopyGaussianBlurred(im.im, imgdelta, -1.0));
+        img resized(sx, sy);
+        gdImageCopyResized(resized.im, blured.im, 0, 0, 0, 0, sx, sy, sx*imgdelta, sy*imgdelta);
+        img out(sx*imgdelta, sy*imgdelta);
+
+        for(uint32_t ix = 0; ix < sx; ix++)
+            for(uint32_t iy = 0; iy < sy; iy++)
+            {
+                int c = gdImageGetPixel(resized.im, ix, iy);
+                gdImageSetPixel(resized.im, ix, iy,
+                                gdImageColorClosest(resized.im,
+                                                    imgcolorcorr(gdTrueColorGetRed(c)),
+                                                    imgcolorcorr(gdTrueColorGetGreen(c)),
+                                                    imgcolorcorr(gdTrueColorGetBlue(c))));
+            }
+        gdImageCopyResized(out.im, resized.im, 0, 0, 0, 0, sx*imgdelta, sy*imgdelta, sx, sy);
+
+        if(out.im)
+            eventOut.docs.push_back(out.getPhoto(eventIn.peer_id, eventIn.net, eventIn.vk));
     }
 }

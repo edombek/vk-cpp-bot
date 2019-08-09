@@ -29,6 +29,7 @@ void gameF(cmdHead);
 void apod(cmdHead);
 void pycmd(cmdHead);
 void faceswap(cmdHead);
+void pix(cmdHead);
 
 //прописываем в системе команд
 cmds_t cmdsList =
@@ -47,7 +48,8 @@ cmds_t cmdsList =
     { "/g", { "игра", &gameF, 1, true } },
     { "/apod", { "астрофото на каждый день", &apod, 1, true } },
     {"/py", { "интерпретатор душманского змия", &pycmd, 5, true }},
-    {"/fswap", { "свап лиц на фото", &faceswap, 5, true }}
+    {"/fswap", { "свап лиц на фото", &faceswap, 1, true }},
+    {"/pix", { "8bit art", &pix, 5, true }}
 };
 
 void help(cmdHead)
