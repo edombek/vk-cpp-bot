@@ -548,7 +548,7 @@ void faceswap(cmdHead)
     }
 }
 
-#define imgdelta 16
+#define imgdelta 8
 #define imgcolorsinch 8
 #define imgcolorscoff 255/imgcolorsinch
 #define imgcolorcorr(c) round(round((float(c)/255)*imgcolorsinch)*imgcolorscoff)

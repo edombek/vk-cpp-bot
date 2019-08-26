@@ -10,10 +10,6 @@ using namespace std;
 
 #define net_agent "EVGESHAd vk-cpp-bot"
 
-#ifdef DEBUG
-#define printOut
-#endif // DEBUG
-
 size_t writer(char* data, size_t size, size_t nmemb, string* buffer)
 {
     int result = 0;

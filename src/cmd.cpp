@@ -49,7 +49,7 @@ cmds_t cmdsList =
     { "/apod", { "астрофото на каждый день", &apod, 1, true } },
     {"/py", { "интерпретатор душманского змия", &pycmd, 5, true }},
     {"/fswap", { "свап лиц на фото", &faceswap, 1, true }},
-    {"/pix", { "8bit art", &pix, 5, true }}
+    {"/pix", { "8bit art", &pix, 1, true }}
 };
 
 void help(cmdHead)
