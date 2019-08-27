@@ -95,6 +95,7 @@ void con(cmdHead)
     {
         eventOut.msg = buffer;
         eventOut.send();
+        timer::sleep(1000);
     }
     eventOut.msg = "done!";
     pclose(pipe);
@@ -547,4 +548,78 @@ void pix(cmdHead)
         if(out.im)
             eventOut.docs.push_back(out.getPhoto(eventIn.peer_id, eventIn.net, eventIn.vk));
     }
+}
+
+
+#define TPAUSE 0.1 //pause in sec
+#define ofset 8 //in bites
+
+struct wav_header_t {
+    uint8_t chunkID[4]; //"RIFF" = 0x46464952
+    uint32_t chunkSize; //28 [+ sizeof(wExtraFormatBytes) + wExtraFormatBytes] + sum(sizeof(chunk.id) + sizeof(chunk.size) + chunk.size)
+    uint8_t format[4]; //"WAVE" = 0x45564157
+    uint8_t subchunk1ID[4]; //"fmt " = 0x20746D66
+    uint32_t subchunk1Size; //16 [+ sizeof(wExtraFormatBytes) + wExtraFormatBytes]
+    uint16_t audioFormat;
+    int16_t numChannels;
+    uint32_t sampleRate;
+    uint32_t byteRate;
+    int16_t blockAlign;
+    int16_t bitsPerSample;
+    //[WORD wExtraFormatBytes;]
+    //[Extra format bytes]
+};
+struct chunk_t {
+    uint8_t ID[4]; //"data" = 0x61746164
+    uint32_t size; //Chunk data bytes
+};
+
+void vox(cmdHead)
+{
+    unsigned long size = 0;
+    string data;
+    wav_header_t wavHeader;
+    chunk_t wavChunk;
+    for (int i = 1; i < eventIn.words.size(); i++) {
+        bool pause = true;
+        if (eventIn.words[i][0] == '-') {
+            pause = false;
+            eventIn.words[i].erase(eventIn.words[i].begin());
+        }
+        string path = "vox/" + eventIn.words[i] + ".wav";
+        FILE* wavFile = fopen(path.c_str(), "rb");
+        if (wavFile == NULL)
+            continue;
+        fread(&wavHeader, sizeof(wav_header_t), 1, wavFile);
+        uint8_t* offset = new uint8_t[wavHeader.subchunk1Size - 16];
+        fread(offset, wavHeader.subchunk1Size - 16, 1, wavFile);
+        delete[] offset;
+        fread(&wavChunk, sizeof(chunk_t), 1, wavFile);
+        uint8_t* dataIn = new uint8_t[wavChunk.size];
+        fread(dataIn, wavChunk.size, 1, wavFile);
+        fclose(wavFile);
+        size += wavChunk.size;
+        if (pause) {
+            size += TPAUSE * wavHeader.byteRate;
+            for (int s = 0; s < TPAUSE * wavHeader.byteRate; s++)
+                data += data[data.size() - 1];
+        }
+        for (int s = ofset; s < wavChunk.size - ofset; s++)
+            data += dataIn[s];
+        delete[] dataIn;
+    }
+    if (!data.size()) {
+        eventOut.msg += "неверная комбинация vox";
+        return;
+    }
+    size += TPAUSE * wavHeader.byteRate;
+    for (int s = 0; s < TPAUSE * wavHeader.byteRate; s++)
+        data += data[data.size() - 1];
+    wavChunk.size = size;
+    wavHeader.subchunk1Size = 16;
+    string wavDat((char*)&wavHeader, sizeof(wav_header_t));
+    wavDat+=string((char*)&wavChunk, sizeof(chunk_t)) + data;
+    Doc wavDoc;
+    wavDoc.uploadDoc("audiomsg.wav", wavDat, eventIn.net, eventIn.vk, eventIn.peer_id, true);
+    eventOut.docs.push_back(wavDoc);
 }

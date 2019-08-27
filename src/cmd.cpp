@@ -29,6 +29,7 @@ void gameF(cmdHead);
 void apod(cmdHead);
 void pycmd(cmdHead);
 void pix(cmdHead);
+void vox(cmdHead);
 
 //прописываем в системе команд
 cmds_t cmdsList =
@@ -47,7 +48,8 @@ cmds_t cmdsList =
     { "/g", { "игра", &gameF, 1, true } },
     { "/apod", { "астрофото на каждый день", &apod, 1, true } },
     {"/py", { "интерпретатор душманского змия", &pycmd, 5, true }},
-    {"/pix", { "8bit art", &pix, 1, true }}
+    {"/pix", { "8bit art", &pix, 1, true }},
+    {"/vox", { "Half-Life vox", &vox, 1, true }}
 };
 
 void help(cmdHead)
