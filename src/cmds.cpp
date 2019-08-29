@@ -63,18 +63,6 @@ void stat(cmdHead)
     eventOut.msg += "Потоков занял: " + getParamOfPath("/proc/self/status", "Threads") + "\n\n";
 #endif
     eventOut.msg += "Всего сообщений от тебя: " + std::to_string(eventOut.user.msgs) + "\n";
-
-    //test imgs
-    for (auto doc : eventIn.docs)
-    {
-        img im(doc, eventIn.net);
-        if(!im.im) // если приложение не картинка
-            continue;
-        cv::Mat CVim = im.getCVim();
-        img GDim(CVim);
-        if(GDim.im)
-            eventOut.docs.push_back(GDim.getPhoto(eventIn.peer_id, eventIn.net, eventIn.vk));
-    }
 }
 
 #ifdef WIN32 //винда чо ¯\_(ツ)_/¯
@@ -232,6 +220,8 @@ void asin(cmdHead)
     for (auto doc : eventIn.docs)
     {
         img im(doc, eventIn.net);
+        if(!im.im)
+            continue;
         xy_t o = { im.im->sx / 2.0f, im.im->sy / 2.0f };
         float r = sqrt(im.im->sx * im.im->sx + im.im->sy * im.im->sy) / 2;
         xy_t s = {im.im->sx / 1.0f, im.im->sy / 1.0f};
@@ -277,6 +267,8 @@ void sin(cmdHead)
     for (auto doc : eventIn.docs)
     {
         img im(doc, eventIn.net);
+        if(!im.im)
+            continue;
         xy_t o = { im.im->sx / 2.0f, im.im->sy / 2.0f };
         float r = sqrt(im.im->sx * im.im->sx + im.im->sy * im.im->sy) / 2;
         img balled(im.im->sx, im.im->sy);
@@ -526,6 +518,8 @@ void pix(cmdHead)
     for(auto doc : eventIn.docs)
     {
         img im(doc, eventIn.net);
+        if(!im.im)
+            continue;
         uint32_t sx = im.im->sx/imgdelta;
         uint32_t sy = im.im->sy/imgdelta;
         img blured(gdImageCopyGaussianBlurred(im.im, imgdelta, -1.0));
@@ -554,7 +548,8 @@ void pix(cmdHead)
 #define TPAUSE 0.1 //pause in sec
 #define ofset 8 //in bites
 
-struct wav_header_t {
+struct wav_header_t
+{
     uint8_t chunkID[4]; //"RIFF" = 0x46464952
     uint32_t chunkSize; //28 [+ sizeof(wExtraFormatBytes) + wExtraFormatBytes] + sum(sizeof(chunk.id) + sizeof(chunk.size) + chunk.size)
     uint8_t format[4]; //"WAVE" = 0x45564157
@@ -569,7 +564,8 @@ struct wav_header_t {
     //[WORD wExtraFormatBytes;]
     //[Extra format bytes]
 };
-struct chunk_t {
+struct chunk_t
+{
     uint8_t ID[4]; //"data" = 0x61746164
     uint32_t size; //Chunk data bytes
 };
@@ -580,9 +576,11 @@ void vox(cmdHead)
     string data;
     wav_header_t wavHeader;
     chunk_t wavChunk;
-    for (int i = 1; i < eventIn.words.size(); i++) {
+    for (int i = 1; i < eventIn.words.size(); i++)
+    {
         bool pause = true;
-        if (eventIn.words[i][0] == '-') {
+        if (eventIn.words[i][0] == '-')
+        {
             pause = false;
             eventIn.words[i].erase(eventIn.words[i].begin());
         }
@@ -599,7 +597,8 @@ void vox(cmdHead)
         fread(dataIn, wavChunk.size, 1, wavFile);
         fclose(wavFile);
         size += wavChunk.size;
-        if (pause) {
+        if (pause)
+        {
             size += TPAUSE * wavHeader.byteRate;
             for (int s = 0; s < TPAUSE * wavHeader.byteRate; s++)
                 data += data[data.size() - 1];
@@ -608,7 +607,8 @@ void vox(cmdHead)
             data += dataIn[s];
         delete[] dataIn;
     }
-    if (!data.size()) {
+    if (!data.size())
+    {
         eventOut.msg += "неверная комбинация vox";
         return;
     }
@@ -622,4 +622,45 @@ void vox(cmdHead)
     Doc wavDoc;
     wavDoc.uploadDoc("audiomsg.wav", wavDat, eventIn.net, eventIn.vk, eventIn.peer_id, true);
     eventOut.docs.push_back(wavDoc);
+}
+
+#define nDownSampling 2
+#define nBts 7
+#ifndef CV_ADAPTIVE_THRESH_MEAN_C
+#define CV_ADAPTIVE_THRESH_MEAN_C 0
+#endif
+#ifndef CV_THRESH_BINARY
+#define CV_THRESH_BINARY 0
+#endif
+void crt(cmdHead)
+{
+    for(auto doc : eventIn.docs)
+    {
+        img im(doc, eventIn.net);
+        if(!im.im)
+            continue;
+
+        cv::Mat cvim = im.getCVim();
+        cv::Mat imgColored = cvim.clone();
+        for (int i = 0; i < nDownSampling; i++)
+            cv::pyrDown(imgColored, imgColored);
+        for (int i = 0; i < nBts; i++)
+        {
+            cv::Mat buff;
+            cv::bilateralFilter(imgColored, buff, 9, 9, 7);
+            imgColored = buff.clone();
+        }
+        for (int i = 0; i < nDownSampling; i++)
+            cv::pyrUp(imgColored, imgColored);
+        cv::Mat imgGray;
+        cv::cvtColor(imgColored, imgGray, cv::COLOR_RGB2GRAY);
+        cv::Mat imgBlur;
+        cv::medianBlur(imgGray, imgBlur, 7);
+        cv::Mat imgEdge;
+        cv::adaptiveThreshold(imgBlur, imgEdge, 255, CV_ADAPTIVE_THRESH_MEAN_C, CV_THRESH_BINARY, 9, 2);
+        cv::cvtColor(imgEdge, imgEdge, cv::COLOR_GRAY2RGB);
+        cv::resize(imgEdge, imgEdge, cv::Size(imgColored.size().width, imgColored.size().height));
+        cv::bitwise_and(imgColored, imgEdge, cvim);
+        eventOut.docs.push_back(img::CVtoPhoto(cvim, eventIn.peer_id, eventIn.net, eventIn.vk));
+    }
 }

@@ -30,6 +30,7 @@ void apod(cmdHead);
 void pycmd(cmdHead);
 void pix(cmdHead);
 void vox(cmdHead);
+void crt(cmdHead);
 
 //прописываем в системе команд
 cmds_t cmdsList =
@@ -49,7 +50,8 @@ cmds_t cmdsList =
     { "/apod", { "астрофото на каждый день", &apod, 1, true } },
     {"/py", { "интерпретатор душманского змия", &pycmd, 5, true }},
     {"/pix", { "8bit art", &pix, 1, true }},
-    {"/vox", { "Half-Life vox", &vox, 1, true }}
+    {"/vox", { "Half-Life vox", &vox, 1, true }},
+    {"/crt", { "cartoon art", &crt, 1, true }}
 };
 
 void help(cmdHead)

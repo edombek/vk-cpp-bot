@@ -23,6 +23,7 @@ public:
     Doc getPhoto(uint32_t peer_id, Net& net, Vk& vk);
     gdImagePtr im;
 
-    img(cv::Mat matIm);
+    static Doc CVtoPhoto(cv::Mat matIm, uint32_t peer_id, Net& net, Vk& vk);
+    static Doc CVtoDoc(cv::Mat matIm, uint32_t peer_id, Net& net, Vk& vk);
     cv::Mat getCVim();
 };

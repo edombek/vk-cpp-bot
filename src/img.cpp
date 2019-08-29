@@ -68,12 +68,26 @@ img img::copy()
     return img(gdImageClone(this->im));
 }
 
-img::img(cv::Mat matIm)
+Doc img::CVtoPhoto(cv::Mat matIm, uint32_t peer_id, Net& net, Vk& vk)
 {
     std::vector<uint8_t> buff;
-    cv::imencode(".png", matIm, buff);
-    std::string pngBuff(buff.begin(), buff.end());
-    this->im = gdImageCreateFromPngPtr(pngBuff.size(), (void*)pngBuff.c_str());
+    cv::imencode(".png", matIm, buff, {cv::IMWRITE_JPEG_PROGRESSIVE, 1});
+    std::string imBuff(buff.begin(), buff.end());
+    Doc doc;
+    if (doc.uploadPhoto("img.png", imBuff, net, vk, peer_id))
+        return doc;
+    return doc;
+}
+
+Doc img::CVtoDoc(cv::Mat matIm, uint32_t peer_id, Net& net, Vk& vk)
+{
+    std::vector<uint8_t> buff;
+    cv::imencode(".png", matIm, buff, {cv::IMWRITE_JPEG_PROGRESSIVE, 1});
+    std::string imBuff(buff.begin(), buff.end());
+    Doc doc;
+    if (doc.uploadDoc("img.png", imBuff, net, vk, peer_id))
+        return doc;
+    return doc;
 }
 
 cv::Mat img::getCVim()
