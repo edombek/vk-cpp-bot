@@ -665,7 +665,7 @@ void crt(cmdHead)
     }
 }
 
-#define lineRadius 16
+#define lineRadius 12
 void line(cmdHead)
 {
     for(auto doc : eventIn.docs)
@@ -675,12 +675,17 @@ void line(cmdHead)
             continue;
         gdImageGrayScale(im.im);
         img blured(gdImageCopyGaussianBlurred(im.im, lineRadius/2, -1.0));
-        img lined(blured.im->sx, blured.im->sy + lineRadius);
+        img lined(blured.im->sx, blured.im->sy);
 
         for(int y = 0; y < blured.im->sy; y+=lineRadius)
             for(int x = 0; x < blured.im->sx; x++){
                 int i = floor(gdTrueColorGetRed(gdImageGetPixel(blured.im, x, y)) / 255.0 * lineRadius);
                 gdImageSetPixel(lined.im, x, y+lineRadius-i, 0xFFFFFF);
+            }
+        for(int y = 0; y < blured.im->sy; y++)
+            for(int x = 0; x < blured.im->sx; x+=lineRadius){
+                int i = floor(gdTrueColorGetRed(gdImageGetPixel(blured.im, x, y)) / 255.0 * lineRadius);
+                gdImageSetPixel(lined.im, x+lineRadius-i, y, 0xFFFFFF);
             }
 
         eventOut.docs.push_back(lined.getPhoto(eventIn.peer_id, eventIn.net, eventIn.vk));
