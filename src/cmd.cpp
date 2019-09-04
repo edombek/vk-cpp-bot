@@ -31,6 +31,7 @@ void pycmd(cmdHead);
 void pix(cmdHead);
 void vox(cmdHead);
 void crt(cmdHead);
+void line(cmdHead);
 
 //прописываем в системе команд
 cmds_t cmdsList =
@@ -51,7 +52,8 @@ cmds_t cmdsList =
     {"/py", { "интерпретатор душманского змия", &pycmd, 5, true }},
     {"/pix", { "8bit art", &pix, 1, true }},
     {"/vox", { "Half-Life vox", &vox, 1, true }},
-    {"/crt", { "cartoon art", &crt, 1, true }}
+    {"/crt", { "cartoon art", &crt, 1, true }},
+    {"/l", { "рисовка линий из изображения", &line, 1, true }}
 };
 
 void help(cmdHead)

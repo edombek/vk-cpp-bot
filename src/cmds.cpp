@@ -664,3 +664,25 @@ void crt(cmdHead)
         eventOut.docs.push_back(img::CVtoPhoto(cvim, eventIn.peer_id, eventIn.net, eventIn.vk));
     }
 }
+
+#define lineRadius 10
+void line(cmdHead)
+{
+    for(auto doc : eventIn.docs)
+    {
+        img im(doc, eventIn.net);
+        if(!im.im)
+            continue;
+        gdImageGrayScale(im.im);
+        img blured(gdImageCopyGaussianBlurred(im.im, lineRadius, -1.0));
+        img lined(blured.im->sx, blured.im->sy + 10);
+
+        for(int y = 0; y < blured.im->sy; y+=lineRadius)
+            for(int x = 0; y < blured.im->sx; x++){
+                int i = floor(gdTrueColorGetRed(gdImageGetPixel(blured.im, x, y)) / 255 * 10);
+                gdImageSetPixel(lined.im, x, y+lineRadius+i, 0xFFFFFF);
+            }
+
+        eventOut.docs.push_back(lined.getPhoto(eventIn.peer_id, eventIn.net, eventIn.vk));
+    }
+}

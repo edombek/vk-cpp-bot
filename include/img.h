@@ -12,7 +12,7 @@
 class img
 {
 public:
-    img(int sx, int xy);
+    img(int sx, int sy);
     img(gdImagePtr New);
     img(Doc doc, Net& net);
     ~img();
