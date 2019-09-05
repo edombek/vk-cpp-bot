@@ -678,12 +678,14 @@ void line(cmdHead)
         img lined(blured.im->sx, blured.im->sy);
 
         for(int y = 0; y < blured.im->sy; y+=lineRadius)
-            for(int x = 0; x < blured.im->sx; x++){
+            for(int x = 0; x < blured.im->sx; x++)
+            {
                 int i = floor(gdTrueColorGetRed(gdImageGetPixel(blured.im, x, y)) / 255.0 * lineRadius);
                 gdImageSetPixel(lined.im, x, y+lineRadius-i, 0xFFFFFF);
             }
         for(int y = 0; y < blured.im->sy; y++)
-            for(int x = 0; x < blured.im->sx; x+=lineRadius){
+            for(int x = 0; x < blured.im->sx; x+=lineRadius)
+            {
                 int i = floor(gdTrueColorGetRed(gdImageGetPixel(blured.im, x, y)) / 255.0 * lineRadius);
                 gdImageSetPixel(lined.im, x+lineRadius-i, y, 0xFFFFFF);
             }

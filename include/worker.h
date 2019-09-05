@@ -1,22 +1,12 @@
 #pragma once
 #include "common.h"
-#include "events.h"
-#include "vk.h"
-#include <condition_variable>
-#include <mutex>
-#include <thread>
-#include <queue>
+#include <ThreadPool.h>
 class Worker
 {
 private:
-    std::thread* thr;
-    std::queue<json> events;
-    std::mutex m;
-    std::condition_variable cond_var;
+    ThreadPool pool;
 public:
-    Worker();
-    ~Worker();
+    Worker():pool(5) {}
     void add_event(json);
-    json get_event();
-    void work();
+    void work(json);
 };
