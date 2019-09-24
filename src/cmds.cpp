@@ -361,8 +361,8 @@ void setCfg(cmdHead)
 }
 
 #include "game.h"
-map<int, game*> gameNew = {}; // новые игры в чате
-map<int, map<int, game*>> gameUsers = {}; // все игры в [chat][user]
+map<uint32_t, game*> gameNew = {}; // новые игры в чате
+map<uint32_t, map<uint32_t, game*>> gameUsers = {}; // все игры в [chat][user]
 mutex gameL;
 
 void cleanGames(game *t, uint32_t peer_id) // удаляем игры в каталогах пользователей и саму игру
@@ -692,4 +692,73 @@ void line(cmdHead)
 
         eventOut.docs.push_back(lined.getPhoto(eventIn.peer_id, eventIn.net, eventIn.vk));
     }
+}
+
+#include <algorithm>
+string getNumber() // генерация случайного четырёхзначного числа без повторений цифр
+{
+    string nums = "1234567890";
+    srand(time(NULL));
+    random_shuffle(nums.begin(), nums.end());
+    if(nums[0]=='0')
+        nums[0]=nums[9];
+    nums.resize(4);
+    return nums;
+}
+
+map<int, string> randNumbers = {}; // все загаданные числа для каждого пользователя
+mutex bcL;
+void bc(cmdHead)
+{
+    bcL.lock();
+
+    goto _pass;
+pass:
+    bcL.unlock();
+    return;
+_pass:
+
+    if(!findinmap(randNumbers, eventIn.user.id))//если игра не создана
+    {
+        randNumbers[eventIn.user.id] = getNumber();
+        eventOut.msg+="\
+цель данной игры отгадать загаданное компьютером число.\n\
+Даются подсказки в виде двух значений.\n\
+Коров -- числа совпадений цифр без совпадений их положения.\n\
+Быков -- числа точных совпадений цифр.\n\
+Ответ боту даётся как аргумент к этой команде.";
+        goto pass;
+    }
+    if(eventIn.words.size() < 2)
+    {
+        eventOut.msg+="ты указал четырёхзначное число.";
+        goto pass;
+    }
+    string userNumber = eventIn.words[1];
+    if(!(userNumber.size() == 4 && str::fromString(userNumber))) // если это не четырёх значное число
+    {
+        eventOut.msg+="ты указал не четырёхзначное число.";
+        goto pass;
+    }
+
+
+    if(userNumber == randNumbers[eventIn.user.id])
+    {
+        eventOut.msg+="молодец!!! Ты отгадал число!";
+        randNumbers.erase(eventIn.user.id);
+        goto pass;
+    }
+
+    string randNumber = randNumbers[eventIn.user.id];
+
+    uint8_t c = 0; // коровы
+    uint8_t b = 0; // быки
+    for(uint8_t ri = 0; ri < 4; ri++)
+        for(uint8_t ui = 0; ui < 4; ui++)
+            if(randNumber[ri] == userNumber[ui]) // если одинаковая цифра
+                if(ri == ui) b++; // и их позиция
+                else c++;
+
+    eventOut.msg = "найдено:\n  Коров: " + to_string(c) + "\n  Быков: " + to_string(b);
+    bcL.unlock();
 }
