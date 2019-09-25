@@ -731,11 +731,11 @@ _pass:
     }
     if(eventIn.words.size() < 2)
     {
-        eventOut.msg+="ты указал четырёхзначное число.";
+        eventOut.msg+="ты не указал четырёхзначное число.";
         goto pass;
     }
     string userNumber = eventIn.words[1];
-    if(!(userNumber.size() == 4 && str::fromString(userNumber))) // если это не четырёх значное число
+    if(!(userNumber.size() == 4 && str::fromString(userNumber) && userNumber[0] != '0')) // если это не четырёх значное число
     {
         eventOut.msg+="ты указал не четырёхзначное число.";
         goto pass;
@@ -754,10 +754,19 @@ _pass:
     uint8_t c = 0; // коровы
     uint8_t b = 0; // быки
     for(uint8_t ri = 0; ri < 4; ri++)
+    {
+    	if(randNumber[ri] == userNumber[ri])// если бык
+        {
+            b++;
+            continue;
+         }
         for(uint8_t ui = 0; ui < 4; ui++)
-            if(randNumber[ri] == userNumber[ui]) // если одинаковая цифра
-                if(ri == ui) b++; // и их позиция
-                else c++;
+            if(randNumber[ri] == userNumber[ui]) // если корова
+            {
+                c++;
+                break;
+            }
+     }
 
     eventOut.msg = "найдено:\n  Коров: " + to_string(c) + "\n  Быков: " + to_string(b);
     bcL.unlock();
