@@ -789,13 +789,15 @@ void neon(cmdHead)
         for (int i = 0; i < nBts; i++)
         {
             cv::Mat buff;
-            cv::bilateralFilter(imgColored, buff, 15, 32, 7);
+            cv::bilateralFilter(imgColored, buff, 16, 24, 7);
             imgColored = buff.clone();
         }
+        //eventOut.docs.push_back(img::CVtoPhoto(imgColored, eventIn.peer_id, eventIn.net, eventIn.vk));
         cv::Mat imgGray;
         cv::cvtColor(imgColored, imgGray, cv::COLOR_RGB2GRAY);
         cv::Mat imgEdge;
         cv::adaptiveThreshold(imgGray, imgEdge, 255, CV_ADAPTIVE_THRESH_MEAN_C, CV_THRESH_BINARY, 7, 2);
+        //eventOut.docs.push_back(img::CVtoPhoto(imgEdge, eventIn.peer_id, eventIn.net, eventIn.vk));
 
         cv::resize(imgEdge, imgEdge, cv::Size(imgColored.size().width, imgColored.size().height));
         cv::Rect myROI(0, 0, MIN(imgColored.size().width, imgEdge.size().width), MIN(imgColored.size().height, imgEdge.size().height));
@@ -814,10 +816,11 @@ void neon(cmdHead)
                 cHsv.v = 1;//pow(cHsv.v, 0.5);
                 rgb_t cRgb = hsv2rgb(cHsv);
                 bgrPixel[0] = cRgb.b * 255;
-                bgrPixel[1] = cRgb.r * 255;
-                bgrPixel[2] = cRgb.g * 255;
+                bgrPixel[1] = cRgb.g * 255;
+                bgrPixel[2] = cRgb.r * 255;
             }
-        cv::GaussianBlur(imgColored, imgColored, cv::Size(9,9), 7);
+        eventOut.docs.push_back(img::CVtoPhoto(imgColored, eventIn.peer_id, eventIn.net, eventIn.vk));
+        cv::GaussianBlur(imgColored, imgColored, cv::Size(5,5), 2);
         eventOut.docs.push_back(img::CVtoPhoto(imgColored, eventIn.peer_id, eventIn.net, eventIn.vk));
         cv::bitwise_or(imgColored,cvim, imgColored);
         eventOut.docs.push_back(img::CVtoPhoto(imgColored, eventIn.peer_id, eventIn.net, eventIn.vk));
