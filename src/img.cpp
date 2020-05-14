@@ -67,14 +67,19 @@ img img::copy()
 {
     return img(gdImageClone(this->im));
 }
-
+#include <fs.h>
 Doc img::CVtoPhoto(cv::Mat matIm, uint32_t peer_id, Net& net, Vk& vk)
 {
-    std::vector<uint8_t> buff;
-    cv::imencode(".png", matIm, buff, {cv::IMWRITE_JPEG_PROGRESSIVE, 1});
+    if(matIm.size().width + matIm.size().height > 14000)
+    {
+        float sf = 14000.0/(matIm.size().width + matIm.size().height);
+        cv::resize(matIm, matIm, cv::Size(), sf, sf);
+    }
+    std::vector<uchar> buff;
+    cv::imencode(".jpg", matIm, buff, {cv::IMWRITE_JPEG_PROGRESSIVE, 1});
     std::string imBuff(buff.begin(), buff.end());
     Doc doc;
-    if (doc.uploadPhoto("img.png", imBuff, net, vk, peer_id))
+    if (doc.uploadPhoto("img.jpg", imBuff, net, vk, peer_id))
         return doc;
     doc.doc_id = 0;
     return doc;
@@ -82,7 +87,7 @@ Doc img::CVtoPhoto(cv::Mat matIm, uint32_t peer_id, Net& net, Vk& vk)
 
 Doc img::CVtoDoc(cv::Mat matIm, uint32_t peer_id, Net& net, Vk& vk)
 {
-    std::vector<uint8_t> buff;
+    std::vector<uchar> buff;
     cv::imencode(".png", matIm, buff, {cv::IMWRITE_JPEG_PROGRESSIVE, 1});
     std::string imBuff(buff.begin(), buff.end());
     Doc doc;
@@ -94,7 +99,7 @@ Doc img::CVtoDoc(cv::Mat matIm, uint32_t peer_id, Net& net, Vk& vk)
 cv::Mat img::getCVim()
 {
     std::string data = this->getPng();
-    std::vector<uint8_t> vectordata(data.begin(),data.end());
+    std::vector<uchar> vectordata(data.begin(),data.end());
     cv::Mat data_mat(vectordata,true);
     return cv::imdecode(data_mat,1);
 }
@@ -114,14 +119,18 @@ hsv_t rgb2hsv(rgb_t in)
 
     out.v = max; // v
     delta = max - min;
-    if (delta < 0.00001) {
+    if (delta < 0.00001)
+    {
         out.s = 0;
         out.h = 0; // undefined, maybe nan?
         return out;
     }
-    if (max > 0.0) { // NOTE: if Max is == 0, this divide would cause a crash
+    if (max > 0.0)   // NOTE: if Max is == 0, this divide would cause a crash
+    {
         out.s = (delta / max); // s
-    } else {
+    }
+    else
+    {
         // if max is 0, then r = g = b = 0
         // s = 0, h is undefined
         out.s = 0.0;
@@ -149,7 +158,8 @@ rgb_t hsv2rgb(hsv_t in)
     long i;
     rgb_t out;
 
-    if (in.s <= 0.0) { // < is bogus, just shuts up warnings
+    if (in.s <= 0.0)   // < is bogus, just shuts up warnings
+    {
         out.r = in.v;
         out.g = in.v;
         out.b = in.v;
@@ -165,7 +175,8 @@ rgb_t hsv2rgb(hsv_t in)
     q = in.v * (1.0 - (in.s * ff));
     t = in.v * (1.0 - (in.s * (1.0 - ff)));
 
-    switch (i) {
+    switch (i)
+    {
     case 0:
         out.r = in.v;
         out.g = t;

@@ -2,6 +2,8 @@
 
 #define ver "5.92"
 
+#include <iostream>
+
 using namespace std;
 
 Vk::Vk(Net& n)
@@ -35,7 +37,6 @@ json Vk::send(string method, table_t args, bool user)
         args["v"] = ver;
     json buff = json::parse(this->net.send("https://api.vk.com/method/" + method, args));
     if(buff["error"]["error_code"].is_number())
-    {
         switch(buff["error"]["error_code"].get<int>())
         {
         case 9: // исправление пропуска при флуде
@@ -48,8 +49,8 @@ json Vk::send(string method, table_t args, bool user)
             return this->send(method, args, user);
             break;
         default:
+            cout << endl << "VK ERROR:" << endl << buff["error"].dump(4) << endl;
             break;
         }
-    }
     return buff;
 }
