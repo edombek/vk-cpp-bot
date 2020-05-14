@@ -33,6 +33,7 @@ string getParamOfPath(string path, string p)
     for (auto line : lines)
     {
         args_t param = str::words(line, ':');
+        if (param.size() < 2) continue;
         if (str::at(param[0], p))
             return str::replase(param[1], "  ", " ");
     }
@@ -57,7 +58,7 @@ void stat(cmdHead)
     string usedMem = to_string((int)((float)(str::fromString(getParamOfPath("/proc/meminfo", "MemTotal")) - str::fromString(getParamOfPath("/proc/meminfo", "MemAvailable"))) / 1024));
     string myMem = to_string((int)((float)str::fromString(getParamOfPath("/proc/self/status", "VmRSS")) / 1024));
 
-    eventOut.msg += "CPU:" + getParamOfPath("/proc/cpuinfo", "model name") + "\n";
+    eventOut.msg += "CPU:" + (getParamOfPath("/proc/cpuinfo", "model name").size() ? getParamOfPath("/proc/cpuinfo", "model name") : getParamOfPath("/proc/cpuinfo", "Model")) + "\n";
     eventOut.msg += "RAM: " + usedMem + "/" + allMem + " Мб\n";
     eventOut.msg += "Я сожрал оперативы: " + myMem + " Мб\n";
     eventOut.msg += "Потоков занял: " + getParamOfPath("/proc/self/status", "Threads") + "\n\n";
@@ -660,6 +661,9 @@ void crt(cmdHead)
         cv::adaptiveThreshold(imgBlur, imgEdge, 255, CV_ADAPTIVE_THRESH_MEAN_C, CV_THRESH_BINARY, 9, 2);
         cv::cvtColor(imgEdge, imgEdge, cv::COLOR_GRAY2RGB);
         cv::resize(imgEdge, imgEdge, cv::Size(imgColored.size().width, imgColored.size().height));
+        cv::Rect myROI(0, 0, MIN(cvim.size().width, imgEdge.size().width), MIN(cvim.size().height, imgEdge.size().height));
+        cvim = cvim(myROI);
+        imgEdge = imgEdge(myROI);
         cv::bitwise_and(imgColored, imgEdge, cvim);
         eventOut.docs.push_back(img::CVtoPhoto(cvim, eventIn.peer_id, eventIn.net, eventIn.vk));
     }
@@ -755,19 +759,67 @@ _pass:
     uint8_t b = 0; // быки
     for(uint8_t ri = 0; ri < 4; ri++)
     {
-    	if(randNumber[ri] == userNumber[ri])// если бык
+        if(randNumber[ri] == userNumber[ri])// если бык
         {
             b++;
             continue;
-         }
+        }
         for(uint8_t ui = 0; ui < 4; ui++)
             if(randNumber[ri] == userNumber[ui]) // если корова
             {
                 c++;
                 break;
             }
-     }
+    }
 
     eventOut.msg = "найдено:\n  Коров: " + to_string(c) + "\n  Быков: " + to_string(b);
     bcL.unlock();
+}
+
+void neon(cmdHead)
+{
+    for(auto doc : eventIn.docs)
+    {
+        img im(doc, eventIn.net);
+        if(!im.im)
+            continue;
+
+        cv::Mat cvim = im.getCVim();
+        cv::Mat imgColored = cvim.clone();
+        for (int i = 0; i < nBts; i++)
+        {
+            cv::Mat buff;
+            cv::bilateralFilter(imgColored, buff, 15, 32, 7);
+            imgColored = buff.clone();
+        }
+        cv::Mat imgGray;
+        cv::cvtColor(imgColored, imgGray, cv::COLOR_RGB2GRAY);
+        cv::Mat imgEdge;
+        cv::adaptiveThreshold(imgGray, imgEdge, 255, CV_ADAPTIVE_THRESH_MEAN_C, CV_THRESH_BINARY, 7, 2);
+
+        cv::resize(imgEdge, imgEdge, cv::Size(imgColored.size().width, imgColored.size().height));
+        cv::Rect myROI(0, 0, MIN(imgColored.size().width, imgEdge.size().width), MIN(imgColored.size().height, imgEdge.size().height));
+        imgColored = imgColored(myROI);
+        imgEdge = imgEdge(myROI);
+
+        cv::Mat low(myROI.height, myROI.width, CV_8UC3, cv::Scalar(0, 0, 0));
+        cv::bitwise_and(imgColored,low, imgColored, imgEdge);
+        for(unsigned int i = 0; i < imgColored.rows; i++)
+            for(unsigned int j = 0; j < imgColored.cols; j++)
+            {
+                cv::Vec3b &bgrPixel = imgColored.at<cv::Vec3b>(i, j);
+                if (bgrPixel[0] + bgrPixel[1] + bgrPixel[2] == 0) continue;
+                hsv_t cHsv = rgb2hsv({bgrPixel[2]/255.0, bgrPixel[1]/255.0, bgrPixel[0]/255.0});
+                //cHsv.s = 1;
+                cHsv.v = 1;//pow(cHsv.v, 0.5);
+                rgb_t cRgb = hsv2rgb(cHsv);
+                bgrPixel[0] = cRgb.b * 255;
+                bgrPixel[1] = cRgb.r * 255;
+                bgrPixel[2] = cRgb.g * 255;
+            }
+        cv::GaussianBlur(imgColored, imgColored, cv::Size(9,9), 7);
+        eventOut.docs.push_back(img::CVtoPhoto(imgColored, eventIn.peer_id, eventIn.net, eventIn.vk));
+        cv::bitwise_or(imgColored,cvim, imgColored);
+        eventOut.docs.push_back(img::CVtoPhoto(imgColored, eventIn.peer_id, eventIn.net, eventIn.vk));
+    }
 }
