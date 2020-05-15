@@ -15,7 +15,8 @@ img::img(Doc doc, Net& net, bool full)
     std::vector<uchar> vectordata(buff.begin(),buff.end());
     cv::Mat data_mat(vectordata,true);
     this->im = cv::imdecode(data_mat,1);
-    if (!full && this->isBig()){
+    if (!full && this->isBig())
+    {
         float sf = 2560.0/MAX(this->im.size().width, this->im.size().height);
         cv::resize(this->im, this->im, cv::Size(), sf, sf);
     }
