@@ -173,128 +173,6 @@ void videos(cmdHead)
     }
 }
 
-typedef struct
-{
-    float x;
-    float y;
-} xy_t;
-
-typedef struct
-{
-    float r;
-    float a;
-} ra_t;
-
-#include <cmath>
-ra_t toRA(xy_t c)
-{
-    ra_t ra;
-    ra.a = atan(c.y / c.x);
-    if (c.x >= 0)
-        ra.r = sqrt(c.x * c.x + c.y * c.y);
-    else
-        ra.r = -sqrt(c.x * c.x + c.y * c.y);
-    return ra;
-}
-
-xy_t toXY(ra_t c)
-{
-    xy_t xy;
-    xy.x = c.r * cos(c.a);
-    xy.y = c.r * sin(c.a);
-    return xy;
-}
-
-void asin(cmdHead)
-{
-    if (!eventIn.docs.size())
-    {
-        eventOut.msg += "прикрепи фото";
-        return;
-    }
-    int32_t c = 1;
-    if (eventIn.words.size() > 1)
-        c = str::fromString(eventIn.words[1]);
-    if (c < 1)
-        c = 1;
-
-    for (auto doc : eventIn.docs)
-    {
-        img im(doc, eventIn.net);
-        if(!im.im)
-            continue;
-        xy_t o = { im.im->sx / 2.0f, im.im->sy / 2.0f };
-        float r = sqrt(im.im->sx * im.im->sx + im.im->sy * im.im->sy) / 2;
-        xy_t s = {im.im->sx / 1.0f, im.im->sy / 1.0f};
-        for (int32_t i = 0; i < c; i++)
-            s = {(float)(asin(s.x/r/2)*r*2 / M_PI * 2.0f), (float)(asin(s.y/r/2)*r*2 / M_PI * 2.0f)};
-        float rB = sqrt(s.x*s.x + s.y*s.y) / 2;
-        img balled(s.x, s.y);
-        xy_t xy;
-        ra_t ra;
-        xy_t xyO;
-        xy_t oB = { balled.im->sx / 2.0f, balled.im->sy / 2.0f };
-        for (uint32_t yc = 0; yc < balled.im->sy; yc++)
-            for (uint32_t xc = 0; xc < balled.im->sx; xc++)
-            {
-                xy.x = (xc - oB.x) / rB;
-                xy.y = (yc - oB.y) / rB;
-                ra = toRA(xy);
-                for (int32_t i = 0; i < c; i++)
-                    ra.r = asin(ra.r) / M_PI * 2;
-                xyO = toXY(ra);
-                gdImageSetPixel(balled.im, xc, yc, gdImageGetPixel(im.im, xyO.x * r + o.x, xyO.y * r + o.y));
-            }
-        eventOut.docs.push_back(balled.getPhoto(eventIn.peer_id, eventIn.net, eventIn.vk));
-        eventOut.docs.push_back(balled.getDoc(eventIn.peer_id, eventIn.net, eventIn.vk));
-        eventOut.send();
-        eventOut.docs = {};
-    }
-    eventOut.msg += "готово)";
-}
-
-void sin(cmdHead)
-{
-    if (!eventIn.docs.size())
-    {
-        eventOut.msg += "прикрепи фото";
-        return;
-    }
-    int32_t c = 1;
-    if (eventIn.words.size() > 1)
-        c = str::fromString(eventIn.words[1]);
-    if (c < 1)
-        c = 1;
-    for (auto doc : eventIn.docs)
-    {
-        img im(doc, eventIn.net);
-        if(!im.im)
-            continue;
-        xy_t o = { im.im->sx / 2.0f, im.im->sy / 2.0f };
-        float r = sqrt(im.im->sx * im.im->sx + im.im->sy * im.im->sy) / 2;
-        img balled(im.im->sx, im.im->sy);
-        xy_t xy;
-        ra_t ra;
-        xy_t xyO;
-        for (uint32_t yc = 0; yc < balled.im->sy; yc++)
-            for (uint32_t xc = 0; xc < balled.im->sx; xc++)
-            {
-                xy.x = (xc - o.x) / r;
-                xy.y = (yc - o.y) / r;
-                ra = toRA(xy);
-                for (int32_t i = 0; i < c; i++)
-                    ra.r = sin(ra.r * M_PI / 2);
-                xyO = toXY(ra);
-                gdImageSetPixel(balled.im, xc, yc, gdImageGetPixel(im.im, xyO.x * r + o.x, xyO.y * r + o.y));
-            }
-        eventOut.docs.push_back(balled.getPhoto(eventIn.peer_id, eventIn.net, eventIn.vk));
-        eventOut.docs.push_back(balled.getDoc(eventIn.peer_id, eventIn.net, eventIn.vk));
-        eventOut.send();
-        eventOut.docs = {};
-    }
-    eventOut.msg += "готово)";
-}
-
 #define openweathermap_msg "get token on openweathermap.org"
 void weather(cmdHead)
 {
@@ -510,38 +388,25 @@ void pycmd(cmdHead)
 #endif
 }
 
-#define imgdelta 8
+#define imgdelta 8.0
 #define imgcolorsinch 8
 #define imgcolorscoff 255/imgcolorsinch
 #define imgcolorcorr(c) round(round((float(c)/255)*imgcolorsinch)*imgcolorscoff)
 void pix(cmdHead)
 {
+    bool full = eventIn.user.acess >= 2;
     for(auto doc : eventIn.docs)
     {
-        img im(doc, eventIn.net);
-        if(!im.im)
+        img im(doc, eventIn.net, full);
+        if(im.im.empty())
             continue;
-        uint32_t sx = im.im->sx/imgdelta;
-        uint32_t sy = im.im->sy/imgdelta;
-        img blured(gdImageCopyGaussianBlurred(im.im, imgdelta, -1.0));
-        img resized(sx, sy);
-        gdImageCopyResized(resized.im, blured.im, 0, 0, 0, 0, sx, sy, sx*imgdelta, sy*imgdelta);
-        img out(sx*imgdelta, sy*imgdelta);
+        cv::resize(im.im, im.im, cv::Size(), 1/imgdelta, 1/imgdelta);
+        cv::resize(im.im, im.im, cv::Size(), imgdelta, imgdelta, cv::INTER_NEAREST);
 
-        for(uint32_t ix = 0; ix < sx; ix++)
-            for(uint32_t iy = 0; iy < sy; iy++)
-            {
-                int c = gdImageGetPixel(resized.im, ix, iy);
-                gdImageSetPixel(resized.im, ix, iy,
-                                gdImageColorClosest(resized.im,
-                                                    imgcolorcorr(gdTrueColorGetRed(c)),
-                                                    imgcolorcorr(gdTrueColorGetGreen(c)),
-                                                    imgcolorcorr(gdTrueColorGetBlue(c))));
-            }
-        gdImageCopyResized(out.im, resized.im, 0, 0, 0, 0, sx*imgdelta, sy*imgdelta, sx, sy);
-
-        if(out.im)
-            eventOut.docs.push_back(out.getPhoto(eventIn.peer_id, eventIn.net, eventIn.vk));
+        if(full)
+            eventOut.docs.push_back(im.getDoc(eventIn.peer_id, eventIn.net, eventIn.vk));
+        else
+            eventOut.docs.push_back(im.getPhoto(eventIn.peer_id, eventIn.net, eventIn.vk));
     }
 }
 
@@ -635,13 +500,14 @@ void vox(cmdHead)
 #endif
 void crt(cmdHead)
 {
+    bool full = eventIn.user.acess >= 2;
     for(auto doc : eventIn.docs)
     {
-        img im(doc, eventIn.net);
-        if(!im.im)
+        img im(doc, eventIn.net, full);
+        if(im.im.empty())
             continue;
 
-        cv::Mat cvim = im.getCVim();
+        cv::Mat cvim = im.im;
         cv::Mat imgColored = cvim.clone();
         for (int i = 0; i < nDownSampling; i++)
             cv::pyrDown(imgColored, imgColored);
@@ -665,11 +531,15 @@ void crt(cmdHead)
         cvim = cvim(myROI);
         imgEdge = imgEdge(myROI);
         cv::bitwise_and(imgColored, imgEdge, cvim);
-        eventOut.docs.push_back(img::CVtoPhoto(cvim, eventIn.peer_id, eventIn.net, eventIn.vk));
+
+        if(full)
+            eventOut.docs.push_back(im.getDoc(eventIn.peer_id, eventIn.net, eventIn.vk));
+        else
+            eventOut.docs.push_back(im.getPhoto(eventIn.peer_id, eventIn.net, eventIn.vk));
     }
 }
 
-#define lineRadius 12
+/*#define lineRadius 12
 void line(cmdHead)
 {
     for(auto doc : eventIn.docs)
@@ -696,7 +566,7 @@ void line(cmdHead)
 
         eventOut.docs.push_back(lined.getPhoto(eventIn.peer_id, eventIn.net, eventIn.vk));
     }
-}
+}*/
 
 #include <algorithm>
 string getNumber() // генерация случайного четырёхзначного числа без повторений цифр
@@ -778,26 +648,25 @@ _pass:
 
 void neon(cmdHead)
 {
+    bool full = eventIn.user.acess >= 2;
     for(auto doc : eventIn.docs)
     {
-        img im(doc, eventIn.net);
-        if(!im.im)
+        img im(doc, eventIn.net, full);
+        if(im.im.empty())
             continue;
 
-        cv::Mat cvim = im.getCVim();
+        cv::Mat cvim = im.im;
         cv::Mat imgColored = cvim.clone();
         for (int i = 0; i < nBts; i++)
         {
             cv::Mat buff;
-            cv::bilateralFilter(imgColored, buff, 16, 24, 7);
+            cv::bilateralFilter(imgColored, buff, 16, 16, 64);
             imgColored = buff.clone();
         }
-        //eventOut.docs.push_back(img::CVtoPhoto(imgColored, eventIn.peer_id, eventIn.net, eventIn.vk));
         cv::Mat imgGray;
         cv::cvtColor(imgColored, imgGray, cv::COLOR_RGB2GRAY);
         cv::Mat imgEdge;
-        cv::adaptiveThreshold(imgGray, imgEdge, 255, CV_ADAPTIVE_THRESH_MEAN_C, CV_THRESH_BINARY, 7, 2);
-        //eventOut.docs.push_back(img::CVtoPhoto(imgEdge, eventIn.peer_id, eventIn.net, eventIn.vk));
+        cv::adaptiveThreshold(imgGray, imgEdge, 255, CV_ADAPTIVE_THRESH_MEAN_C, CV_THRESH_BINARY, 5, 2);
 
         cv::resize(imgEdge, imgEdge, cv::Size(imgColored.size().width, imgColored.size().height));
         cv::Rect myROI(0, 0, MIN(imgColored.size().width, imgEdge.size().width), MIN(imgColored.size().height, imgEdge.size().height));
@@ -819,10 +688,11 @@ void neon(cmdHead)
                 bgrPixel[1] = cRgb.g * 255;
                 bgrPixel[2] = cRgb.r * 255;
             }
-        eventOut.docs.push_back(img::CVtoPhoto(imgColored, eventIn.peer_id, eventIn.net, eventIn.vk));
         cv::GaussianBlur(imgColored, imgColored, cv::Size(5,5), 2);
-        eventOut.docs.push_back(img::CVtoPhoto(imgColored, eventIn.peer_id, eventIn.net, eventIn.vk));
-        cv::bitwise_or(imgColored,cvim, imgColored);
-        eventOut.docs.push_back(img::CVtoPhoto(imgColored, eventIn.peer_id, eventIn.net, eventIn.vk));
+        img out(imgColored);
+        if(full)
+            eventOut.docs.push_back(out.getDoc(eventIn.peer_id, eventIn.net, eventIn.vk));
+        else
+            eventOut.docs.push_back(out.getPhoto(eventIn.peer_id, eventIn.net, eventIn.vk));
     }
 }

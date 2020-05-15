@@ -22,8 +22,6 @@ void upload(cmdHead);
 void set(cmdHead);
 void rename(cmdHead);
 void videos(cmdHead);
-void asin(cmdHead);
-void sin(cmdHead);
 void weather(cmdHead);
 void gameF(cmdHead);
 void apod(cmdHead);
@@ -31,7 +29,7 @@ void pycmd(cmdHead);
 void pix(cmdHead);
 void vox(cmdHead);
 void crt(cmdHead);
-void line(cmdHead);
+void line(cmdHead); //переделать
 void bc(cmdHead);
 void neon(cmdHead);
 
@@ -46,8 +44,6 @@ cmds_t cmdsList =
     { "/set", { "установка уровня доступа человеку", &set, 5, true } },
     { "/rename", { "установить ник в боте", &rename, 1, true } },
     { "/vid", { "поиск видео", &videos, 3, true } },
-    { "/sin", { "изменить преспективу", &sin, 1, true } },
-    { "/asin", { "изменить преспективу", &asin, 1, true } },
     { "/w", { "погода", &weather, 1, true } },
     { "/g", { "игра", &gameF, 1, true } },
     { "/apod", { "астрофото на каждый день", &apod, 1, true } },
@@ -55,7 +51,7 @@ cmds_t cmdsList =
     {"/pix", { "8bit art", &pix, 1, true }},
     {"/vox", { "Half-Life vox", &vox, 1, true }},
     {"/crt", { "cartoon art", &crt, 1, true }},
-    {"/l", { "рисовка линий из изображения", &line, 1, true }},
+//    {"/l", { "рисовка линий из изображения", &line, 1, true }},
     {"/bc", { "игра: \"Быки и коровы\"", &bc, 1, true }},
     {"/neon", { "неон арт", &neon, 1, true }}
 };
