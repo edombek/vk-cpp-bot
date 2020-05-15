@@ -50,6 +50,7 @@ json Event::send()
         param["peer_id"] = std::to_string(this->peer_id);
         param["random_id"] = std::to_string(this->random_id);
         param["message"] = this->msg;
+        param["disable_mentions"] = 1
         for (auto doc : this->docs)
             param["attachment"] += doc.get() + ",";
         return this->vk.send("messages.send", param);
