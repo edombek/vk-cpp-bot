@@ -655,30 +655,30 @@ void neon(cmdHead)
         if(im.im.empty())
             continue;
 
-        cv::Mat cvim = im.im;
-        cv::Mat imgColored = cvim.clone();
         for (int i = 0; i < nBts; i++)
         {
             cv::Mat buff;
-            cv::bilateralFilter(imgColored, buff, 16, 16, 64);
-            imgColored = buff.clone();
+            cv::bilateralFilter(im.im, buff, 16, 16, 64);
+            im.im = buff.clone();
         }
         cv::Mat imgGray;
-        cv::cvtColor(imgColored, imgGray, cv::COLOR_RGB2GRAY);
+        cv::cvtColor(im.im, imgGray, cv::COLOR_RGB2GRAY);
         cv::Mat imgEdge;
         cv::adaptiveThreshold(imgGray, imgEdge, 255, CV_ADAPTIVE_THRESH_MEAN_C, CV_THRESH_BINARY, 5, 2);
+        imgGray.release();
 
-        cv::resize(imgEdge, imgEdge, cv::Size(imgColored.size().width, imgColored.size().height));
-        cv::Rect myROI(0, 0, MIN(imgColored.size().width, imgEdge.size().width), MIN(imgColored.size().height, imgEdge.size().height));
-        imgColored = imgColored(myROI);
+        cv::resize(imgEdge, imgEdge, cv::Size(im.im.size().width, im.im.size().height));
+        cv::Rect myROI(0, 0, MIN(im.im.size().width, imgEdge.size().width), MIN(im.im.size().height, imgEdge.size().height));
+        im.im = im.im(myROI);
         imgEdge = imgEdge(myROI);
 
         cv::Mat low(myROI.height, myROI.width, CV_8UC3, cv::Scalar(0, 0, 0));
-        cv::bitwise_and(imgColored,low, imgColored, imgEdge);
-        for(unsigned int i = 0; i < imgColored.rows; i++)
-            for(unsigned int j = 0; j < imgColored.cols; j++)
+        cv::bitwise_and(im.im,low, im.im, imgEdge);
+        imgEdge.release();
+        for(unsigned int i = 0; i < im.im.rows; i++)
+            for(unsigned int j = 0; j < im.im.cols; j++)
             {
-                cv::Vec3b &bgrPixel = imgColored.at<cv::Vec3b>(i, j);
+                cv::Vec3b &bgrPixel = im.im.at<cv::Vec3b>(i, j);
                 if (bgrPixel[0] + bgrPixel[1] + bgrPixel[2] == 0) continue;
                 hsv_t cHsv = rgb2hsv({bgrPixel[2]/255.0, bgrPixel[1]/255.0, bgrPixel[0]/255.0});
                 //cHsv.s = 1;
@@ -688,11 +688,10 @@ void neon(cmdHead)
                 bgrPixel[1] = cRgb.g * 255;
                 bgrPixel[2] = cRgb.r * 255;
             }
-        cv::GaussianBlur(imgColored, imgColored, cv::Size(5,5), 2);
-        img out(imgColored);
+        cv::GaussianBlur(im.im, im.im, cv::Size(5,5), 2);
         if(full)
-            eventOut.docs.push_back(out.getDoc(eventIn.peer_id, eventIn.net, eventIn.vk));
+            eventOut.docs.push_back(im.getDoc(eventIn.peer_id, eventIn.net, eventIn.vk));
         else
-            eventOut.docs.push_back(out.getPhoto(eventIn.peer_id, eventIn.net, eventIn.vk));
+            eventOut.docs.push_back(im.getPhoto(eventIn.peer_id, eventIn.net, eventIn.vk));
     }
 }
