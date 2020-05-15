@@ -403,7 +403,7 @@ void pix(cmdHead)
         cv::resize(im.im, im.im, cv::Size(), 1/imgdelta, 1/imgdelta);
         cv::resize(im.im, im.im, cv::Size(), imgdelta, imgdelta, cv::INTER_NEAREST);
 
-        if(full)
+        if(full && im.isBig())
             eventOut.docs.push_back(im.getDoc(eventIn.peer_id, eventIn.net, eventIn.vk));
         else
             eventOut.docs.push_back(im.getPhoto(eventIn.peer_id, eventIn.net, eventIn.vk));
@@ -532,7 +532,7 @@ void crt(cmdHead)
         imgEdge = imgEdge(myROI);
         cv::bitwise_and(imgColored, imgEdge, cvim);
 
-        if(full)
+        if(full && im.isBig())
             eventOut.docs.push_back(im.getDoc(eventIn.peer_id, eventIn.net, eventIn.vk));
         else
             eventOut.docs.push_back(im.getPhoto(eventIn.peer_id, eventIn.net, eventIn.vk));
@@ -689,7 +689,7 @@ void neon(cmdHead)
                 bgrPixel[2] = cRgb.r * 255;
             }
         cv::GaussianBlur(im.im, im.im, cv::Size(5,5), 2);
-        if(full)
+        if(full && im.isBig())
             eventOut.docs.push_back(im.getDoc(eventIn.peer_id, eventIn.net, eventIn.vk));
         else
             eventOut.docs.push_back(im.getPhoto(eventIn.peer_id, eventIn.net, eventIn.vk));

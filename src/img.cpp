@@ -15,8 +15,8 @@ img::img(Doc doc, Net& net, bool full)
     std::vector<uchar> vectordata(buff.begin(),buff.end());
     cv::Mat data_mat(vectordata,true);
     this->im = cv::imdecode(data_mat,1);
-    if (!full && this->im.size().width + this->im.size().height > 14000){
-        float sf = 14000.0/(this->im.size().width + this->im.size().height);
+    if (!full && this->isBig()){
+        float sf = 2560.0/MAX(this->im.size().width, this->im.size().height);
         cv::resize(this->im, this->im, cv::Size(), sf, sf);
     }
 }
@@ -41,6 +41,12 @@ Doc img::getPhoto(uint32_t peer_id, Net& net, Vk& vk)
     if (doc.uploadPhoto("img.jpg", dat, net, vk, peer_id))
         return doc;
     return doc;
+}
+
+bool img::isBig()
+{
+    if(this->im.empty()) return false;
+    return MAX(this->im.size().width, this->im.size().height) > 2560;
 }
 
 //color transformations

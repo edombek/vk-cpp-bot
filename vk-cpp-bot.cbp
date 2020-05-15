@@ -7,12 +7,12 @@
 		<Option pch_mode="2" />
 		<Option compiler="gcc" />
 		<MakeCommands>
-			<Build command="$make -f $makefile NO_PYTHON=1" />
+			<Build command="$make -f $makefile" />
 			<CompileFile command="$make -f $makefile $file" />
 			<Clean command="$make -f $makefile clean" />
 			<DistClean command="$make -f $makefile distclean$target" />
 			<AskRebuildNeeded command="0" />
-			<SilentBuild command="$make -f $makefile NO_PYTHON=1 &gt; $(CMD_NULL)" />
+			<SilentBuild command="$make -f $makefile &gt; $(CMD_NULL)" />
 		</MakeCommands>
 		<Build>
 			<Target title="Release">
@@ -24,12 +24,12 @@
 					<Add directory="include" />
 				</Compiler>
 				<MakeCommands>
-					<Build command="$make -f $makefile NO_PYTHON=1" />
+					<Build command="$make -f $makefile" />
 					<CompileFile command="$make -f $makefile $file" />
 					<Clean command="$make -f $makefile clean" />
 					<DistClean command="$make -f $makefile distclean$target" />
 					<AskRebuildNeeded command="0" />
-					<SilentBuild command="$make -f $makefile NO_PYTHON=1 &gt; $(CMD_NULL)" />
+					<SilentBuild command="$make -f $makefile &gt; $(CMD_NULL)" />
 				</MakeCommands>
 			</Target>
 		</Build>
@@ -70,9 +70,6 @@
 		<Unit filename="src/vk.cpp" />
 		<Unit filename="src/worker.cpp" />
 		<Extensions>
-			<code_completion />
-			<debugger />
-			<envvars />
 			<DoxyBlocks>
 				<comment_style block="5" line="2" />
 				<doxyfile_project />
