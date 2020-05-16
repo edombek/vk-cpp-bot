@@ -13,10 +13,10 @@ void Worker::add_event(json event)
 #include "cmd.h"
 #include "str.h"
 #include <iostream>
+thread_local Net net;
+thread_local Vk vk(net);
 void Worker::work(json event)
 {
-    Net net;
-    Vk vk(net);
     if (event.is_null())
         return;
     Event eventOut(net, vk, event);

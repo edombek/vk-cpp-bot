@@ -9,6 +9,7 @@ using namespace std;
 #endif
 
 #define net_agent "EVGESHAd vk-cpp-bot"
+//#define printOut
 
 size_t writer(char* data, size_t size, size_t nmemb, string* buffer)
 {
