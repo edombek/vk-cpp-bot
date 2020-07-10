@@ -1,4 +1,4 @@
-# VK C++ BOT
+# VK C++ BOT [![Windows Build Status](https://ci.appveyor.com/api/projects/status/github/edombek/vk-cpp-bot?svg=true)](https://ci.appveyor.com/project/edombek/vk-cpp-bot)
 
 Бот для групп платформы ВКонтакте.
 

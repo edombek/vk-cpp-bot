@@ -1,0 +1,28 @@
+version: 1.0.{build}
+
+environment:
+  matrix:
+    - os: Visual Studio 2015
+      GENERATOR_NAME: "Visual Studio 14 2015"
+
+build:
+  project: vk-cpp-bot.vcxproj
+  verbosity: normal
+
+configuration:
+  - Release
+
+before_build:
+  - git submodule update --init
+
+after_build:
+  - mkdir vk-cpp-bot
+  - move win32deps\libs\* vk-cpp-bot
+  - move vox vk-cpp-bot\
+  - move py vk-cpp-bot\
+  - move haarcascade_frontalface_default.xml vk-cpp-bot\
+  - move Release\vk-cpp-bot.exe vk-cpp-bot\
+  # Create archive
+  - 7z a -t7z vk-cpp-bot-win.7z -r vk-cpp-bot\*
+  - appveyor PushArtifact vk-cpp-bot-win.7z
+  #- curl --upload-file vk-cpp-bot-win.7z https://transfer.sh/vk-cpp-bot-win.7z
