@@ -1,9 +1,9 @@
-[submodule "win32deps"]
-	path = win32deps
-	url = https://github.com/edombek/vk-cpp-bot-win32deps
 [submodule "vox"]
 	path = vox
 	url = https://github.com/edombek/GoldSrcVox
 [submodule "thr"]
 	path = thr
 	url = https://github.com/progschj/ThreadPool
+[submodule "win32deps"]
+	path = win32deps
+	url = https://github.com/edombek/vk-cpp-bot-win32deps

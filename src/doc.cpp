@@ -4,7 +4,7 @@
 
 Doc::Doc(json lpDoc)
 {
-    if (lpDoc == NULL)
+    if (lpDoc == NULL || lpDoc.empty())
         return;
     this->type = lpDoc["type"];
     if (this->type == "doc")
@@ -179,7 +179,7 @@ bool Doc::uploadPhoto(std::string filename, std::string& data, Net& net, Vk& vk,
     return true;
 }
 
-std::string Doc::get()
+std::string Doc::get() const
 {
     if (this->acess_key.size())
         return this->type + std::to_string(this->owner_id) + "_" + std::to_string(this->doc_id) + "_" + this->acess_key;

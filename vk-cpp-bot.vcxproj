@@ -63,20 +63,20 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);include;win32deps/include;win32deps/include/gd;</IncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);include;win32deps/include;win32deps/include/gd;thr;win32deps/include/python</IncludePath>
     <LibraryPath>$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);$(NETFXKitsDir)Lib\um\x86;win32deps/lib</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);include;win32deps/include;win32deps/include/gd;</IncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);include;win32deps/include;win32deps/include/gd;thr;win32deps/include/python</IncludePath>
     <LibraryPath>$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);$(NETFXKitsDir)Lib\um\x86;win32deps/lib</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);include;win32deps/include;win32deps/include/gd;</IncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);include;win32deps/include;win32deps/include/gd;thr;win32deps/include/python</IncludePath>
     <LibraryPath>$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);$(NETFXKitsDir)Lib\um\x64;win32deps/lib</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);include;win32deps/include;win32deps/include/gd;</IncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);include;win32deps/include;win32deps/include/gd;thr;win32deps/include/python</IncludePath>
     <LibraryPath>$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);$(NETFXKitsDir)Lib\um\x64;win32deps/lib</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -115,15 +115,17 @@
     <ClCompile Include="src\doc.cpp" />
     <ClCompile Include="src\events.cpp" />
     <ClCompile Include="src\fs.cpp" />
+    <ClCompile Include="src\game.cpp" />
     <ClCompile Include="src\img.cpp" />
     <ClCompile Include="src\lp.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\net.cpp" />
+    <ClCompile Include="src\py.cpp" />
     <ClCompile Include="src\str.cpp" />
     <ClCompile Include="src\timer.cpp" />
     <ClCompile Include="src\users.cpp" />
     <ClCompile Include="src\vk.cpp" />
-    <ClCompile Include="src\workers.cpp" />
+    <ClCompile Include="src\worker.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\bd.h" />
@@ -132,15 +134,15 @@
     <ClInclude Include="include\doc.h" />
     <ClInclude Include="include\events.h" />
     <ClInclude Include="include\fs.h" />
+    <ClInclude Include="include\game.h" />
     <ClInclude Include="include\img.h" />
-    <ClInclude Include="include\json.hpp" />
     <ClInclude Include="include\lp.h" />
     <ClInclude Include="include\net.h" />
     <ClInclude Include="include\str.h" />
     <ClInclude Include="include\timer.h" />
     <ClInclude Include="include\users.h" />
     <ClInclude Include="include\vk.h" />
-    <ClInclude Include="include\workers.h" />
+    <ClInclude Include="include\worker.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

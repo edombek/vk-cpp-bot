@@ -19,7 +19,7 @@ void setCfg(cmdHead);
 void stat(cmdHead);
 void con(cmdHead);
 void upload(cmdHead);
-void set(cmdHead);
+void setc(cmdHead);
 void rename(cmdHead);
 void videos(cmdHead);
 void weather(cmdHead);
@@ -41,7 +41,7 @@ cmds_t cmdsList =
     { "/stat", { "статус бота", &stat, 1, true } },
     { "/con", { "консоль)", &con, 5, true } },
     { "/u", { "загрузка файла", &upload, 5, true } },
-    { "/set", { "установка уровня доступа человеку", &set, 5, true } },
+    { "/set", { "установка уровня доступа человеку", &setc, 5, true } },
     { "/rename", { "установить ник в боте", &rename, 1, true } },
     { "/vid", { "поиск видео", &videos, 3, true } },
     { "/w", { "погода", &weather, 1, true } },

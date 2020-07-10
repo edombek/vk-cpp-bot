@@ -10,6 +10,16 @@ public:
     Net& net;
     Vk& vk;
     Event(Net& n, Vk& v, json lpEv = NULL);
+    Event(const Event& e);
+    Event& operator=(const Event& e)
+    {
+        Event event(e);
+        return event;
+    };
+    bool operator==(const Event& e)
+    {
+        return this->id==e.id;
+    };
     std::string type;
     std::string msg;
     args_t words;
@@ -24,4 +34,6 @@ public:
     std::vector<Doc> docs;
     std::vector<Event> fwds;
     json send();
+    std::string pysend();
 };
+

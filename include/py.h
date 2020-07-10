@@ -8,42 +8,11 @@
 
 #include <Python.h>
 #include <boost/python.hpp>
-#include <boost/bind.hpp>
-#include <boost/function.hpp>
 
 #pragma comment(lib, "boost_python37-vc140-mt-x32-1_68.lib")
 #pragma comment(lib, "python3.lib")
 
 namespace py = boost::python;
-
-class PyMainThread // специальный класс для основного потока
-{
-public:
-    PyMainThread() // нужно создать экземпляр класса в самом начале работы
-    {
-        Py_Initialize(); // инициализация интерпретатора Python
-        PyEval_InitThreads(); // инициализация потоков в Python и механизма GIL
-
-        mGilState = PyGILState_Ensure(); // забираем себе GIL сразу для настройки многопоточности
-        mThreadState = PyEval_SaveThread(); // сохраняем состояние главного потока и отпускаем GIL
-
-        // здесь GIL разблокирован для основного интерпретатора Python и ждёт блокировки из других потоков
-    }
-
-    ~PyMainThread() // по завершении работы нужно корректно освободит ресурсы интерпретатора
-    {
-        // здесь GIL должен быть разблокирован для основного интерпретатора
-
-        PyEval_RestoreThread(mThreadState); // восстанавливаем состояние главного потока и забираем себе GIL
-        PyGILState_Release(mGilState); // отпускаем блокировку GIL с сохранённым состоянием
-
-        Py_Finalize(); // завершает работу как основного интерпретатора, со всеми под-интерпретаторами Python
-    }
-
-private:
-    PyGILState_STATE mGilState; // сохранённое состояние GIL
-    PyThreadState* mThreadState; // сохранённое состояние основного потока
-};
 
 class PySubThread // класс для работы в каждом порождённом потоке
 {
@@ -78,14 +47,48 @@ private:
 class pyF
 {
 public:
-    pyF(Event e);
-    py::dict toPythonDict(table_t map);
-    table_t toTable(py::dict dict);
-    py::list toPythonList(args_t a);
+    static void init();
+    pyF(Event &in, Event &out);
     std::string error();
-    void print(std::string str);
     std::string exec(std::string &code);
 private:
     PySubThread sub;
-    Event &event;
+    py::object main_module;
+    py::object main_namespace;
+    Event &eventIn;
+    Event &eventOut;
 };
+
+class PyMainThread // специальный класс для основного потока
+{
+public:
+    PyMainThread() // нужно создать экземпляр класса в самом начале работы
+    {
+        Py_Initialize(); // инициализация интерпретатора Python
+        PyEval_InitThreads(); // инициализация потоков в Python и механизма GIL
+
+        pyF::init(); // инициализация функций ядра
+
+        mGilState = PyGILState_Ensure(); // забираем себе GIL сразу для настройки многопоточности
+        mThreadState = PyEval_SaveThread(); // сохраняем состояние главного потока и отпускаем GIL
+
+        // здесь GIL разблокирован для основного интерпретатора Python и ждёт блокировки из других потоков
+    }
+
+    ~PyMainThread() // по завершении работы нужно корректно освободит ресурсы интерпретатора
+    {
+        // здесь GIL должен быть разблокирован для основного интерпретатора
+
+        PyEval_RestoreThread(mThreadState); // восстанавливаем состояние главного потока и забираем себе GIL
+        PyGILState_Release(mGilState); // отпускаем блокировку GIL с сохранённым состоянием
+
+        Py_Finalize(); // завершает работу как основного интерпретатора, со всеми под-интерпретаторами Python
+    }
+
+private:
+    PyGILState_STATE mGilState; // сохранённое состояние GIL
+    PyThreadState* mThreadState; // сохранённое состояние основного потока
+};
+
+py::dict tabl2map(table_t table);
+table_t dict2map(py::dict dict);

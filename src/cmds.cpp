@@ -99,7 +99,7 @@ void upload(cmdHead)
         eventOut.docs.push_back(doc);
 }
 
-void set(cmdHead)
+void setc(cmdHead)
 {
     if (eventIn.words.size() != 3) // != <cmd, id, level>
         eventOut.msg += "/set <id> <level>...";
@@ -377,12 +377,12 @@ void pycmd(cmdHead)
 {
 #ifndef NO_PYTHON
     std::string str(str::summ(eventIn.words, 1));
-    pyF interpreter(eventOut);
+    pyF interpreter(eventIn, eventOut);
     str = interpreter.exec(str);
-    if(str.size())
-        eventOut.msg = str;
+    if(str.empty())
+        eventOut.msg += "\ndone!";
     else
-        eventOut.msg = "done!";
+        eventOut.msg += "\n" + str;
 #else
     eventOut.msg = "не собрано";
 #endif

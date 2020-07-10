@@ -1,7 +1,7 @@
 #include "events.h"
 #include "common.h"
 #include "str.h"
-Event::Event(Net& n, Vk& v, json lpEv)
+Event::Event(Net &n, Vk &v, json lpEv)
     : net(n)
     , vk(v)
 {
@@ -42,6 +42,22 @@ Event::Event(Net& n, Vk& v, json lpEv)
     }
 }
 
+Event::Event(const Event& e): net(e.net), vk(e.vk)
+{
+    this->type = e.type;
+    this->msg = e.msg;
+    this->words = e.words;
+    this->from_id = e.from_id;
+    this->peer_id = e.peer_id;
+    this->id = e.id;
+    this->random_id = e.random_id;
+    this->timestamp = e.timestamp;
+    this->is_chat = e.is_chat;
+    this->user = e.user;
+    this->docs = e.docs;
+    this->fwds = e.fwds;
+}
+
 json Event::send()
 {
     table_t param;
@@ -65,6 +81,11 @@ json Event::send()
         return this->vk.send("wall.createComment", param);
     }
     return NULL;
+}
+
+std::string Event::pysend()
+{
+    return this->send().dump(4);
 }
 
 Event Event::getOut()
