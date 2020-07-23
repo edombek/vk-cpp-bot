@@ -19,8 +19,8 @@ after_build:
   - mkdir vk-cpp-bot
   - move win32deps\libs\* vk-cpp-bot
   - move vox vk-cpp-bot\
-  - move py vk-cpp-bot\
-  - move haarcascade_frontalface_default.xml vk-cpp-bot\
+  #- move py vk-cpp-bot\
+  #- move haarcascade_frontalface_default.xml vk-cpp-bot\
   - move Release\vk-cpp-bot.exe vk-cpp-bot\
   # Create archive
   - 7z a -t7z vk-cpp-bot-win.7z -r vk-cpp-bot\*
