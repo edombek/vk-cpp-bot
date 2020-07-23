@@ -5,9 +5,6 @@
 #include "lp.h"
 #include "timer.h"
 #include "worker.h"
-#ifdef WIN32
-#include <vld.h>
-#endif
 using namespace std;
 
 BD conf("config.json");
