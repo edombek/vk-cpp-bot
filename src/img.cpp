@@ -1,6 +1,12 @@
 #include "img.h"
 #include "vk.h"
 
+#ifdef WIN32
+#pragma comment(lib, "opencv_core2413.lib")
+#pragma comment(lib, "opencv_imgproc2413.lib")
+#pragma comment(lib, "opencv_highgui2413.lib")
+#endif
+
 img::img() {}
 
 img::img(cv::Mat New)
@@ -25,7 +31,7 @@ img::img(Doc doc, Net& net, bool full)
 Doc img::getDoc(uint32_t peer_id, Net& net, Vk& vk)
 {
     std::vector<uchar> buff;
-    cv::imencode(".png", this->im, buff, {cv::IMWRITE_JPEG_PROGRESSIVE, 1});
+    cv::imencode(".png", this->im, buff, {});
     std::string dat(buff.begin(), buff.end());
     Doc doc;
     if (doc.uploadDoc("img.png", dat, net, vk, peer_id))
@@ -36,7 +42,7 @@ Doc img::getDoc(uint32_t peer_id, Net& net, Vk& vk)
 Doc img::getPhoto(uint32_t peer_id, Net& net, Vk& vk)
 {
     std::vector<uchar> buff;
-    cv::imencode(".jpg", this->im, buff, {cv::IMWRITE_JPEG_PROGRESSIVE, 1});
+    cv::imencode(".jpg", this->im, buff, {});
     std::string dat(buff.begin(), buff.end());
     Doc doc;
     if (doc.uploadPhoto("img.jpg", dat, net, vk, peer_id))

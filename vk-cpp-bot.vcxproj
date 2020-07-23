@@ -138,6 +138,7 @@
     <ClInclude Include="include\img.h" />
     <ClInclude Include="include\lp.h" />
     <ClInclude Include="include\net.h" />
+    <ClInclude Include="include\py.h" />
     <ClInclude Include="include\str.h" />
     <ClInclude Include="include\timer.h" />
     <ClInclude Include="include\users.h" />

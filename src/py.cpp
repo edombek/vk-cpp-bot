@@ -9,10 +9,6 @@ using namespace boost::python;
 
 BOOST_PYTHON_MODULE(vkcppbot)
 {
-    class_<std::map<std::string, std::string>>("table")
-    .def(map_indexing_suite<std::map<std::string, std::string>>())
-    ; //??? не работает ???
-
     class_<std::vector<Event>>("Events")
     .def(vector_indexing_suite<std::vector<Event>>())
     .def("append", static_cast<void (std::vector<Event>::*)(const Event&)>( &std::vector<Event>::push_back ))
@@ -85,7 +81,6 @@ pyF::pyF(Event &in, Event &out): eventIn(in), eventOut(out)
     this->main_module.attr("eventOut") = boost::python::ptr(&eventOut);
     this->main_module.attr("net") = boost::python::ptr(&eventOut.net);
     this->main_module.attr("vk") = boost::python::ptr(&eventOut.vk);
-    //this->main_module.attr("utils") = vkcppbot;
 }
 
 std::string pyF::error()
@@ -125,7 +120,7 @@ py::dict tabl2map(table_t table)
 table_t dict2map(py::dict dict)
 {
     table_t dic;
-    for (unsigned int i = 0; i < py::len(dict.keys()); i++)
+    for (int i = 0; i < py::len(dict.keys()); i++)
         dic[py::extract<std::string>(dict.keys()[i])] = py::extract<std::string>(dict[dict.keys()[i]]);
     return dic;
 }

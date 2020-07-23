@@ -1,12 +1,12 @@
 #pragma once
 #include "doc.h"
 #include "vk.h"
-#include <opencv2/imgcodecs/imgcodecs.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
-
 #ifdef WIN32
-#pragma comment(lib, "libgd.lib")
+#include <opencv2/highgui/highgui.hpp>
+#else
+#include <opencv2/imgcodecs/imgcodecs.hpp>
 #endif
+#include <opencv2/imgproc/imgproc.hpp>
 
 class img
 {

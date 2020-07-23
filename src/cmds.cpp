@@ -1,3 +1,7 @@
+#ifndef NO_PYTHON
+#include "py.h"
+#endif // NO_PYTHON
+
 #include "cmd.h"
 #include "common.h"
 #include "events.h"
@@ -370,9 +374,6 @@ err:
     return;
 }
 
-#ifndef NO_PYTHON
-#include "py.h"
-#endif // NO_PYTHON
 void pycmd(cmdHead)
 {
 #ifndef NO_PYTHON

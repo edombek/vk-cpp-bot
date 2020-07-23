@@ -1,3 +1,6 @@
+#ifndef NO_PYTHON
+#include "py.h"
+#endif // NO_PYTHON
 #include "bd.h"
 #include "lp.h"
 #include "timer.h"
@@ -5,9 +8,6 @@
 #ifdef WIN32
 #include <vld.h>
 #endif
-#ifndef NO_PYTHON
-#include "py.h"
-#endif // NO_PYTHON
 using namespace std;
 
 BD conf("config.json");

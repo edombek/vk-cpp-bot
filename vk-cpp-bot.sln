@@ -7,12 +7,9 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "vk-cpp-bot", "vk-cpp-bot.vc
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
-		Debug|x86 = Debug|x86
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{4F26E16B-AB9F-451E-B67D-A211D4C8139B}.Debug|x86.ActiveCfg = Debug|Win32
-		{4F26E16B-AB9F-451E-B67D-A211D4C8139B}.Debug|x86.Build.0 = Debug|Win32
 		{4F26E16B-AB9F-451E-B67D-A211D4C8139B}.Release|x86.ActiveCfg = Release|Win32
 		{4F26E16B-AB9F-451E-B67D-A211D4C8139B}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection

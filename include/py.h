@@ -1,16 +1,13 @@
 #pragma once
 
+#include <Python.h>
+#include <boost/python.hpp>
+
 #include "common.h"
 
 #include "net.h"
 #include "vk.h"
 #include "events.h"
-
-#include <Python.h>
-#include <boost/python.hpp>
-
-#pragma comment(lib, "boost_python37-vc140-mt-x32-1_68.lib")
-#pragma comment(lib, "python3.lib")
 
 namespace py = boost::python;
 
