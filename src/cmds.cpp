@@ -398,16 +398,17 @@ void pix(cmdHead)
     bool full = eventIn.user.acess >= 2;
     for(auto doc : eventIn.docs)
     {
-        img im(doc, eventIn.net, full);
-        if(im.im.empty())
+        img im(doc, eventIn.net);
+        cv::Mat cvim = im.getMat(full);
+        if(cvim.empty())
             continue;
-        cv::resize(im.im, im.im, cv::Size(), 1/imgdelta, 1/imgdelta);
-        cv::resize(im.im, im.im, cv::Size(), imgdelta, imgdelta, cv::INTER_NEAREST);
+        cv::resize(cvim, cvim, cv::Size(), 1/imgdelta, 1/imgdelta);
+        cv::resize(cvim, cvim, cv::Size(), imgdelta, imgdelta, cv::INTER_NEAREST);
 
-        if(full && im.isBig())
-            eventOut.docs.push_back(im.getDoc(eventIn.peer_id, eventIn.net, eventIn.vk));
+        if(full && im.isBig(cvim))
+            eventOut.docs.push_back(img::getDoc(cvim, eventIn.peer_id, eventIn.net, eventIn.vk));
         else
-            eventOut.docs.push_back(im.getPhoto(eventIn.peer_id, eventIn.net, eventIn.vk));
+            eventOut.docs.push_back(img::getPhoto(cvim, eventIn.peer_id, eventIn.net, eventIn.vk));
     }
 }
 
@@ -504,11 +505,10 @@ void crt(cmdHead)
     bool full = eventIn.user.acess >= 2;
     for(auto doc : eventIn.docs)
     {
-        img im(doc, eventIn.net, full);
-        if(im.im.empty())
+        img im(doc, eventIn.net);
+        cv::Mat cvim = im.getMat(full);
+        if(cvim.empty())
             continue;
-
-        cv::Mat cvim = im.im;
         cv::Mat imgColored = cvim.clone();
         for (int i = 0; i < nDownSampling; i++)
             cv::pyrDown(imgColored, imgColored);
@@ -533,10 +533,10 @@ void crt(cmdHead)
         imgEdge = imgEdge(myROI);
         cv::bitwise_and(imgColored, imgEdge, cvim);
 
-        if(full && im.isBig())
-            eventOut.docs.push_back(im.getDoc(eventIn.peer_id, eventIn.net, eventIn.vk));
+        if(full && im.isBig(cvim))
+            eventOut.docs.push_back(img::getDoc(cvim, eventIn.peer_id, eventIn.net, eventIn.vk));
         else
-            eventOut.docs.push_back(im.getPhoto(eventIn.peer_id, eventIn.net, eventIn.vk));
+            eventOut.docs.push_back(img::getPhoto(cvim, eventIn.peer_id, eventIn.net, eventIn.vk));
     }
 }
 
@@ -652,34 +652,35 @@ void neon(cmdHead)
     bool full = eventIn.user.acess >= 2;
     for(auto doc : eventIn.docs)
     {
-        img im(doc, eventIn.net, full);
-        if(im.im.empty())
+        img im(doc, eventIn.net);
+        cv::Mat cvim = im.getMat(full);
+        if(cvim.empty())
             continue;
 
         for (int i = 0; i < nBts; i++)
         {
             cv::Mat buff;
-            cv::bilateralFilter(im.im, buff, 16, 16, 64);
-            im.im = buff.clone();
+            cv::bilateralFilter(cvim, buff, 16, 16, 64);
+            cvim = buff.clone();
         }
         cv::Mat imgGray;
-        cv::cvtColor(im.im, imgGray, cv::COLOR_RGB2GRAY);
+        cv::cvtColor(cvim, imgGray, cv::COLOR_RGB2GRAY);
         cv::Mat imgEdge;
         cv::adaptiveThreshold(imgGray, imgEdge, 255, CV_ADAPTIVE_THRESH_MEAN_C, CV_THRESH_BINARY, 5, 2);
         imgGray.release();
 
-        cv::resize(imgEdge, imgEdge, cv::Size(im.im.size().width, im.im.size().height));
-        cv::Rect myROI(0, 0, MIN(im.im.size().width, imgEdge.size().width), MIN(im.im.size().height, imgEdge.size().height));
-        im.im = im.im(myROI);
+        cv::resize(imgEdge, imgEdge, cv::Size(cvim.size().width, cvim.size().height));
+        cv::Rect myROI(0, 0, MIN(cvim.size().width, imgEdge.size().width), MIN(cvim.size().height, imgEdge.size().height));
+        cvim = cvim(myROI);
         imgEdge = imgEdge(myROI);
 
         cv::Mat low(myROI.height, myROI.width, CV_8UC3, cv::Scalar(0, 0, 0));
-        cv::bitwise_and(im.im,low, im.im, imgEdge);
+        cv::bitwise_and(cvim,low, cvim, imgEdge);
         imgEdge.release();
-        for(unsigned int i = 0; i < im.im.rows; i++)
-            for(unsigned int j = 0; j < im.im.cols; j++)
+        for(unsigned int i = 0; i < cvim.rows; i++)
+            for(unsigned int j = 0; j < cvim.cols; j++)
             {
-                cv::Vec3b &bgrPixel = im.im.at<cv::Vec3b>(i, j);
+                cv::Vec3b &bgrPixel = cvim.at<cv::Vec3b>(i, j);
                 if (bgrPixel[0] + bgrPixel[1] + bgrPixel[2] == 0) continue;
                 hsv_t cHsv = rgb2hsv({bgrPixel[2]/255.0, bgrPixel[1]/255.0, bgrPixel[0]/255.0});
                 //cHsv.s = 1;
@@ -689,10 +690,10 @@ void neon(cmdHead)
                 bgrPixel[1] = cRgb.g * 255;
                 bgrPixel[2] = cRgb.r * 255;
             }
-        cv::GaussianBlur(im.im, im.im, cv::Size(5,5), 2);
-        if(full && im.isBig())
-            eventOut.docs.push_back(im.getDoc(eventIn.peer_id, eventIn.net, eventIn.vk));
+        cv::GaussianBlur(cvim, cvim, cv::Size(5,5), 2);
+        if(full && im.isBig(cvim))
+            eventOut.docs.push_back(img::getDoc(cvim, eventIn.peer_id, eventIn.net, eventIn.vk));
         else
-            eventOut.docs.push_back(im.getPhoto(eventIn.peer_id, eventIn.net, eventIn.vk));
+            eventOut.docs.push_back(img::getPhoto(cvim, eventIn.peer_id, eventIn.net, eventIn.vk));
     }
 }

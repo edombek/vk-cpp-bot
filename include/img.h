@@ -11,13 +11,13 @@
 class img
 {
 public:
-    img();
-    img(cv::Mat New);
-    img(Doc doc, Net& net, bool full = false);
-    Doc getDoc(uint32_t peer_id, Net& net, Vk& vk);
-    Doc getPhoto(uint32_t peer_id, Net& net, Vk& vk);
-    bool isBig();
-    cv::Mat im;
+    img(Doc doc, Net& n);
+    cv::Mat getMat(bool full = false);
+    static Doc getDoc(cv::Mat im, uint32_t peer_id, Net& net, Vk& vk);
+    static Doc getPhoto(cv::Mat im, uint32_t peer_id, Net& net, Vk& vk);
+    static bool isBig(cv::Mat im);
+    Doc doc;
+    Net &net;
 };
 
 //color transformations

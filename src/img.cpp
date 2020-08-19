@@ -7,53 +7,49 @@
 #pragma comment(lib, "opencv_highgui2413.lib")
 #endif
 
-img::img() {}
-
-img::img(cv::Mat New)
-{
-    this->im = New;
-}
-
 #include "str.h"
-img::img(Doc doc, Net& net, bool full)
+img::img(Doc d, Net& n):net(n), doc(d){}
+
+cv::Mat img::getMat(bool full)
 {
-    std::string buff = net.send(doc.url);
+    std::string buff = this->net.send(doc.url);
     std::vector<uchar> vectordata(buff.begin(),buff.end());
     cv::Mat data_mat(vectordata,true);
-    this->im = cv::imdecode(data_mat,1);
-    if (!full && this->isBig())
+    cv::Mat imtemp = cv::imdecode(data_mat,1);
+    if (!full && this->isBig(imtemp))
     {
-        float sf = 2560.0/MAX(this->im.size().width, this->im.size().height);
-        cv::resize(this->im, this->im, cv::Size(), sf, sf);
+        float sf = 2560.0/MAX(imtemp.size().width, imtemp.size().height);
+        cv::resize(imtemp, imtemp, cv::Size(), sf, sf);
     }
+    return imtemp;
 }
 
-Doc img::getDoc(uint32_t peer_id, Net& net, Vk& vk)
+Doc img::getDoc(cv::Mat im, uint32_t peer_id, Net& net, Vk& vk)
 {
     std::vector<uchar> buff;
-    cv::imencode(".png", this->im, buff, {});
+    cv::imencode(".png", im, buff, {});
     std::string dat(buff.begin(), buff.end());
-    Doc doc;
-    if (doc.uploadDoc("img.png", dat, net, vk, peer_id))
-        return doc;
-    return doc;
+    Doc doctemp;
+    if (doctemp.uploadDoc("img.png", dat, net, vk, peer_id))
+        return doctemp;
+    return doctemp;
 }
 
-Doc img::getPhoto(uint32_t peer_id, Net& net, Vk& vk)
+Doc img::getPhoto(cv::Mat im, uint32_t peer_id, Net& net, Vk& vk)
 {
     std::vector<uchar> buff;
-    cv::imencode(".jpg", this->im, buff, {});
+    cv::imencode(".jpg", im, buff, {});
     std::string dat(buff.begin(), buff.end());
-    Doc doc;
-    if (doc.uploadPhoto("img.jpg", dat, net, vk, peer_id))
-        return doc;
-    return doc;
+    Doc doctemp;
+    if (doctemp.uploadPhoto("img.jpg", dat, net, vk, peer_id))
+        return doctemp;
+    return doctemp;
 }
 
-bool img::isBig()
+bool img::isBig(cv::Mat im)
 {
-    if(this->im.empty()) return false;
-    return MAX(this->im.size().width, this->im.size().height) > 2560;
+    if(im.empty()) return false;
+    return MAX(im.size().width, im.size().height) > 2560;
 }
 
 //color transformations
