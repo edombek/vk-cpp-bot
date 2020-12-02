@@ -11,6 +11,16 @@
 class img
 {
 public:
+    bool operator==(const img& im)
+    {
+        return this->doc.get()==im.doc.get();
+    };
+    img& operator=(const img& im)
+    {
+        img imtemp(this->doc, this->net);
+        return imtemp;
+    };
+
     img(Doc doc, Net& n);
     cv::Mat getMat(bool full = false);
     static Doc getDoc(cv::Mat im, uint32_t peer_id, Net& net, Vk& vk);

@@ -5,6 +5,8 @@
 #pragma comment(lib, "boost_python37-vc140-mt-x32-1_68.lib")
 #pragma comment(lib, "python3.lib")
 
+#include "img.h"
+
 using namespace boost::python;
 
 BOOST_PYTHON_MODULE(vkcppbot)
@@ -66,6 +68,8 @@ BOOST_PYTHON_MODULE(vkcppbot)
     .def("uploadDoc", &Doc::uploadDoc)
     .def("uploadPhoto", &Doc::uploadPhoto)
     ;
+
+
 };
 
 void pyF::init()

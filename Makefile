@@ -28,8 +28,8 @@ CFLAGS+= -Wno-psabi -Wno-write-strings -Wno-unused-result
 ifdef NO_PYTHON
 	CFLAGS+= -DNO_PYTHON
 else
-	INCLUDES+= $(shell pkg-config --cflags python3)
-	LDFLAGS+= $(shell pkg-config --libs python3)
+	INCLUDES+=$(shell python-config --cflags) 
+	LDFLAGS+=$(shell python-config --ldflags --embed) 
 	ifdef TERMUX
 		LDFLAGS+= -lboost_python36
 	else
