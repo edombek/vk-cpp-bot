@@ -55,7 +55,9 @@ json Vk::send(string method, table_t args, bool user)
     return buff;
 }
 
+#ifndef NO_PYTHON
 string Vk::send(string method, boost::python::dict args = {}, bool user = false)
 {
     return this->send(method, dict2map(args), user).dump(4);
 }
+#endif
