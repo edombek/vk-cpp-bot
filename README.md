@@ -6,7 +6,7 @@
 
 Для Ubuntu/Debian:
 ```
-git gcc make libcurl4-openssl-dev libboost-python-dev python3-dev python3-pip libopencv-imgcodecs-dev libopencv-imgproc-dev libopencv-objdetect-dev libopencv-photo-dev libblas-dev liblapack-dev libdlib-dev
+git gcc make libcurl4-openssl-dev libboost-python-dev python3-dev python3-pip libopencv-imgcodecs-dev libopencv-imgproc-dev libopencv-objdetect-dev libopencv-photo-dev libblas-dev liblapack-dev libdlib-dev python-dev-is-python3
 ````
 
 Для ArchLinux:
