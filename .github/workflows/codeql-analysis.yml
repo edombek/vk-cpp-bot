@@ -11,14 +11,16 @@
 #
 name: "CodeQL"
 
+# ВРЕМЕННО ОТКЛЮЧЕНО (2026-10-22) по решению владельца — только ручной запуск.
+# Для возврата раскомментируй push/pull_request/schedule.
 on:
-  push:
-    branches: [ "master" ]
-  pull_request:
-    # The branches below must be a subset of the branches above
-    branches: [ "master" ]
-  schedule:
-    - cron: '31 9 * * 2'
+  workflow_dispatch:
+  # push:
+  #   branches: [ "master" ]
+  # pull_request:
+  #   branches: [ "master" ]
+  # schedule:
+  #   - cron: '31 9 * * 2'
 
 jobs:
   analyze:

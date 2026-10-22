@@ -36,7 +36,7 @@
 | `GIT_URL`/`GIT_VER` через git на configure (fallback «unknown») | ✅ |
 | `-Wall` для не-MSVC; CMP0167 (удалённый FindBoost в CMake 4) обработан | ✅ |
 | Makefile → тонкий шим (`make`, `make NO_PYTHON=1`), объекты в `./build` | ✅ |
-| CI: `.github/workflows/build.yml` — обе конфигурации на ubuntu-latest | ✅ (отправлен, ждёт первого прогона на GitHub) |
+| CI: `.github/workflows/build.yml` — обе конфигурации на ubuntu-latest | ⏸ (файл готов; прогон вручную через `gh workflow run build.yml` — автоматика временно отключена) |
 | Попутно (smoke-тест): голый `throw;` в `Vk` → `std::runtime_error`; try/catch в `main` | ✅ |
 
 ## Фаза 2 — Python-интеграция на pybind11 + расширение API

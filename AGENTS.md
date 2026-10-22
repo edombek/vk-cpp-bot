@@ -34,8 +34,12 @@ make NO_PYTHON=1                      # то же без Python
 - **`-DNO_PYTHON` меняет состав классов** (`Vk::send(dict)` есть только с Python) — CMake
   сам пересобирает при переключении `VKBOT_WITH_PYTHON`, но смешивать старые объекты вручную
   нельзя.
-- CI: `.github/workflows/build.yml` собирает обе конфигурации на ubuntu-latest
-  (push в `master`/`ai-optimization`, PR в `master`); CodeQL отдельно.
+- **CI временно ОТКЛЮЧЕНА (2026-10-22, решение владельца)**: `build.yml` и CodeQL переведены
+  в `workflow_dispatch` (ручной запуск: `gh workflow run build.yml`), `.appveyor.yml` →
+  `.appveyor.yml.disabled`. Причина зависания Build: apt-установка OpenCV на раннере.
+  До включения — обязательная локальная проверка обеих конфигураций (`make`,
+  `make NO_PYTHON=1`). Автоматические триггеры закомментированы в файлах, раскомментируются
+  при возврате.
 - Windows (`.appveyor.yml`, `*.vcxproj`, `win32deps`) рассчитан на устаревший стек
   (VS2015, boost 1.68, OpenCV 2.4, x86) и сейчас **не поддерживается** — не чинить без явного запроса.
 
