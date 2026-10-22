@@ -43,7 +43,11 @@ set(VKBOT_CORE_SOURCES
     src/worker.cpp
     src/str.cpp
     src/cmd.cpp
-    src/cmds.cpp
+    src/cmds_interface.cpp
+    src/cmds_utils.cpp
+    src/cmds_games.cpp
+    src/cmds_media.cpp
+    src/cmds_admin.cpp
     src/users.cpp
     src/img.cpp
     src/timer.cpp

@@ -68,9 +68,10 @@ make NO_PYTHON=1                      # то же без Python
   `Event::keyboard` прикрепляет её к `messages.send`. Нажатие callback-кнопки приходит
   событием `message_event` (payload = команда, `event_id`); `Worker::workButton` отвечает
   `messages.sendMessageEventAnswer` и диспетчеризует payload как обычную команду.
-- **Макрос `cmdHead`** (`include/cmd.h`) раскрывается в `Event &eventIn, Event &eventOut,
-  Worker *worker` — функции команд объявляются как `void help(cmdHead)` без видимых параметров.
-  Это конвенция, а не ошибка.
+- **Функции-команды** объявлены в `include/cmds.h` с явными параметрами
+  `Event &eventIn, Event &eventOut, Worker *worker` (макрос `cmdHead` убран в фазе 8);
+  реализации разнесены по `src/cmds_{interface,utils,games,media,admin}.cpp`,
+  таблица команд и `/help` — `src/cmd.cpp`.
 - В `src/worker.cpp` — `thread_local Net net; thread_local Vk vk(net);` на каждый поток пула;
   `Worker::work(event, net, vk)` — публичная перегрузка с явной сетью (её используют тесты).
 - Изменение глобальных `conf`/`bd` требует блокировки их `lock` (mutex); `conf` после правки

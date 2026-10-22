@@ -1,4 +1,5 @@
 #include "cmd.h"
+#include "cmds.h"
 #include "keyboard.h"
 #include "str.h"
 #include <map>
@@ -6,7 +7,6 @@
 
 using namespace std;
 
-typedef void (*msg_func_t)(cmdHead); // func(cmdHead)
 typedef struct cmd_t
 {
     string info;
@@ -16,26 +16,6 @@ typedef struct cmd_t
     string cat; // раздел для навигации по справке (кнопки)
 } cmd_t;
 typedef map<string, cmd_t> cmds_t;
-
-//объявляем команды
-void help(cmdHead);
-void setCfg(cmdHead);
-void stat(cmdHead);
-void con(cmdHead);
-void upload(cmdHead);
-void setc(cmdHead);
-void rename(cmdHead);
-void videos(cmdHead);
-void weather(cmdHead);
-void gameF(cmdHead);
-void apod(cmdHead);
-void pycmd(cmdHead);
-void pix(cmdHead);
-void vox(cmdHead);
-void crt(cmdHead);
-void line(cmdHead); //переделать
-void bc(cmdHead);
-void neon(cmdHead);
 
 //прописываем в системе команд
 cmds_t cmdsList =
@@ -63,8 +43,7 @@ cmds_t cmdsList =
 // порядок разделов в справке
 static const vector<string> cmdCats = { "интерфейс", "утилиты", "игры", "медиа", "админ" };
 
-#include "keyboard.h"
-void help(cmdHead)
+void help(Event &eventIn, Event &eventOut, Worker *worker)
 {
     string section = eventIn.words.size() > 1 ? str::low(eventIn.words[1]) : "";
     if (section == "все" || section == "все команды")
@@ -105,7 +84,7 @@ void help(cmdHead)
 }
 
 #include <cstdio>
-bool cmd::start(std::string comand, cmdHead)
+bool cmd::start(const std::string &comand, Event &eventIn, Event &eventOut, Worker *worker)
 {
     if (!findinmap(cmdsList, comand))
         return false;
