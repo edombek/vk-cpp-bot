@@ -13,7 +13,7 @@ flowchart LR
         EV["Event (src/events.cpp)<br/>разбор update, fwds, docs<br/>поле keyboard"]
         KBD["Keyboard (src/keyboard.cpp)<br/>JSON-клавиатуры VK"]
         CMD["cmd::start (src/cmd.cpp)<br/>таблица cmdsList + категории"]
-        CMDS["Команды (src/cmds.cpp)<br/>/help /w /py /pix /vox /bc ..."]
+        CMDS["Команды (src/cmds_*.cpp)<br/>interface/utils/games/media/admin"]
         PY["pyF (src/py.cpp)<br/>Python-скрипт /py<br/>под-интерпретатор на вызов"]
         USERS["users (src/users.cpp)<br/>уровни доступа, счётчики"]
         BD[("BD (src/bd.cpp)<br/>config.json / dat.json<br/>mutex-lock, dirty-флаг")]
@@ -50,8 +50,8 @@ flowchart LR
 |---|---|---|
 | Точка входа | `src/main.cpp` | инициализация Python (опц.), curl global, запуск longpoll |
 | Longpoll | `lp.*` | получение updates, переподключение при `failed`, периодическое сохранение `bd` |
-| Пул/диспетчер | `worker.*`, `cmd.*` | разбор команды по первому слову, права (`acess`), конвейер `message_event` |
-| Команды | `cmds.cpp` | вся пользовательская функциональность (крупный файл — разбивка в фазе 8) |
+| Пул/диспетчер | `worker.*`, `cmd.*` | разбор команды по первому слову, права (`acess`, по `eventIn.user`), конвейер `message_event` |
+| Команды | `cmds.h` + `cmds_{interface,utils,games,media,admin}.cpp` | реализации с явной сигнатурой `(Event& in, Event& out, Worker*)`; игровые карты — `shared_ptr`, `lock_guard` |
 | Клавиатуры | `keyboard.*` | сборка JSON-клавиатур VK (callback/text/link, цвета, строки, inline/one_time) |
 | VK API | `vk.*`, `net.*` | POST-методы, encode/upload, конечные ретраи; `Net` виртуален для mock-тестов |
 | События/вложения | `events.*`, `doc.*` | модели Event/Doc, `send()` (messages.send / wall.createComment), приложение keyboard |
@@ -66,8 +66,8 @@ flowchart LR
 ## Потоки выполнения (важно для правок)
 
 - Потоков два вида: main (longpoll) + 5 worker-потоков пула.
-- Общие данные: `conf`, `bd` (блокировка `.lock`), `gameL`/`bcL`/`bcL→randNumbers/bcDraft`
-  в `cmds.cpp`, глобальные карты `gameNew/gameUsers/randNumbers`.
+- Общие данные: `conf`, `bd` (блокировка `.lock`), `gameL`/`bcL` и карты
+  `gameNew/gameUsers/randNumbers/bcDraft` в `src/cmds_games.cpp` (доступ только под мьютексом).
 - Нажатие кнопки: `message_event` → `Worker::workButton` → `sendMessageEventAnswer` +
   диспетчеризация payload как команды (общая таблица `cmdsList`).
 - Python: каждый `/py` — новый под-интерпретатор в worker-потоке; главный поток не должен

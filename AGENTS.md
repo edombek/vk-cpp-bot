@@ -63,7 +63,7 @@ make NO_PYTHON=1                      # то же без Python
 
 - Поток: `src/main.cpp` (глобальные `conf`=`config.json`, `bd`=`dat.json`) → `Lp::loop()`
   (longpoll) → `Worker::work()` (пул из 5 потоков, `thr/ThreadPool.h`) → `cmd::start()`
-  (таблица команд в `src/cmd.cpp`) → функции в `src/cmds.cpp`.
+  (таблица команд в `src/cmd.cpp`) → функции в `src/cmds_*.cpp` (модули по категориям).
 - **Кнопки VK (фаза 6)**: `Keyboard` (`include/keyboard.h`) собирает JSON-клавиатуру,
   `Event::keyboard` прикрепляет её к `messages.send`. Нажатие callback-кнопки приходит
   событием `message_event` (payload = команда, `event_id`); `Worker::workButton` отвечает
