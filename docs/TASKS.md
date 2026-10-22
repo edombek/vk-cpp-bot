@@ -73,9 +73,12 @@
 | Задача | Статус |
 |---|---|
 | Windows-сборка | ❌ по решению владельца (только заметка unsupported в README) |
+| Заметка «не поддерживается» в README | ✅ (2026-10-23) |
 
 ## Фаза 5 — документация
 
 | Задача | Статус |
 |---|---|
-| README: убрать libboost-python-dev, добавить pybind11, описать Python-API `/py` | ⬜ |
+| README: убрать libboost-python-dev, добавить pybind11 | ✅ (фаза 2) |
+| README: описать Python-API `/py` (globals, vkcppbot.fs/str/timer, классы, пример) | ✅ (2026-10-23) |
+| AGENTS.md / docs: текущее состояние (pybind11, тесты, фазы) | ✅ |

@@ -37,12 +37,40 @@ core imgproc imgcodecs objdetect photo), для Python-слоя — pybind11
 make test    # ctest: интеграционный тест python-слоя (сеть не требуется)
 ```
 
-Windows
+## Windows — не поддерживается
+
+`.vcxproj`, AppVeyor и `win32deps` рассчитаны на устаревший стек (VS2015, boost 1.68,
+OpenCV 2.4, x86) и остаются только как историческое наследие — починка не планируется.
+Для справки (на свой риск): поместить python3 в PATH, выполнить `winlib.bat`, собрать
+проект в VS; для запуска вне VS скопировать `*.exe`, `vox` и `win32deps/libs` рядом с ботом.
+
+## Команда `/py` — Python API
+
+Каждый скрипт `/py` выполняется в изолированном под-интерпретаторе: глобалы между
+вызовами не сохраняются. Ошибки скрипта возвращаются в чат как traceback, бот при
+этом не падает. Скрипту доступны глобалы `eventIn`, `eventOut`, `net`, `vk` и
+модуль `vkcppbot`:
+
+- `eventIn` / `eventOut` (класс `Event`): `msg` (string, можно менять), `type`,
+  `from_id`, `peer_id`, `id`, `timestamp`, `is_chat`, `words` (list), `user` — read-only;
+  `docs`/`fwds` (списки `Doc`/`Event`); методы `send()` → dict ответа VK,
+  `pysend()` → JSON-строка, `getOut()` → новый `Event`-ответ
+- `vk.send(method, args={}, user=False)` → dict (ответ VK API; `user=True` — юзер-токеном)
+- `net.send(url)` / `net.send(url, params: dict, post=True)` / `net.upload(url, filename, data)`
+- `vkcppbot.fs`: `exists(path)`, `readData(path)`, `writeData(path, data)`
+- `vkcppbot.str`: `words(s, delim=' ')`, `low(s)` (ASCII+кириллица), `summ(list, start)`,
+  `replase(s, find, replace)`
+- `vkcppbot.timer`: `sleep(мс)`, `getWorkTime()` — аптайм бота (`Xd:hh:mm:ss`)
+- классы: `Doc()` (поля `type/owner_id/doc_id/acess_key/ext/url/timestamp`,
+  `get()`, `uploadDoc(filename, data, net, vk, peer_id, audio_message=False)`,
+  `uploadPhoto(...)`), `User` (`name/id/acess/msgs`)
+
+Пример:
+
 ```
-установите python3 в глобальный PATH
-run winlib.bat
-и собирите проект в VS2015 и выше
-для запуска не в VS скопируйте *.exe vox и win32deps/libs в рабочую папку бота
+/py import vkcppbot
+w = vkcppbot.str.words(eventIn.msg)
+eventOut.msg = "Привет, " + eventIn.user.name + "! Ты написал " + str(len(w) - 1) + " слов."
 ```
 
 ## Настройка
