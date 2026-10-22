@@ -17,16 +17,27 @@ thread_local Net net;
 thread_local Vk vk(net);
 void Worker::work(json event)
 {
-    if (event.is_null())
-        return;
-    Event eventOut(net, vk, event);
-    if (eventOut.msg.size() && eventOut.from_id > 0)
+    try
     {
-        eventOut.user = users::getUser(eventOut.from_id, vk);
-        Event outEvent = eventOut.getOut();
-        outEvent.msg += outEvent.user.name + ", ";
-        if (cmd::start(str::low(*eventOut.words.begin()), eventOut, outEvent, this))
-            outEvent.send();
-        bd.save();
+        if (event.is_null())
+            return;
+        Event eventOut(net, vk, event);
+        if (eventOut.msg.size() && eventOut.from_id > 0)
+        {
+            eventOut.user = users::getUser(eventOut.from_id, vk);
+            Event outEvent = eventOut.getOut();
+            outEvent.msg += outEvent.user.name + ", ";
+            if (cmd::start(str::low(*eventOut.words.begin()), eventOut, outEvent, this))
+                outEvent.send();
+            bd.save();
+        }
+    }
+    catch (const std::exception& e) // исключение парсинга/скрипта/сети не роняет поток пула
+    {
+        std::cerr << "WORK ERROR: " << e.what() << std::endl;
+    }
+    catch (...)
+    {
+        std::cerr << "WORK ERROR: unknown exception" << std::endl;
     }
 }

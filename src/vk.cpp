@@ -10,18 +10,25 @@ using namespace std;
 Vk::Vk(Net& n)
     : net(n)
 {
+    conf.lock.lock();
     json& c = conf.get();
-    if (c["token"].is_null() || c["user_token"].is_null())
-    {
-        conf.save();
+    if (!c["token"].is_null())
+        this->token = c["token"];
+    if (!c["user_token"].is_null())
+        this->user_token = c["user_token"];
+    conf.lock.unlock();
+}
+
+void Vk::validate()
+{
+    if (this->token.empty() || this->user_token.empty())
         throw std::runtime_error("Vk: не заданы token и/или user_token в config.json");
-    }
-    this->token = c["token"];
-    this->user_token = c["user_token"];
     json resp = this->send("groups.getTokenPermissions");
     if (resp["response"].is_null())
     {
-        c["token"] = NULL;
+        conf.lock.lock();
+        conf.get()["token"] = NULL;
+        conf.lock.unlock();
         conf.save();
         throw std::runtime_error("Vk: токен группы не прошёл groups.getTokenPermissions (проверьте token в config.json)");
     }
@@ -56,9 +63,4 @@ json Vk::send(string method, table_t args, bool user)
     return buff;
 }
 
-#ifndef NO_PYTHON
-string Vk::send(string method, boost::python::dict args = {}, bool user = false)
-{
-    return this->send(method, dict2map(args), user).dump(4);
-}
-#endif
+

@@ -1,130 +1,176 @@
-#include <py.h>
-#include <boost/python/suite/indexing/map_indexing_suite.hpp>
-#include <boost/python/suite/indexing/vector_indexing_suite.hpp>
+#include "py.h"
 
-#pragma comment(lib, "boost_python37-vc140-mt-x32-1_68.lib")
-#pragma comment(lib, "python3.lib")
+#include <memory>
+#include <string>
 
-#include "img.h"
+#include <pybind11/pybind11.h>
+#include <pybind11/embed.h>
+#include <pybind11/eval.h>
+#include <pybind11/gil.h>
+#include <pybind11/subinterpreter.h>
 
-using namespace boost::python;
+#include "common.h"
+#include "py_casters.h"
 
-BOOST_PYTHON_MODULE(vkcppbot)
+#include "doc.h"
+#include "fs.h"
+#include "net.h"
+#include "str.h"
+#include "timer.h"
+#include "users.h"
+#include "vk.h"
+
+namespace py = pybind11;
+
+// ---------------------------------------------------------------------------
+// Модуль `vkcppbot`: embedded (регистрируется через PyImport_AppendInittab на
+// статической инициализации до main), импортируется в КАЖДОМ под-интерпретаторе
+// заново — типы создаются на интерпретатор. per_interpreter_gil обязателен для
+// многопоточности (см. docs/TESTS.md).
+// ---------------------------------------------------------------------------
+PYBIND11_EMBEDDED_MODULE(vkcppbot, m, py::multiple_interpreters::per_interpreter_gil())
 {
-    class_<std::vector<Event>>("Events")
-    .def(vector_indexing_suite<std::vector<Event>>())
-    .def("append", static_cast<void (std::vector<Event>::*)(const Event&)>( &std::vector<Event>::push_back ))
-    ;
-    class_<std::vector<Doc>>("Docs")
-    .def(vector_indexing_suite<std::vector<Doc>>())
-    .def("append", static_cast<void (std::vector<Doc>::*)(const Doc&)>( &std::vector<Doc>::push_back ))
-    ;
+    m.attr("__version__") = GIT_VER;
 
+    py::class_<users::user>(m, "User")
+        .def_readwrite("name", &users::user::name)
+        .def_readwrite("id", &users::user::id)
+        .def_readwrite("acess", &users::user::acess)
+        .def_readwrite("msgs", &users::user::msgs);
 
-    class_<Net>("Net", no_init)
-    .def("send", static_cast<std::string(Net::*)(std::string, std::string)>( &Net::send ))
-    .def("upload", &Net::upload)
-    ;
+    py::class_<Doc>(m, "Doc")
+        .def(py::init<>())
+        .def_readwrite("type", &Doc::type)
+        .def_readwrite("owner_id", &Doc::owner_id)
+        .def_readwrite("doc_id", &Doc::doc_id)
+        .def_readwrite("acess_key", &Doc::acess_key)
+        .def_readwrite("ext", &Doc::ext)
+        .def_readwrite("url", &Doc::url)
+        .def_readwrite("timestamp", &Doc::timestamp)
+        .def("get", &Doc::get)
+        .def("uploadDoc",
+             [](Doc& self, std::string filename, py::object data, Net& net, Vk& vk, uint32_t peer_id, bool audio)
+             {
+                 std::string d = py::isinstance<py::bytes>(data) ? py::cast<std::string>(data) : std::string(py::str(data));
+                 return self.uploadDoc(filename, d, net, vk, peer_id, audio);
+             },
+             py::arg("filename"), py::arg("data"), py::arg("net"), py::arg("vk"), py::arg("peer_id"), py::arg("audio_message") = false)
+        .def("uploadPhoto",
+             [](Doc& self, std::string filename, py::object data, Net& net, Vk& vk, uint32_t peer_id)
+             {
+                 std::string d = py::isinstance<py::bytes>(data) ? py::cast<std::string>(data) : std::string(py::str(data));
+                 return self.uploadPhoto(filename, d, net, vk, peer_id);
+             },
+             py::arg("filename"), py::arg("data"), py::arg("net"), py::arg("vk"), py::arg("peer_id"));
 
-    class_<Vk>("Vk", no_init)
-    .def("send", static_cast<std::string(Vk::*)(std::string, dict, bool)>( &Vk::send ))
-    ;
+    py::class_<Event>(m, "Event")
+        .def_readwrite("msg", &Event::msg)
+        .def_readwrite("type", &Event::type)
+        .def_readonly("from_id", &Event::from_id)
+        .def_readonly("peer_id", &Event::peer_id)
+        .def_readonly("id", &Event::id)
+        .def_readonly("timestamp", &Event::timestamp)
+        .def_readonly("is_chat", &Event::is_chat)
+        .def_readonly("words", &Event::words)
+        .def_readonly("user", &Event::user)
+        .def_readwrite("docs", &Event::docs)
+        .def_readwrite("fwds", &Event::fwds)
+        .def("send", &Event::send)      // результат как dict (json-кастер)
+        .def("pysend", &Event::pysend)  // результат как JSON-строка
+        .def("getOut", &Event::getOut);
 
-    class_<Event>("Event", no_init)
-    .add_property("user", &Event::user)
-    .def_readwrite("docs", &Event::docs)
-    .def_readwrite("fwds", &Event::fwds)
+    py::class_<Net>(m, "Net")
+        .def("send", py::overload_cast<std::string, std::string>(&Net::send),
+             py::arg("url"), py::arg("params") = std::string())
+        .def("send", py::overload_cast<std::string, table_t, bool>(&Net::send),
+             py::arg("url"), py::arg("params"), py::arg("post") = true)
+        .def("upload",
+             [](Net& self, std::string url, std::string filename, py::object data)
+             {
+                 std::string d = py::isinstance<py::bytes>(data) ? py::cast<std::string>(data) : std::string(py::str(data));
+                 return self.upload(url, filename, d);
+             },
+             py::arg("url"), py::arg("filename"), py::arg("data"));
 
+    py::class_<Vk>(m, "Vk")
+        // args dict -> table_t автоматически (кастер значений через str)
+        .def("send", static_cast<json (Vk::*)(std::string, table_t, bool)>(&Vk::send),
+             py::arg("method"), py::arg("args") = table_t{}, py::arg("user") = false);
 
-    .add_property("type", &Event::type)
-    .def_readwrite("msg", &Event::msg)
-    .add_property("words", &Event::words)
-    .add_property("from_id", &Event::from_id)
-    .def_readonly("peer_id", &Event::peer_id)
-    .add_property("id", &Event::id)
-    .add_property("timestamp", &Event::timestamp)
-    .add_property("is_chat", &Event::is_chat)
+    // --- расширение API (фаза 2): файловые/строковые/временные утилиты ---
+    // имена переменных не должны затенять C++ namespace-ы fs/str/timer
+    py::module_ modFs = m.def_submodule("fs", "файловые утилиты");
+    modFs.def("exists", [](const std::string& p) { return fs::exists(p); });
+    modFs.def("readData", [](const std::string& p) { return fs::readData(p); });
+    modFs.def("writeData", [](const std::string& p, const std::string& d) { fs::writeData(p, d); });
 
-    .def("send", &Event::pysend)
-    ;
+    py::module_ modStr = m.def_submodule("str", "строковые утилиты (UTF-8)");
+    modStr.def("words", [](const std::string& s, char d) { return str::words(s, d); }, py::arg("s"), py::arg("delim") = ' ');
+    modStr.def("low", [](const std::string& s) { return str::low(s); });
+    modStr.def("summ", [](py::list words, unsigned int s) { return str::summ(words.cast<args_t>(), s); });
+    modStr.def("replase", [](const std::string& s, const std::string& f, const std::string& r) { return str::replase(s, f, r); });
 
-    class_<users::user>("user", no_init)
-    .add_property("name", &users::user::name)
-    .add_property("id", &users::user::id)
-    .add_property("acess", &users::user::acess)
-    .add_property("msgs", &users::user::msgs)
-    ;
+    py::module_ modTimer = m.def_submodule("timer", "время/пауза");
+    modTimer.def("sleep", [](int ms) { timer::sleep(ms); });
+    modTimer.def("getWorkTime", []() { return timer::getWorkTime(); });
+}
 
-    class_<Doc>("Doc", init<std::string>())
-    .add_property("type", &Doc::type)
-    .add_property("owner_id", &Doc::owner_id)
-    .add_property("doc_id", &Doc::doc_id)
-    .add_property("acess_key", &Doc::acess_key)
-    .add_property("ext", &Doc::ext)
-    .add_property("url", &Doc::url)
-    .add_property("timestamp", &Doc::timestamp)
-
-    .def("get", &Doc::get)
-    .def("uploadDoc", &Doc::uploadDoc)
-    .def("uploadPhoto", &Doc::uploadPhoto)
-    ;
-
-
+// ---------------------------------------------------------------------------
+// PyMainThread
+// ---------------------------------------------------------------------------
+struct PyMainThread::Impl
+{
+    py::scoped_interpreter guard;  // Py_Initialize; embedded-модули доступны всем интерпретаторам
+    py::gil_scoped_release release; // главный поток навсегда отпускает GIL
 };
 
-void pyF::init()
-{
-    PyInit_vkcppbot();
-}
+PyMainThread::PyMainThread() : impl(std::make_unique<Impl>()) {}
+PyMainThread::~PyMainThread() = default;
 
-pyF::pyF(Event &in, Event &out): eventIn(in), eventOut(out)
+// ---------------------------------------------------------------------------
+// pyF: под-интерпретатор + изолированное пространство имён на один скрипт
+// ---------------------------------------------------------------------------
+struct pyF::Impl
 {
-    this->main_module = py::import("__main__");
-    this->main_namespace = main_module.attr("__dict__");
-    this->main_module.attr("eventIn") = boost::python::ptr(&eventIn);
-    this->main_module.attr("eventOut") = boost::python::ptr(&eventOut);
-    this->main_module.attr("net") = boost::python::ptr(&eventOut.net);
-    this->main_module.attr("vk") = boost::python::ptr(&eventOut.vk);
-}
+    Event& eventIn;
+    Event& eventOut;
+    py::subinterpreter sub;
+    std::unique_ptr<py::subinterpreter_scoped_activate> act;
+    py::object ns;
 
-std::string pyF::error()
-{
-    PyObject *exc, *val, *tb;
-    PyErr_Fetch(&exc, &val, &tb);
-    PyErr_NormalizeException(&exc, &val, &tb);
-    py::handle<> hexc(exc), hval(py::allow_null(val)), htb(py::allow_null(tb));
-    py::object format_exception = py::import("traceback").attr("format_exception");
-    return py::extract<std::string>(py::str("").join(format_exception(hexc, hval, htb)));
-}
+    Impl(Event& in, Event& out)
+        : eventIn(in)
+        , eventOut(out)
+        , sub(py::subinterpreter::create())
+    {
+        act = std::make_unique<py::subinterpreter_scoped_activate>(sub);
+        py::module_::import("vkcppbot"); // регистрирует типы в этом под-интерпретаторе
+        ns = py::dict();
+        ns["eventIn"] = py::cast(&eventIn, py::return_value_policy::reference);
+        ns["eventOut"] = py::cast(&eventOut, py::return_value_policy::reference);
+        ns["net"] = py::cast(&eventOut.net, py::return_value_policy::reference);
+        ns["vk"] = py::cast(&eventOut.vk, py::return_value_policy::reference);
+    }
+};
 
-std::string pyF::exec(std::string &code)
+pyF::pyF(Event& in, Event& out) : impl(std::make_unique<Impl>(in, out)) {}
+pyF::~pyF() = default;
+
+std::string pyF::exec(std::string& code)
 {
+    if (!impl->act) // активация могла быть снята — включаем повторно
+        impl->act = std::make_unique<py::subinterpreter_scoped_activate>(impl->sub);
     try
     {
-        py::exec(py::str(code), main_namespace);
+        py::exec(py::str(code), impl->ns);
     }
-    catch (py::error_already_set&)
+    catch (const py::error_already_set& e)
     {
-        return this->error();
+        return e.what();
+    }
+    catch (const std::exception& e)
+    {
+        return std::string("cpp error: ") + e.what();
     }
     return "";
-}
-
-py::dict tabl2map(table_t table)
-{
-    typename table_t::iterator iter;
-    py::dict dictionary;
-    for (iter = table.begin(); iter != table.end(); ++iter)
-    {
-        dictionary[iter->first] = iter->second;
-    }
-    return dictionary;
-}
-
-table_t dict2map(py::dict dict)
-{
-    table_t dic;
-    for (int i = 0; i < py::len(dict.keys()); i++)
-        dic[py::extract<std::string>(dict.keys()[i])] = py::extract<std::string>(dict[dict.keys()[i]]);
-    return dic;
 }

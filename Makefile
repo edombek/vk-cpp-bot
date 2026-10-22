@@ -15,5 +15,8 @@ all:
 	$(CMAKE) -S . -B $(BUILD) $(OPT)
 	$(CMAKE) --build $(BUILD) -j
 
+test: all
+	cd $(BUILD) && ctest --output-on-failure
+
 clean:
 	rm -rf $(BUILD)

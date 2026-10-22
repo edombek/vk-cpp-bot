@@ -6,12 +6,12 @@
 
 Для Ubuntu/Debian:
 ```
-git gcc make libcurl4-openssl-dev libboost-python-dev python3-dev python3-pip libopencv-imgcodecs-dev libopencv-imgproc-dev libopencv-objdetect-dev libopencv-photo-dev libblas-dev liblapack-dev libdlib-dev python-dev-is-python3
+git cmake make libcurl4-openssl-dev pybind11-dev python3-dev python3-pip libopencv-imgcodecs-dev libopencv-imgproc-dev libopencv-objdetect-dev libopencv-photo-dev libblas-dev liblapack-dev libdlib-dev python-dev-is-python3
 ````
 
 Для ArchLinux:
 ```
-git gcc make curl opencv boost python-pip python dlib(aur или вручную)
+git cmake make curl opencv pybind11 python-pip python dlib(aur или вручную)
 ```
 
 ## Сборка
@@ -28,8 +28,14 @@ cmake --build build
 (`make`, `make NO_PYTHON=1`); артефакты в `./build`.
 
 Зависимости для cmake: `cmake`, `libcurl-dev`, OpenCV (>=3.4, компоненты
-core imgproc imgcodecs objdetect photo), для Python-слоя — Boost.Python
-(будет заменён на pybind11, см. `docs/TASKS.md`).
+core imgproc imgcodecs objdetect photo), для Python-слоя — pybind11
+(`pybind11-dev` или `pip install pybind11`).
+
+## Тесты
+
+```
+make test    # ctest: интеграционный тест python-слоя (сеть не требуется)
+```
 
 Windows
 ```

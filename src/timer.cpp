@@ -22,7 +22,7 @@ void timer::init()
     start = time(NULL);
 }
 
-string getTime(time_t tp)
+string timer::getTime(time_t tp)
 {
     string str = ctime(&tp);
     str.resize(str.size() - 1);

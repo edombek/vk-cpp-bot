@@ -64,15 +64,19 @@ make NO_PYTHON=1                      # то же без Python
   образец — `users::getUser`, `weather`, `setCfg`.
 - `apod.py` — отдельный standalone-скрипт (краон-постинг), не часть бота.
 
-## Python-интеграция (`/py`)
+## Python-интеграция (`/py`) — pybind11
 
-- Текущая реализация: Boost.Python + ручные под-интерпретаторы (`include/py.h`, `src/py.cpp`);
-  каждый `/py` создаёт новый под-интерпретатор. Скриптам доступны `eventIn`, `eventOut`,
-  `net`, `vk`.
-- Решение владельца: **миграция на pybind11 и расширение API**. Критический pitfall
-  (воспроизведён): главный поток обязан отпустить GIL (`py::gil_scoped_release` навсегда) —
-  иначе `Py_NewInterpreter*` из worker-потока умирает в deadlock. pybind11 header-only —
-  линковка boost_python больше не нужна.
+- Реализация (фаза 2): pybind11, embedded-модуль `vkcppbot` (`src/py.cpp`), каждый `/py` —
+  новый под-интерпретатор (`py::subinterpreter`) с изолированным namespace. PImpl в
+  `include/py.h`: pybind11 не просачивается в другие TU.
+- Скриптам доступны: `eventIn`/`eventOut` (события; read-only поля защищены), `net`, `vk`,
+  модули `vkcppbot.fs`, `vkcppbot.str`, `vkcppbot.timer`, классы `Doc`/`User`/`Event`.
+- Кастеры `table_t↔dict` и `json↔py` — в `include/py_casters.h` (значения dict приводятся
+  через str() — нестроковые аргументы больше не роняют бота).
+- Критический инвариант: `PyMainThread` удерживает `gil_scoped_release` навсегда; без него
+  создание под-интерпретатора из worker-потока — deadlock (закрыт тестом T9 в ctest).
+- `Vk(Net&)` не трогает сеть; сетевая валидация токена — `Vk::validate()` (вызывает Lp).
+  Это же позволяет тестам строить Vk без сети.
 
 ## Ловушки (актуальный статус)
 
@@ -80,7 +84,9 @@ make NO_PYTHON=1                      # то же без Python
   саморекурсия `fs::rename`, невалидный парсинг WAV в vox, неинициализированные поля
   `Event`/`Doc`/`user`, висячие `operator=`, `srand(time)` в генераторе чисел.
   История — `docs/TASKS.md`, фаза 0.
-- Ещё не исправлено: `Worker::work` без try/catch — исключение из Python-скрипта роняет
-  поток пула (фаза 2).
+- Исправлено в фазе 2 (2026-10): `Worker::work` в try/catch (исключение скрипта/сети не
+  роняет поток пула); `terminate` при битом config.json (нормальные `runtime_error` +
+  try/catch в `main`); нестроковые значения в dict-аргументах VK/Net (кастер через str).
+- Стандарт C++14: pybind11-требование; `<codecvt>` ещё жив (замена в фазе 3 вместе с C++17).
 
 Аудит-отчёт с полным списком: `/home/edombek/.opencode/plan/BUILD-RESULTS.md` (вне репозитория).

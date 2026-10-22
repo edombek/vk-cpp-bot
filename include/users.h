@@ -5,7 +5,7 @@
 
 namespace users
 {
-typedef struct user
+typedef struct user_t
 {
     std::string name;
     uint32_t id = 0;

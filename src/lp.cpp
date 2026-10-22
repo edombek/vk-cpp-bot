@@ -8,6 +8,7 @@ using namespace std;
 Lp::Lp()
     : vk(this->net)
 {
+    this->vk.validate(); // сеть трогает только здесь (см. vk.h)
     this->group_id = this->vk.send("groups.getById")["response"][0]["id"];
     this->getServer();
 }

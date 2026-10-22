@@ -377,7 +377,7 @@ void pycmd(cmdHead)
 {
 #ifndef NO_PYTHON
     std::string str(str::summ(eventIn.words, 1));
-    pyF interpreter(eventIn, eventOut);
+    pyF interpreter(eventIn, eventOut); // под-интерпретатор с собственным GIL (pybind11)
     str = interpreter.exec(str);
     if(str.empty())
         eventOut.msg += "\ndone!";
