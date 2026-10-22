@@ -7,13 +7,16 @@ class BD
 private:
     json dat;
     std::string file;
+    bool dirty = false; // данные менялись, но ещё не записаны
 
 public:
     BD(std::string path);
     ~BD();
     std::mutex lock;
     json& get();
-    void save();
+    void touch(); // пометить изменённые данные (запись произойдёт позже)
+    void save();  // принудительная запись
+    bool saveIfDirty(); // запись только если были изменения; true == сохранили
 };
 
 extern BD conf;

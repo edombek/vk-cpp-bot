@@ -1,17 +1,9 @@
 #include "str.h"
 #include "common.h"
-#include <codecvt>
-#include <locale>
 #include <sstream>
 #include <string>
 
 using namespace std;
-
-#ifdef __linux__
-locale const utf8("");
-#elif _WIN32
-locale const utf8("rus");
-#endif
 
 long long int str::fromString(string s)
 {
@@ -39,17 +31,53 @@ args_t str::words(const string& s, char delim)
     return elems;
 }
 
-// Convert UTF-8 byte string to wstring
-wstring to_wstring(string const& s)
+// Декодирование одного символа UTF-8 (без <codecvt>, который deprecated в C++17).
+// Возвращает кодовую точку и длину байтовой последовательности (0 — невалидный байт).
+static unsigned utf8Decode(const string& s, size_t i, size_t& len)
 {
-    wstring_convert<codecvt_utf8<wchar_t>> converter {};
-    return converter.from_bytes(s);
-}
-
-string to_string(wstring const& s)
-{
-    wstring_convert<codecvt_utf8<wchar_t>> converter {};
-    return converter.to_bytes(s);
+    unsigned char c = (unsigned char)s[i];
+    if (c < 0x80)
+    {
+        len = 1;
+        return c;
+    }
+    if ((c & 0xE0) == 0xC0)
+    {
+        len = 2;
+        unsigned cp = c & 0x1F;
+        for (size_t k = 1; k < len; k++)
+        {
+            if (i + k >= s.size() || ((unsigned char)s[i + k] & 0xC0) != 0x80)
+                return 0xFFFFFFFF;
+            cp = (cp << 6) | ((unsigned char)s[i + k] & 0x3F);
+        }
+        return cp;
+    }
+    if ((c & 0xF0) == 0xE0)
+    {
+        len = 3;
+        unsigned cp = c & 0x0F;
+        for (size_t k = 1; k < len; k++)
+        {
+            if (i + k >= s.size() || ((unsigned char)s[i + k] & 0xC0) != 0x80)
+                return 0xFFFFFFFF;
+            cp = (cp << 6) | ((unsigned char)s[i + k] & 0x3F);
+        }
+        return cp;
+    }
+    if ((c & 0xF8) == 0xF0)
+    {
+        len = 4;
+        unsigned cp = c & 0x07;
+        for (size_t k = 1; k < len; k++)
+        {
+            if (i + k >= s.size() || ((unsigned char)s[i + k] & 0xC0) != 0x80)
+                return 0xFFFFFFFF;
+            cp = (cp << 6) | ((unsigned char)s[i + k] & 0x3F);
+        }
+        return cp;
+    }
+    return 0xFFFFFFFF;
 }
 
 string str::summ(args_t words, unsigned int s)
@@ -75,12 +103,51 @@ bool str::at(string str1, string str2)
 
 string str::low(string str)
 {
-    auto ss = to_wstring(str);
-    for (auto& c : ss)
+    // Понижается регистр ASCII и кириллицы (А–Я, Ё); остальные символы
+    // проходят без изменений (прежняя реализация через wstring_convert/локаль
+    // системной кодировки зависела от окружения).
+    string out;
+    out.reserve(str.size());
+    for (size_t i = 0; i < str.size();)
     {
-        c = tolower(c, utf8);
+        size_t len = 0;
+        unsigned cp = utf8Decode(str, i, len);
+        if (cp == 0xFFFFFFFF) // битая последовательность — копируем байт как есть
+        {
+            out += str[i];
+            i++;
+            continue;
+        }
+        if (cp >= 'A' && cp <= 'Z')
+            cp += 'a' - 'A';
+        else if (cp >= 0x410 && cp <= 0x42F) // А–Я
+            cp += 0x20;
+        else if (cp == 0x401) // Ё
+            cp = 0x451;
+        // кодирование обратно в UTF-8
+        if (cp < 0x80)
+            out += (char)cp;
+        else if (cp < 0x800)
+        {
+            out += (char)(0xC0 | (cp >> 6));
+            out += (char)(0x80 | (cp & 0x3F));
+        }
+        else if (cp < 0x10000)
+        {
+            out += (char)(0xE0 | (cp >> 12));
+            out += (char)(0x80 | ((cp >> 6) & 0x3F));
+            out += (char)(0x80 | (cp & 0x3F));
+        }
+        else
+        {
+            out += (char)(0xF0 | (cp >> 18));
+            out += (char)(0x80 | ((cp >> 12) & 0x3F));
+            out += (char)(0x80 | ((cp >> 6) & 0x3F));
+            out += (char)(0x80 | (cp & 0x3F));
+        }
+        i += len;
     }
-    return to_string(ss);
+    return out;
 }
 
 string str::replase(string str, string findstr, string replasestr)

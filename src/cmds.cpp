@@ -534,7 +534,7 @@ void crt(cmdHead)
         {
             cv::Mat buff;
             cv::bilateralFilter(imgColored, buff, 9, 9, 7);
-            imgColored = buff.clone();
+            imgColored = std::move(buff); // без лишнего clone
         }
         for (int i = 0; i < nDownSampling; i++)
             cv::pyrUp(imgColored, imgColored);
@@ -680,7 +680,7 @@ void neon(cmdHead)
         {
             cv::Mat buff;
             cv::bilateralFilter(cvim, buff, 16, 16, 64);
-            cvim = buff.clone();
+            cvim = std::move(buff);
         }
         cv::Mat imgGray;
         cv::cvtColor(cvim, imgGray, cv::COLOR_RGB2GRAY);
@@ -696,19 +696,7 @@ void neon(cmdHead)
         cv::Mat low(myROI.height, myROI.width, CV_8UC3, cv::Scalar(0, 0, 0));
         cv::bitwise_and(cvim,low, cvim, imgEdge);
         imgEdge.release();
-        for(int i = 0; i < cvim.rows; i++)
-            for(int j = 0; j < cvim.cols; j++)
-            {
-                cv::Vec3b &bgrPixel = cvim.at<cv::Vec3b>(i, j);
-                if (bgrPixel[0] + bgrPixel[1] + bgrPixel[2] == 0) continue;
-                hsv_t cHsv = rgb2hsv({bgrPixel[2]/255.0, bgrPixel[1]/255.0, bgrPixel[0]/255.0});
-                //cHsv.s = 1;
-                cHsv.v = 1;//pow(cHsv.v, 0.5);
-                rgb_t cRgb = hsv2rgb(cHsv);
-                bgrPixel[0] = cRgb.b * 255;
-                bgrPixel[1] = cRgb.g * 255;
-                bgrPixel[2] = cRgb.r * 255;
-            }
+        cvim = img::neonColors(cvim); // векторный HSV вместо попиксельного цикла
         cv::GaussianBlur(cvim, cvim, cv::Size(5,5), 2);
         if(full && im.isBig(cvim))
             eventOut.docs.push_back(img::getDoc(cvim, eventIn.peer_id, eventIn.net, eventIn.vk));

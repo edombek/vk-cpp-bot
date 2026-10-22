@@ -35,6 +35,7 @@ void Vk::validate()
 }
 
 #include "timer.h"
+static const int vkFloodRetries = 3; // повторов при флуд-ошибке VK (была бесконечная рекурсия)
 json Vk::send(string method, table_t args, bool user)
 {
     if (user)
@@ -43,24 +44,31 @@ json Vk::send(string method, table_t args, bool user)
         args["access_token"] = this->token;
     if (args.find("v") == args.cend())
         args["v"] = ver;
-    json buff = json::parse(this->net.send("https://api.vk.com/method/" + method, args));
-    if(buff["error"]["error_code"].is_number())
-        switch(buff["error"]["error_code"].get<int>())
+    for (int attempt = 0;; attempt++)
+    {
+        json buff = json::parse(this->net.send("https://api.vk.com/method/" + method, args));
+        if (!buff["error"]["error_code"].is_number())
+            return buff;
+        int code = buff["error"]["error_code"].get<int>();
+        bool retry = false;
+        int delayMs = 1000;
+        if (code == 6 && attempt < 5) // ограничение запросов в секунду
+            retry = true;
+        else if (code == 9 || code == 10) // флуд-фильтр VK; раньше спали час и рекурсивно зацикливались
         {
-        case 9: // исправление пропуска при флуде
-        case 10: // тоже самое, просто вк зараза
-            timer::sleep(3600000);
-            return this->send(method, args, user);
-            break;
-        case 6: // ограничение запросов в секунду
-            timer::sleep(1000);
-            return this->send(method, args, user);
-            break;
-        default:
-            cout << endl << "VK ERROR:" << endl << buff["error"].dump(4) << endl;
-            break;
+            long long d = 5000; // запас, если request_delay не прислан
+            if (buff["error"]["request_delay"].is_number())
+                d = buff["error"]["request_delay"].get<long long>() * 1000; // VK сам указывает, сколько ждать (сек)
+            delayMs = (int)(d > 60000 ? 60000 : d); // не спим дольше минуты
+            retry = attempt < vkFloodRetries;
         }
-    return buff;
+        if (!retry)
+        {
+            cout << endl << "VK ERROR:" << endl << buff["error"].dump(4) << endl;
+            return buff; // ошибки больше не плодят бесконечную рекурсию — вызывающий код сам решает
+        }
+        timer::sleep(delayMs);
+    }
 }
 
 

@@ -11,6 +11,9 @@ using namespace std;
 #define net_agent "EVGESHAd vk-cpp-bot"
 //#define printOut
 
+// лимит повторов при сетевых сбоях (раньше была бесконечная рекурсия)
+static const int netRetries = 5;
+
 size_t writer(char* data, size_t size, size_t nmemb, string* buffer)
 {
     int result = 0;
@@ -68,7 +71,9 @@ string Net::send(string url, table_t param, bool post)
 string Net::send(string url, string params)
 {
     string buffer;
-    if (this->curl)
+    if (!this->curl)
+        return buffer;
+    for (int attempt = 0;; attempt++)
     {
         curl_easy_setopt(this->curl, CURLOPT_URL, url.c_str());
         curl_easy_setopt(this->curl, CURLOPT_WRITEDATA, &buffer);
@@ -84,28 +89,32 @@ string Net::send(string url, string params)
         this->result = curl_easy_perform(curl);
         if (this->result != CURLE_OK)
             cout << "CURL ERROR(" << this->result << "): " << curl_easy_strerror(this->result) << endl;
-        if (this->result == CURLE_COULDNT_RESOLVE_HOST || this->result == CURLE_OPERATION_TIMEDOUT)
+        if ((this->result == CURLE_COULDNT_RESOLVE_HOST || this->result == CURLE_OPERATION_TIMEDOUT) && attempt < netRetries)
         {
             cout << "wait internet connection..." << endl;
             timer::sleep(1000);
             curl_easy_reset(this->curl);
-            return this->send(url, params);
+            continue; // повтор вместо рекурсии; после лимита вернём пустой ответ
         }
-#ifdef printOut
-        cout << endl
-             << url << "(" << params << ")" << endl
-             << "	" << buffer << endl;
-#endif
-        curl_easy_reset(this->curl);
+        break;
     }
+#ifdef printOut
+    cout << endl
+         << url << "(" << params << ")" << endl
+         << "	" << buffer << endl;
+#endif
+    curl_easy_reset(this->curl);
     return buffer;
 }
 
 string Net::upload(string url, string filename, string& data)
 {
     string buffer;
-    if (this->curl)
+    if (!this->curl)
+        return buffer;
+    for (int attempt = 0;; attempt++)
     {
+        // mime пересоздаётся на каждую попытку: curl_easy_reset снимает опции
         curl_mime* mime = curl_mime_init(this->curl);
         if (mime)
         {
@@ -124,15 +133,7 @@ string Net::upload(string url, string filename, string& data)
         this->result = curl_easy_perform(curl);
         if (this->result != CURLE_OK)
             cout << "CURL ERROR(" << this->result << "): " << curl_easy_strerror(this->result) << endl;
-        if (this->result == CURLE_COULDNT_RESOLVE_HOST || this->result == CURLE_OPERATION_TIMEDOUT)
-        {
-            cout << "wait internet connection..." << endl;
-            timer::sleep(1000);
-            if (mime)
-                curl_mime_free(mime);
-            curl_easy_reset(this->curl);
-            return this->upload(url, filename, data);
-        }
+        bool retry = (this->result == CURLE_COULDNT_RESOLVE_HOST || this->result == CURLE_OPERATION_TIMEDOUT) && attempt < netRetries;
 #ifdef printOut
         cout << endl
              << url << endl
@@ -140,7 +141,15 @@ string Net::upload(string url, string filename, string& data)
 #endif
         if (mime)
             curl_mime_free(mime);
-        curl_easy_reset(this->curl);
+        if (retry)
+        {
+            cout << "wait internet connection..." << endl;
+            timer::sleep(1000);
+            curl_easy_reset(this->curl);
+            continue; // повтор вместо рекурсии; после лимита вернём пустой ответ
+        }
+        break;
     }
+    curl_easy_reset(this->curl);
     return buffer;
 }

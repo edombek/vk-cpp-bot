@@ -54,110 +54,25 @@ bool img::isBig(cv::Mat im)
 
 //color transformations
 
-hsv_t rgb2hsv(rgb_t in)
+cv::Mat img::neonColors(const cv::Mat& src)
 {
-    hsv_t out;
-    double min, max, delta;
-
-    min = in.r < in.g ? in.r : in.g;
-    min = min < in.b ? min : in.b;
-
-    max = in.r > in.g ? in.r : in.g;
-    max = max > in.b ? max : in.b;
-
-    out.v = max; // v
-    delta = max - min;
-    if (delta < 0.00001)
-    {
-        out.s = 0;
-        out.h = 0; // undefined, maybe nan?
-        return out;
-    }
-    if (max > 0.0)   // NOTE: if Max is == 0, this divide would cause a crash
-    {
-        out.s = (delta / max); // s
-    }
-    else
-    {
-        // if max is 0, then r = g = b = 0
-        // s = 0, h is undefined
-        out.s = 0.0;
-        out.h = NAN; // its now undefined
-        return out;
-    }
-    if (in.r >= max) // > is bogus, just keeps compilor happy
-        out.h = (in.g - in.b) / delta; // between yellow & magenta
-    else if (in.g >= max)
-        out.h = 2.0 + (in.b - in.r) / delta; // between cyan & yellow
-    else
-        out.h = 4.0 + (in.r - in.g) / delta; // between magenta & cyan
-
-    out.h *= 60.0; // degrees
-
-    if (out.h < 0.0)
-        out.h += 360.0;
-
+    if (src.empty())
+        return src;
+    cv::Mat flt;
+    src.convertTo(flt, CV_32FC3, 1.0 / 255.0);
+    cv::Mat hsv;
+    cv::cvtColor(flt, hsv, cv::COLOR_BGR2HSV_FULL); // H в диапазоне [0,1)
+    std::vector<cv::Mat> ch;
+    cv::split(hsv, ch);
+    cv::Mat black; // маска V==0 — чёрные пиксели (их старый цикл пропускал)
+    cv::compare(ch[2], 0.0, black, cv::CMP_EQ);
+    ch[2] = cv::Mat(ch[0].size(), CV_32F, cv::Scalar(1.0)); // V принудительно 1
+    cv::Mat hsvOut;
+    cv::merge(ch, hsvOut);
+    cv::Mat back;
+    cv::cvtColor(hsvOut, back, cv::COLOR_HSV2BGR_FULL);
+    cv::Mat out;
+    back.convertTo(out, CV_8UC3, 255.0);
+    src.copyTo(out, black); // чёрные остаются как были
     return out;
 }
-
-rgb_t hsv2rgb(hsv_t in)
-{
-    double hh, p, q, t, ff;
-    long i;
-    rgb_t out;
-
-    if (in.s <= 0.0)   // < is bogus, just shuts up warnings
-    {
-        out.r = in.v;
-        out.g = in.v;
-        out.b = in.v;
-        return out;
-    }
-    hh = in.h;
-    if (hh >= 360.0)
-        hh = 0.0;
-    hh /= 60.0;
-    i = (long)hh;
-    ff = hh - i;
-    p = in.v * (1.0 - in.s);
-    q = in.v * (1.0 - (in.s * ff));
-    t = in.v * (1.0 - (in.s * (1.0 - ff)));
-
-    switch (i)
-    {
-    case 0:
-        out.r = in.v;
-        out.g = t;
-        out.b = p;
-        break;
-    case 1:
-        out.r = q;
-        out.g = in.v;
-        out.b = p;
-        break;
-    case 2:
-        out.r = p;
-        out.g = in.v;
-        out.b = t;
-        break;
-
-    case 3:
-        out.r = p;
-        out.g = q;
-        out.b = in.v;
-        break;
-    case 4:
-        out.r = t;
-        out.g = p;
-        out.b = in.v;
-        break;
-    case 5:
-    default:
-        out.r = in.v;
-        out.g = p;
-        out.b = q;
-        break;
-    }
-    return out;
-}
-

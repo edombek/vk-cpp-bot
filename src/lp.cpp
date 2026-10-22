@@ -24,6 +24,7 @@ void Lp::getServer()
 void Lp::loop()
 {
     Worker worker;
+    time_t lastSave = time(NULL);
     while (true)
     {
         string buff = this->net.send(this->server, { { "act", "a_check" }, { "key", this->key }, { "ts", this->ts }, { "wait", "25" } });
@@ -49,6 +50,11 @@ void Lp::loop()
             {
                 worker.add_event(update);
             }
+        }
+        if (time(NULL) - lastSave >= 30) // периодически сбрасываем помеченные изменения bd
+        {
+            bd.saveIfDirty();
+            lastSave = time(NULL);
         }
     }
 }

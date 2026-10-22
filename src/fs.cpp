@@ -1,6 +1,7 @@
 #include "fs.h"
 #include "common.h"
 #include <stdio.h>
+#include <sstream>
 
 using namespace std;
 
@@ -33,16 +34,11 @@ void fs::file::close()
 
 string fs::file::read()
 {
-    string data;
-    string line;
-    while (getline(this->_stream, line))
-    {
-        data += line;
-        data += "\n";
-    }
-    if (data.size())
-        data.resize(data.size() - 1);
-    return data;
+    // точное чтение всего потока (старый построчный вариант терял
+    // завершающий '\n' и портил бинарные/CR-LF данные)
+    std::ostringstream ss;
+    ss << this->_stream.rdbuf();
+    return ss.str();
 }
 
 void fs::file::readBinary(char* data, size_t size)

@@ -29,7 +29,7 @@ void Worker::work(json event)
             outEvent.msg += outEvent.user.name + ", ";
             if (cmd::start(str::low(*eventOut.words.begin()), eventOut, outEvent, this))
                 outEvent.send();
-            bd.save();
+            bd.touch(); // запись dat.json — пакетом по таймеру в Lp::loop, не на каждое сообщение
         }
     }
     catch (const std::exception& e) // исключение парсинга/скрипта/сети не роняет поток пула

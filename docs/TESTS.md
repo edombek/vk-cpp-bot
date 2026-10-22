@@ -11,7 +11,7 @@ CI: временно ОТКЛЮЧЕНА (2026-10-22) — workflow'ы в ручн
 | С Python | `make` (шим cmake) или `cmake -B build && cmake --build build` | ✅ `-Wall` чист (`-Wno-attributes` точечно на `src/py.cpp`, см. ниже) |
 | Без Python | `make NO_PYTHON=1` / `-DVKBOT_WITH_PYTHON=OFF` | ✅ |
 | Smoke-запуск без config.json | `./build/vkbot` | ✅ чистый `FATAL: Vk: не заданы token...`, exit 1 (раньше — `terminate`) |
-| Автотесты | `make test` или `cd build && ctest --output-on-failure` | ✅ 1/1 тест, 16/16 проверок (см. ниже) |
+| Автотесты | `make test` или `cd build && ctest --output-on-failure` | ✅ 2/2 теста (units 22/22 + py_integration 16/16); в NO_PYTHON — 1/1 (только units) |
 
 История: до фазы 1.5 штатный `make` не собирался (захардкоженные `-lboost_python39`,
 `-I/usr/include/opencv4`), проверки делались ручной компиляцией с подобранными флагами.
@@ -35,6 +35,23 @@ Runtime-проверки фазы 0:
 - 711 реальных `vox/*.wav` прогнаны через валидацию: субчанк-размеры 16/18, все проходят;
   2 битых файла (`a.wav`, `invallid.wav`, обрезанные) теперь корректно пропускаются вместо
   чтения за концом буфера.
+
+## Автоматические юнит-тесты C++-слоя (фаза 3): `vkbot_unit` / ctest
+
+Строится и без Python (`make NO_PYTHON=1 && make test` — тоже 2 теста). Запуск:
+`make test` или `cd build && ctest --output-on-failure`.
+
+| # | Проверка | Результат |
+|---|---|---|
+| U1 | `Net` ограничивает повторы (нескладываемый хост `.invalid` → пустой ответ за <30 с) | ✅ |
+| U2 | `Net::urlEncode` (UTF-8, спецсимволы) | ✅ |
+| U3 | `BD` dirty-флаг: `touch/saveIfDirty/деструктор` | ✅ |
+| U4 | `str::low` без `<codecvt>`: ASCII+кириллица, Ё, чужие скрипты, битые байты | ✅ |
+| U5 | `str::words/summ/replase` | ✅ |
+| U6 | `fs` roundtrip (в т.ч. завершающий `\n` сохраняется — точное чтение потока) | ✅ |
+| U7 | `img::neonColors` == старый попиксельный эталон (max diff ≤ 1 LSB) и быстрее него | ✅ |
+
+Итого: 22/22 проверок. Бенчмарк U7 (1280x720): scalar ≈ 23 ms → vector ≈ 13 ms (x1.7).
 
 ## Автоматический тест python-слоя (фаза 2): `vkbot_pytest` / ctest
 

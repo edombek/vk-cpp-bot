@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.16)
 project(vk-cpp-bot LANGUAGES CXX)
 
-# pybind11 3.x требует C++14. C++17 перенесён в фазу 3 — там же заменён <codecvt>,
-# который в C++17 уже deprecated (держим -Wall чистым).
-set(CMAKE_CXX_STANDARD 14)
+# C++17: pybind11 требовал C++14 (фаза 2), <codecvt> заменён ручной UTF-8
+# реализацией (фаза 3) — в C++17 он deprecated и ломал бы чистоту -Wall.
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
@@ -89,18 +89,31 @@ else()
     target_compile_definitions(vkbot PRIVATE NO_PYTHON)
 endif()
 
-# --- автоматическое тестирование (ctest): python-слой без VK-сети
-if(VKBOT_WITH_PYTHON AND VKBOT_BUILD_TESTS)
+# --- автоматическое тестирование (ctest) ---
+if(VKBOT_BUILD_TESTS)
     enable_testing()
-    add_executable(vkbot_pytest ${VKBOT_CORE_SOURCES} src/py.cpp tests/py_integration.cpp)
-    target_include_directories(vkbot_pytest PRIVATE include thr tests ${OpenCV_INCLUDE_DIRS})
-    target_compile_definitions(vkbot_pytest PRIVATE GIT_URL="${GIT_REMOTE_URL}" GIT_VER="test")
-    target_link_libraries(vkbot_pytest PRIVATE CURL::libcurl ${OpenCV_LIBS})
-    if(TARGET pybind11::embed)
-        target_link_libraries(vkbot_pytest PRIVATE pybind11::embed)
-    else()
-        target_include_directories(vkbot_pytest PRIVATE ${PYBIND11_DIRS})
-        target_link_libraries(vkbot_pytest PRIVATE Python3::Python)
+
+    # юнит-тесты C++-слоя (фаза 3): сеть почти не трогают, Python не нужен
+    add_executable(vkbot_unit
+        src/net.cpp src/bd.cpp src/fs.cpp src/str.cpp src/timer.cpp
+        src/img.cpp src/vk.cpp src/doc.cpp tests/units.cpp)
+    target_include_directories(vkbot_unit PRIVATE include thr ${OpenCV_INCLUDE_DIRS})
+    target_compile_definitions(vkbot_unit PRIVATE GIT_URL="${GIT_REMOTE_URL}" GIT_VER="test")
+    target_link_libraries(vkbot_unit PRIVATE CURL::libcurl ${OpenCV_LIBS})
+    add_test(NAME units COMMAND vkbot_unit)
+
+    # интеграционный тест python-слоя (фаза 2)
+    if(VKBOT_WITH_PYTHON)
+        add_executable(vkbot_pytest ${VKBOT_CORE_SOURCES} src/py.cpp tests/py_integration.cpp)
+        target_include_directories(vkbot_pytest PRIVATE include thr tests ${OpenCV_INCLUDE_DIRS})
+        target_compile_definitions(vkbot_pytest PRIVATE GIT_URL="${GIT_REMOTE_URL}" GIT_VER="test")
+        target_link_libraries(vkbot_pytest PRIVATE CURL::libcurl ${OpenCV_LIBS})
+        if(TARGET pybind11::embed)
+            target_link_libraries(vkbot_pytest PRIVATE pybind11::embed)
+        else()
+            target_include_directories(vkbot_pytest PRIVATE ${PYBIND11_DIRS})
+            target_link_libraries(vkbot_pytest PRIVATE Python3::Python)
+        endif()
+        add_test(NAME py_integration COMMAND vkbot_pytest)
     endif()
-    add_test(NAME py_integration COMMAND vkbot_pytest)
 endif()
