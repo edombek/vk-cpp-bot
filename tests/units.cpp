@@ -2,11 +2,16 @@
 // Сеть почти не используется: единственный сетевой тест проверяет, что Net
 // ограничивает число повторов (заведомо нескладывающийся хост .invalid).
 #include "bd.h"
+#include "events.h"
 #include "fs.h"
 #include "img.h"
+#include "keyboard.h"
 #include "net.h"
 #include "str.h"
 #include "timer.h"
+#include "worker.h"
+
+#include "fakenet.h"
 
 #include <chrono>
 #include <cmath>
@@ -243,6 +248,128 @@ int main()
         std::cout << "[info] neon 1280x720: scalar=" << tRef << "ms vector=" << tVec << "ms speedup x"
                   << (tVec ? double(tRef) / double(tVec) : 0.0) << std::endl;
         check(tVec < tRef, "U7b vector faster than scalar", std::to_string(tRef) + " -> " + std::to_string(tVec) + "ms");
+    }
+
+    // --- U8: Keyboard — формат JSON-клавиатуры VK ---
+    {
+        Keyboard kbd(false, false);
+        kbd.button("да", "/yes", "positive").button("нет", "/no");
+        kbd.row();
+        kbd.link("сайт", "https://example.com").textButton("текст");
+        json j = json::parse(kbd.dump());
+        check(j["one_time"] == false && j["inline"] == false, "U8a flags");
+        check(j["buttons"].size() == 2 && j["buttons"][0].size() == 2 && j["buttons"][1].size() == 2, "U8b rows");
+        check(j["buttons"][0][0]["action"]["type"] == "callback" && j["buttons"][0][0]["action"]["payload"] == "/yes" && j["buttons"][0][0]["color"] == "positive",
+              "U8c callback button", j["buttons"][0][0].dump());
+        check(j["buttons"][1][0]["action"]["type"] == "openlink" && j["buttons"][1][0]["action"]["link"] == "https://example.com", "U8d link button");
+        check(j["buttons"][1][1]["action"]["type"] == "text", "U8e text button");
+    }
+
+    // --- U9: парсинг message_event (нажатие callback-кнопки) ---
+    {
+        Net net;
+        Vk vk(net);
+        json ev =
+        {
+            { "type", "message_event" },
+            { "object",
+              {
+                  { "peer_id", 2000000005 },
+                  { "user_id", 777 },
+                  { "event_id", "abc-123" },
+                  { "payload", "/help игры" }
+              } }
+        };
+        Event e(net, vk, ev);
+        check(e.from_id == 777 && e.peer_id == 2000000005, "U9a ids");
+        check(e.event_id == "abc-123", "U9b event_id");
+        check(e.msg == "/help игры" && e.words.size() == 2, "U9c payload as msg");
+        check(e.is_chat, "U9d is_chat");
+    }
+
+    // --- U10: Event::send передаёт keyboard в messages.send (FakeNet) ---
+    {
+        FakeNet fn;
+        fn.responses["messages.send"] = "{\"response\":10}";
+        Vk vk(fn);
+        Event e(fn, vk);
+        e.type = "message_new";
+        e.peer_id = 1;
+        e.msg = "x";
+        Keyboard kbd(true, false);
+        kbd.button("кнопка", "/pressed");
+        e.keyboard = kbd.dump();
+        e.send();
+        const FakeNet::Call* c = fn.first("messages.send");
+        check(c != nullptr, "U10a messages.send called");
+        check(c && c->params.count("keyboard") && json::parse(c->params.at("keyboard"))["one_time"] == true,
+              "U10b keyboard param present", c ? c->params.count("keyboard") ? c->params.at("keyboard") : "(нет)" : "(нет вызова)");
+    }
+
+    // --- U11: полный конвейер message_event: FakeNet + Worker (+ rename) ---
+    {
+        FakeNet fn;
+        fn.responses["users.get"] = "{\"response\":[{\"id\":777,\"first_name\":\"Кнопка\"}]}";
+        fn.responses["messages.sendMessageEventAnswer"] = "{\"response\":1}";
+        fn.responses["messages.send"] = "{\"response\":11}";
+        Vk vk(fn);
+        json ev =
+        {
+            { "type", "message_event" },
+            { "object",
+              {
+                  { "peer_id", 2000000005 },
+                  { "user_id", 777 },
+                  { "event_id", "ev-777" },
+                  { "payload", "/rename Тест" }
+              } }
+        };
+        Worker w;
+        w.work(ev, fn, vk);
+        const FakeNet::Call* ans = fn.first("sendMessageEventAnswer");
+        check(ans != nullptr && ans->params.count("event_id") && ans->params.at("event_id") == "ev-777" && ans->params.at("user_id") == "777",
+              "U11a sendMessageEventAnswer", ans ? ans->params.count("event_id") ? ans->params.at("event_id") : "(нет event_id)" : "(нет вызова)");
+        const FakeNet::Call* msg = fn.firstExact("https://api.vk.com/method/messages.send");
+        check(msg != nullptr && msg->params.count("message") && msg->params.at("message").find("done!") != std::string::npos,
+              "U11b команда выполнена", msg ? msg->params.count("message") ? msg->params.at("message") : "(пусто)" : "(нет вызова)");
+        check(bd.get()["users"]["777"]["name"] == "Тест", "U11c rename применился", bd.get()["users"]["777"]["name"].dump());
+    }
+
+    // --- U12: /help по message → ответ с клавиатурой разделов ---
+    {
+        FakeNet fn;
+        fn.responses["users.get"] = "{\"response\":[{\"id\":777,\"first_name\":\"Кнопка\"}]}";
+        fn.responses["messages.send"] = "{\"response\":12}";
+        Vk vk(fn);
+        json ev =
+        {
+            { "type", "message_new" },
+            { "object",
+              {
+                  { "date", 100 },
+                  { "peer_id", 777 },
+                  { "from_id", 777 },
+                  { "text", "/help" },
+                  { "random_id", 1 },
+                  { "attachments", json::array() }
+              } }
+        };
+        Worker w;
+        w.work(ev, fn, vk);
+        const FakeNet::Call* msg = fn.firstExact("https://api.vk.com/method/messages.send");
+        check(msg != nullptr && msg->params.count("message") && msg->params.at("message").find("уровень прав") != std::string::npos,
+              "U12a help отправлен", msg ? msg->params.count("message") ? msg->params.at("message") : "(нет message)" : "(нет вызова)");
+        // верхний уровень справки — кнопки разделов; проверяем наличие раздела «игры» (там /bc)
+        bool kbdOk = false;
+        if (msg && msg->params.count("keyboard"))
+        {
+            json j = json::parse(msg->params.at("keyboard"));
+            for (const auto& row : j["buttons"])
+                for (const auto& b : row)
+                    if (b["action"]["payload"] == "/help игры")
+                        kbdOk = true;
+        }
+        check(kbdOk, "U12b help keyboard (разделы)", msg && msg->params.count("keyboard") ? msg->params.at("keyboard") : "(нет)");
     }
 
     Net::deinit();

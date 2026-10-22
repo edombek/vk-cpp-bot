@@ -11,23 +11,35 @@ void Worker::add_event(json event)
 }
 
 #include "cmd.h"
+#include "keyboard.h"
 #include "str.h"
 #include <iostream>
 thread_local Net net;
 thread_local Vk vk(net);
 void Worker::work(json event)
 {
+    this->work(event, net, vk);
+}
+
+void Worker::work(json event, Net& net, Vk& vk)
+{
     try
     {
         if (event.is_null())
             return;
-        Event eventOut(net, vk, event);
-        if (eventOut.msg.size() && eventOut.from_id > 0)
+        Event eventIn(net, vk, event);
+        if (eventIn.type == "message_event") // нажатие callback-кнопки
         {
-            eventOut.user = users::getUser(eventOut.from_id, vk);
-            Event outEvent = eventOut.getOut();
+            workButton(eventIn, vk);
+            bd.touch();
+            return;
+        }
+        if (eventIn.msg.size() && eventIn.from_id > 0)
+        {
+            eventIn.user = users::getUser(eventIn.from_id, vk);
+            Event outEvent = eventIn.getOut();
             outEvent.msg += outEvent.user.name + ", ";
-            if (cmd::start(str::low(*eventOut.words.begin()), eventOut, outEvent, this))
+            if (cmd::start(str::low(*eventIn.words.begin()), eventIn, outEvent, this))
                 outEvent.send();
             bd.touch(); // запись dat.json — пакетом по таймеру в Lp::loop, не на каждое сообщение
         }
@@ -40,4 +52,23 @@ void Worker::work(json event)
     {
         std::cerr << "WORK ERROR: unknown exception" << std::endl;
     }
+}
+
+// нажатие callback-кнопки: payload = команда; отвечаем sendMessageEventAnswer
+// (иначе клиент показывает «некорректный ответ»), затем обычные сообщения
+void Worker::workButton(Event& eventIn, Vk& vk)
+{
+    table_t answer;
+    answer["peer_id"] = std::to_string(eventIn.peer_id);
+    answer["event_id"] = eventIn.event_id;
+    answer["user_id"] = std::to_string(eventIn.from_id);
+    answer["answer"] = "{\"type\":null}";
+    if (!eventIn.event_id.empty())
+        vk.send("messages.sendMessageEventAnswer", answer);
+    if (eventIn.from_id <= 0 || !eventIn.words.size())
+        return;
+    eventIn.user = users::getUser(eventIn.from_id, vk);
+    Event outEvent = eventIn.getOut(); // msg пустой — без префикса имени, кнопки сами всё говорят
+    if (cmd::start(str::low(*eventIn.words.begin()), eventIn, outEvent, this))
+        outEvent.send();
 }

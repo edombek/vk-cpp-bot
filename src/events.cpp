@@ -9,6 +9,22 @@ Event::Event(Net &n, Vk &v, json lpEv)
         return;
     this->type = lpEv["type"];
     lpEv = lpEv["object"];
+    if (this->type == "message_event") // нажатие кнопки: payload вместо text
+    {
+        if (lpEv["user_id"].is_number())
+            this->from_id = lpEv["user_id"];
+        if (lpEv["peer_id"].is_number())
+            this->peer_id = lpEv["peer_id"];
+        if (lpEv["event_id"].is_string())
+            this->event_id = lpEv["event_id"];
+        if (lpEv["payload"].is_string())
+            this->msg = lpEv["payload"];
+        else if (lpEv["text"].is_string()) // inline text-кнопки приходят как text
+            this->msg = lpEv["text"];
+        this->words = str::words(this->msg);
+        this->is_chat = uint32_t(this->from_id) != this->peer_id;
+        return;
+    }
     if (lpEv["random_id"].is_number())
         this->random_id = lpEv["random_id"];
     else
@@ -53,6 +69,8 @@ Event::Event(const Event& e): net(e.net), vk(e.vk)
     this->random_id = e.random_id;
     this->timestamp = e.timestamp;
     this->is_chat = e.is_chat;
+    this->event_id = e.event_id;
+    this->keyboard = e.keyboard;
     this->user = e.user;
     this->docs = e.docs;
     this->fwds = e.fwds;
@@ -67,6 +85,8 @@ json Event::send()
         param["random_id"] = std::to_string(this->random_id);
         param["message"] = this->msg;
         param["disable_mentions"] = "1";
+        if (!this->keyboard.empty())
+            param["keyboard"] = this->keyboard;
         for (auto doc : this->docs)
             param["attachment"] += doc.get() + ",";
         return this->vk.send("messages.send", param);
@@ -96,6 +116,7 @@ Event Event::getOut()
     event.peer_id = this->peer_id;
     event.id = this->id;
     event.random_id = this->random_id;
+    event.event_id = this->event_id;
     event.user = this->user;
     return event;
 }

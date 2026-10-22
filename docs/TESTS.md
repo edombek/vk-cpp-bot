@@ -11,7 +11,7 @@ CI: временно ОТКЛЮЧЕНА (2026-10-22) — workflow'ы в ручн
 | С Python | `make` (шим cmake) или `cmake -B build && cmake --build build` | ✅ `-Wall` чист (`-Wno-attributes` точечно на `src/py.cpp`, см. ниже) |
 | Без Python | `make NO_PYTHON=1` / `-DVKBOT_WITH_PYTHON=OFF` | ✅ |
 | Smoke-запуск без config.json | `./build/vkbot` | ✅ чистый `FATAL: Vk: не заданы token...`, exit 1 (раньше — `terminate`) |
-| Автотесты | `make test` или `cd build && ctest --output-on-failure` | ✅ 2/2 теста (units 22/22 + py_integration 16/16); в NO_PYTHON — 1/1 (только units) |
+| Автотесты | `make test` или `cd build && ctest --output-on-failure` | ✅ 2/2 теста (units 38/38 + py_integration 18/18); в NO_PYTHON — 1/1 (только units) |
 
 История: до фазы 1.5 штатный `make` не собирался (захардкоженные `-lboost_python39`,
 `-I/usr/include/opencv4`), проверки делались ручной компиляцией с подобранными флагами.
@@ -36,10 +36,12 @@ Runtime-проверки фазы 0:
   2 битых файла (`a.wav`, `invallid.wav`, обрезанные) теперь корректно пропускаются вместо
   чтения за концом буфера.
 
-## Автоматические юнит-тесты C++-слоя (фаза 3): `vkbot_unit` / ctest
+## Автоматические юнит-тесты C++-слоя (фазы 3, 6): `vkbot_unit` / ctest
 
-Строится и без Python (`make NO_PYTHON=1 && make test` — тоже 2 теста). Запуск:
-`make test` или `cd build && ctest --output-on-failure`.
+Строится и без Python (`make NO_PYTHON=1 && make test`). Запуск:
+`make test` или `cd build && ctest --output-on-failure`. Сеть подменяется моком
+`FakeNet` (`tests/fakenet.h`) — полный конвейер `Worker → cmd → Event → Vk → Net`
+тестируется без сети и токенов VK.
 
 | # | Проверка | Результат |
 |---|---|---|
@@ -50,8 +52,13 @@ Runtime-проверки фазы 0:
 | U5 | `str::words/summ/replase` | ✅ |
 | U6 | `fs` roundtrip (в т.ч. завершающий `\n` сохраняется — точное чтение потока) | ✅ |
 | U7 | `img::neonColors` == старый попиксельный эталон (max diff ≤ 1 LSB) и быстрее него | ✅ |
+| U8 | `Keyboard`: формат JSON-клавиатуры VK (callback/text/link, цвета, строки) | ✅ |
+| U9 | парсинг `message_event` (payload → msg/words, event_id, is_chat) | ✅ |
+| U10 | `Event::send` передаёт `keyboard` в `messages.send` (FakeNet) | ✅ |
+| U11 | конвейер нажатия кнопки: `sendMessageEventAnswer` + выполнение команды (`/rename`) + запись в `bd` | ✅ |
+| U12 | `/help` с кнопками разделов (FakeNet, полный путь Worker→cmd→send) | ✅ |
 
-Итого: 22/22 проверок. Бенчмарк U7 (1280x720): scalar ≈ 23 ms → vector ≈ 13 ms (x1.7).
+Итого: 38/38 проверок. Бенчмарк U7 (1280x720): scalar ≈ 23 ms → vector ≈ 13 ms (x1.7).
 
 ## Автоматический тест python-слоя (фаза 2): `vkbot_pytest` / ctest
 
@@ -69,8 +76,9 @@ Runtime-проверки фазы 0:
 | T7 | биндинг `Doc` (свойства + `get()`) | ✅ |
 | T8 | `eventIn` читается скриптом; read-only поля (`peer_id`) защищены (`AttributeError`) | ✅ |
 | T9 | **регрессия на GIL-deadlock**: 8 потоков одновременно создают под-интерпретаторы | ✅ |
+| T10 | `vkcppbot.Keyboard` — клавиатура VK из скрипта → `eventOut.keyboard` | ✅ |
 
-Итого: 16/16 проверок, `ctest` 1/1 passed (~0.2 c).
+Итого: 18/18 проверок, `ctest` 1/1 passed (~0.2 c).
 
 ## Python-интеграция: стресс-прогоны (исторические, дофазовые)
 

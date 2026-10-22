@@ -11,7 +11,7 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 endif()
 
 option(VKBOT_WITH_PYTHON "Встраивать интерпретатор Python (команда /py)" ON)
-option(VKBOT_BUILD_TESTS "Строить интеграционный тест python-слоя (ctest)" ON)
+option(VKBOT_BUILD_TESTS "Строить автотесты (ctest: vkbot_unit + vkbot_pytest)" ON)
 
 # --- сведения о репозитории (раньше делал Makefile: -DGIT_URL=... -DGIT_VER=...)
 find_package(Git QUIET)
@@ -39,6 +39,7 @@ set(VKBOT_CORE_SOURCES
     src/fs.cpp
     src/doc.cpp
     src/events.cpp
+    src/keyboard.cpp
     src/worker.cpp
     src/str.cpp
     src/cmd.cpp
@@ -93,13 +94,25 @@ endif()
 if(VKBOT_BUILD_TESTS)
     enable_testing()
 
-    # юнит-тесты C++-слоя (фаза 3): сеть почти не трогают, Python не нужен
-    add_executable(vkbot_unit
-        src/net.cpp src/bd.cpp src/fs.cpp src/str.cpp src/timer.cpp
-        src/img.cpp src/vk.cpp src/doc.cpp tests/units.cpp)
-    target_include_directories(vkbot_unit PRIVATE include thr ${OpenCV_INCLUDE_DIRS})
+    # C++-тесты: полный набор исходников (без main.cpp), сеть подменяется FakeNet
+    add_executable(vkbot_unit ${VKBOT_CORE_SOURCES} tests/units.cpp)
+    target_include_directories(vkbot_unit PRIVATE include thr tests ${OpenCV_INCLUDE_DIRS})
     target_compile_definitions(vkbot_unit PRIVATE GIT_URL="${GIT_REMOTE_URL}" GIT_VER="test")
     target_link_libraries(vkbot_unit PRIVATE CURL::libcurl ${OpenCV_LIBS})
+    if(MSVC)
+        target_compile_options(vkbot_unit PRIVATE /W3)
+    else()
+        target_compile_options(vkbot_unit PRIVATE -Wall)
+    endif()
+    if(VKBOT_WITH_PYTHON)
+        target_sources(vkbot_unit PRIVATE src/py.cpp)
+        target_link_libraries(vkbot_unit PRIVATE ${VKBOT_PY_TARGETS})
+        if(NOT TARGET pybind11::embed)
+            target_include_directories(vkbot_unit PRIVATE ${PYBIND11_DIRS})
+        endif()
+    else()
+        target_compile_definitions(vkbot_unit PRIVATE NO_PYTHON)
+    endif()
     add_test(NAME units COMMAND vkbot_unit)
 
     # интеграционный тест python-слоя (фаза 2)

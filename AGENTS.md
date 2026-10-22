@@ -63,13 +63,21 @@ make NO_PYTHON=1                      # то же без Python
 
 - Поток: `src/main.cpp` (глобальные `conf`=`config.json`, `bd`=`dat.json`) → `Lp::loop()`
   (longpoll) → `Worker::work()` (пул из 5 потоков, `thr/ThreadPool.h`) → `cmd::start()`
-  (таблица команд в `src/cmd.h`) → функции в `src/cmds.cpp`.
+  (таблица команд в `src/cmd.cpp`) → функции в `src/cmds.cpp`.
+- **Кнопки VK (фаза 6)**: `Keyboard` (`include/keyboard.h`) собирает JSON-клавиатуру,
+  `Event::keyboard` прикрепляет её к `messages.send`. Нажатие callback-кнопки приходит
+  событием `message_event` (payload = команда, `event_id`); `Worker::workButton` отвечает
+  `messages.sendMessageEventAnswer` и диспетчеризует payload как обычную команду.
 - **Макрос `cmdHead`** (`include/cmd.h`) раскрывается в `Event &eventIn, Event &eventOut,
   Worker *worker` — функции команд объявляются как `void help(cmdHead)` без видимых параметров.
   Это конвенция, а не ошибка.
-- В `src/worker.cpp` — `thread_local Net net; thread_local Vk vk(net);` на каждый поток пула.
-- Изменение глобальных `conf`/`bd` требует блокировки их `lock` (mutex) и вызова `save()`;
-  образец — `users::getUser`, `weather`, `setCfg`.
+- В `src/worker.cpp` — `thread_local Net net; thread_local Vk vk(net);` на каждый поток пула;
+  `Worker::work(event, net, vk)` — публичная перегрузка с явной сетью (её используют тесты).
+- Изменение глобальных `conf`/`bd` требует блокировки их `lock` (mutex); `conf` после правки
+  сохраняется `save()` сразу, `bd` — только `touch()`, а пишет его пакетом `Lp::loop`
+  (`saveIfDirty()` раз в 30 с).
+- `Net::send/upload` виртуальные: тесты подменяют сеть моком `FakeNet` (`tests/fakenet.h`),
+  прогоняя весь конвейер команд без сети и токенов.
 - `apod.py` — отдельный standalone-скрипт (краон-постинг), не часть бота.
 
 ## Python-интеграция (`/py`) — pybind11
@@ -77,8 +85,9 @@ make NO_PYTHON=1                      # то же без Python
 - Реализация (фаза 2): pybind11, embedded-модуль `vkcppbot` (`src/py.cpp`), каждый `/py` —
   новый под-интерпретатор (`py::subinterpreter`) с изолированным namespace. PImpl в
   `include/py.h`: pybind11 не просачивается в другие TU.
-- Скриптам доступны: `eventIn`/`eventOut` (события; read-only поля защищены), `net`, `vk`,
-  модули `vkcppbot.fs`, `vkcppbot.str`, `vkcppbot.timer`, классы `Doc`/`User`/`Event`.
+- Скриптам доступны: `eventIn`/`eventOut` (события; read-only поля защищены, `keyboard` —
+  JSON-строка клавиатуры), `net`, `vk`, модули `vkcppbot.fs`, `vkcppbot.str`, `vkcppbot.timer`,
+  классы `Doc`/`User`/`Event`/`Keyboard`.
 - Кастеры `table_t↔dict` и `json↔py` — в `include/py_casters.h` (значения dict приводятся
   через str() — нестроковые аргументы больше не роняют бота).
 - Критический инвариант: `PyMainThread` удерживает `gil_scoped_release` навсегда; без него

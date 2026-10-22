@@ -1,0 +1,77 @@
+#include "keyboard.h"
+
+Keyboard::Keyboard(bool oneTime_, bool inlineKbd_)
+    : oneTime(oneTime_)
+    , inlineKbd(inlineKbd_)
+    , buttons(json::array())
+{
+}
+
+void Keyboard::ensureRow()
+{
+    if (buttons.empty())
+        buttons.push_back(json::array());
+}
+
+void Keyboard::addAction(const json& action, const std::string& color)
+{
+    ensureRow();
+    json btn;
+    btn["action"] = action;
+    btn["color"] = color;
+    buttons.back().push_back(btn);
+}
+
+Keyboard& Keyboard::button(const std::string& label, const std::string& payload, const std::string& color)
+{
+    json action;
+    action["type"] = "callback";
+    action["label"] = label;
+    action["payload"] = payload;
+    addAction(action, color);
+    return *this;
+}
+
+Keyboard& Keyboard::textButton(const std::string& label, const std::string& color)
+{
+    json action;
+    action["type"] = "text";
+    action["label"] = label;
+    addAction(action, color);
+    return *this;
+}
+
+Keyboard& Keyboard::link(const std::string& label, const std::string& url, const std::string& color)
+{
+    json action;
+    action["type"] = "openlink";
+    action["label"] = label;
+    action["link"] = url;
+    addAction(action, color);
+    return *this;
+}
+
+Keyboard& Keyboard::row()
+{
+    buttons.push_back(json::array());
+    return *this;
+}
+
+bool Keyboard::empty() const
+{
+    return buttons.empty();
+}
+
+void Keyboard::clear()
+{
+    buttons = json::array();
+}
+
+std::string Keyboard::dump() const
+{
+    json kbd;
+    kbd["one_time"] = oneTime;
+    kbd["inline"] = inlineKbd;
+    kbd["buttons"] = buttons;
+    return kbd.dump();
+}

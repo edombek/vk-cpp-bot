@@ -24,6 +24,8 @@ public:
             this->random_id = e.random_id;
             this->timestamp = e.timestamp;
             this->is_chat = e.is_chat;
+            this->event_id = e.event_id;
+            this->keyboard = e.keyboard;
             this->user = e.user;
             this->docs = e.docs;
             this->fwds = e.fwds;
@@ -43,6 +45,8 @@ public:
     uint32_t random_id = 0;
     time_t timestamp = 0;
     bool is_chat = false;
+    std::string event_id; // для message_event (нажатие callback-кнопки)
+    std::string keyboard; // JSON Keyboard — прикрепляется к ответу (messages.send)
     users::user user = {};
     Event getOut();
     std::vector<Doc> docs;

@@ -1,5 +1,8 @@
 #include "cmd.h"
+#include "keyboard.h"
+#include "str.h"
 #include <map>
+#include <vector>
 
 using namespace std;
 
@@ -10,6 +13,7 @@ typedef struct cmd_t
     msg_func_t func;
     uint8_t acess;
     bool disp;
+    string cat; // раздел для навигации по справке (кнопки)
 } cmd_t;
 typedef map<string, cmd_t> cmds_t;
 
@@ -36,34 +40,67 @@ void neon(cmdHead);
 //прописываем в системе команд
 cmds_t cmdsList =
 {
-    { "/help", { "вывод команд", &help, 1, true } },
-    { "/setc", { "редактор конфига", &setCfg, 5, true } },
-    { "/stat", { "статус бота", &stat, 1, true } },
-    { "/con", { "консоль)", &con, 5, true } },
-    { "/u", { "загрузка файла", &upload, 5, true } },
-    { "/set", { "установка уровня доступа человеку", &setc, 5, true } },
-    { "/rename", { "установить ник в боте", &rename, 1, true } },
-    { "/vid", { "поиск видео", &videos, 3, true } },
-    { "/w", { "погода", &weather, 1, true } },
-    { "/g", { "игра", &gameF, 1, true } },
-    { "/apod", { "астрофото на каждый день", &apod, 1, true } },
-    {"/py", { "интерпретатор душманского змия", &pycmd, 5, true }},
-    {"/pix", { "8bit art", &pix, 1, true }},
-    {"/vox", { "Half-Life vox", &vox, 1, true }},
-    {"/crt", { "cartoon art", &crt, 1, true }},
-//    {"/l", { "рисовка линий из изображения", &line, 1, true }},
-    {"/bc", { "игра: \"Быки и коровы\"", &bc, 1, true }},
-    {"/neon", { "неон арт", &neon, 1, true }}
+    { "/help", { "вывод команд", &help, 1, true, "интерфейс" } },
+    { "/setc", { "редактор конфига", &setCfg, 5, true, "админ" } },
+    { "/stat", { "статус бота", &stat, 1, true, "интерфейс" } },
+    { "/con", { "консоль)", &con, 5, true, "админ" } },
+    { "/u", { "загрузка файла", &upload, 5, true, "админ" } },
+    { "/set", { "установка уровня доступа человеку", &setc, 5, true, "админ" } },
+    { "/rename", { "установить ник в боте", &rename, 1, true, "интерфейс" } },
+    { "/vid", { "поиск видео", &videos, 3, true, "медиа" } },
+    { "/w", { "погода", &weather, 1, true, "утилиты" } },
+    { "/g", { "игра", &gameF, 1, true, "игры" } },
+    { "/apod", { "астрофото на каждый день", &apod, 1, true, "медиа" } },
+    {"/py", { "интерпретатор душманского змия", &pycmd, 5, true, "админ" }},
+    {"/pix", { "8bit art", &pix, 1, true, "медиа" }},
+    {"/vox", { "Half-Life vox", &vox, 1, true, "медиа" }},
+    {"/crt", { "cartoon art", &crt, 1, true, "медиа" }},
+//    {"/l", { "рисовка линий из изображения", &line, 1, true, "медиа" }},
+    {"/bc", { "игра: \"Быки и коровы\"", &bc, 1, true, "игры" }},
+    {"/neon", { "неон арт", &neon, 1, true, "медиа" }}
 };
 
+// порядок разделов в справке
+static const vector<string> cmdCats = { "интерфейс", "утилиты", "игры", "медиа", "админ" };
+
+#include "keyboard.h"
 void help(cmdHead)
 {
-    eventOut.msg += "твой уровень прав: " + to_string(eventOut.user.acess) + "\n";
-    for (auto cmdInfo : cmdsList)
+    string section = eventIn.words.size() > 1 ? str::low(eventIn.words[1]) : "";
+    if (section == "все" || section == "все команды")
+        section = "";
+    eventOut.msg += "твой уровень прав: " + to_string(eventOut.user.acess);
+    if (section.size())
+        eventOut.msg += ", раздел: " + section;
+    eventOut.msg += "\n";
+    Keyboard kbd(false, false);
+    for (auto cat : cmdCats)
     {
-        if (!cmdInfo.second.disp || eventOut.user.acess < cmdInfo.second.acess)
+        // раздела без доступных пользователю команд не показываем
+        bool any = false;
+        for (auto cmdInfo : cmdsList)
+            if (cmdInfo.second.disp && cmdInfo.second.cat == cat && cmdInfo.second.acess <= eventOut.user.acess)
+                any = true;
+        if (!any || (section.size() && section != cat))
             continue;
-        eventOut.msg += cmdInfo.first + " - " + cmdInfo.second.info + " (" + to_string(cmdInfo.second.acess) + ")\n";
+        if (section.size()) // внутри раздела печатаем команды
+            for (auto cmdInfo : cmdsList)
+            {
+                if (!cmdInfo.second.disp || cmdInfo.second.cat != cat || eventOut.user.acess < cmdInfo.second.acess)
+                    continue;
+                eventOut.msg += cmdInfo.first + " - " + cmdInfo.second.info + " (" + to_string(cmdInfo.second.acess) + ")\n";
+            }
+        else
+            kbd.button(cat, "/help " + cat);
+    }
+    if (section.size())
+        kbd.button("все разделы", "/help", "primary");
+    else
+        kbd.button("все команды", "/help все", "primary");
+    if (!kbd.empty())
+    {
+        kbd.row();
+        eventOut.keyboard = kbd.dump();
     }
 }
 

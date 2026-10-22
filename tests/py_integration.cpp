@@ -45,6 +45,7 @@ struct RunResult
 {
     std::string err; // "" == успех
     std::string msg; // eventOut.msg после выполнения
+    std::string keyboard; // eventOut.keyboard после выполнения
 };
 
 // запуск кода в свежем pyF (свежий под-интерпретатор + своё пространство имён)
@@ -56,6 +57,7 @@ static RunResult run(Net& net, Vk& vk, const std::string& code)
     RunResult r;
     r.err = f.exec(c);
     r.msg = o.msg;
+    r.keyboard = o.keyboard;
     return r;
 }
 
@@ -176,6 +178,26 @@ int main()
             for (int i = 0; i < N; i++)
                 good += ok[i];
             check(good == N, "T9 concurrent subinterpreters", std::to_string(good) + "/" + std::to_string(N));
+        }
+
+        // --- T10: Keyboard — построение VK-клавиатуры из скрипта /py ---
+        {
+            RunResult r = run(net, vk,
+                              "import vkcppbot\n"
+                              "k = vkcppbot.Keyboard(False, False)\n"
+                              "k.button('да', '/yes', 'positive').row().textButton('нет')\n"
+                              "eventOut.keyboard = k.dump()");
+            check(r.err.empty(), "T10a keyboard exec", r.err);
+            bool ok = false;
+            try
+            {
+                json j = json::parse(r.keyboard);
+                ok = j["buttons"][0][0]["action"]["payload"] == "/yes" && j["buttons"][0][0]["color"] == "positive" && j["buttons"][1][0]["action"]["type"] == "text";
+            }
+            catch (...)
+            {
+            }
+            check(ok, "T10b keyboard json", r.keyboard);
         }
     }
 

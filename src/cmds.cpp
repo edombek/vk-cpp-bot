@@ -7,8 +7,10 @@
 #include "events.h"
 #include "fs.h"
 #include "img.h"
+#include "keyboard.h"
 #include "str.h"
 #include "timer.h"
+#include <cctype>
 #include <iostream>
 
 #include <cmath>
@@ -106,7 +108,16 @@ void upload(cmdHead)
 void setc(cmdHead)
 {
     if (eventIn.words.size() != 3) // != <cmd, id, level>
-        eventOut.msg += "/set <id> <level>...";
+    {
+        eventOut.msg += "/set <id> <level>...\nбыстро выставить уровень себе:";
+        Keyboard kbd(true, false);
+        kbd.button("1 — юзер", "/set " + to_string(eventIn.user.id) + " 1")
+            .button("2 — друг", "/set " + to_string(eventIn.user.id) + " 2");
+        kbd.row();
+        kbd.button("3 — продвинутый", "/set " + to_string(eventIn.user.id) + " 3")
+            .button("5 — админ", "/set " + to_string(eventIn.user.id) + " 5", "positive");
+        eventOut.keyboard = kbd.dump();
+    }
     else
     {
         uint32_t id = str::fromString(eventIn.words[1]);
@@ -182,6 +193,13 @@ void weather(cmdHead)
     if (eventIn.words.size() < 2)
     {
         eventOut.msg += "мб город введёшь?";
+        Keyboard kbd(true, false); // one_time: пропала после выбора
+        kbd.button("Москва", "/w Москва").button("Санкт-Петербург", "/w Санкт-Петербург");
+        kbd.row();
+        kbd.button("Новосибирск", "/w Новосибирск").button("Екатеринбург", "/w Екатеринбург");
+        kbd.row();
+        kbd.button("Киев", "/w Киев").button("Минск", "/w Минск");
+        eventOut.keyboard = kbd.dump();
         return;
     }
 
@@ -601,7 +619,23 @@ string getNumber() // генерация случайного четырёхзн
 }
 
 map<int, string> randNumbers = {}; // все загаданные числа для каждого пользователя
+map<uint32_t, string> bcDraft = {}; // текущий набор цифр при вводе кнопками
 mutex bcL;
+
+// клавиатура игры: набор цифр + действия над черновиком
+static Keyboard bcKeyboard()
+{
+    Keyboard kbd(false, false);
+    for (char d = '1'; d <= '9'; d++)
+        kbd.button(string(1, d), "/bc num " + string(1, d));
+    kbd.button("0", "/bc num 0");
+    kbd.row();
+    kbd.button("⌫ стереть", "/bc del")
+        .button("✔ проверить", "/bc go", "positive")
+        .button("✖ сброс", "/bc reset", "negative");
+    return kbd;
+}
+
 void bc(cmdHead)
 {
     bcL.lock();
@@ -620,18 +654,57 @@ _pass:
 Даются подсказки в виде двух значений.\n\
 Коров -- числа совпадений цифр без совпадений их положения.\n\
 Быков -- числа точных совпадений цифр.\n\
-Ответ боту даётся как аргумент к этой команде.";
+Ответ боту даётся как аргумент к этой команде или кнопками:";
+        eventOut.keyboard = bcKeyboard().dump();
         goto pass;
     }
+
+    // ввод с клавиатуры: "/bc num <цифра>", "/bc del", "/bc go", "/bc reset"
+    string action = eventIn.words.size() > 1 ? str::low(eventIn.words[1]) : "";
+    if (action == "num" || action == "del" || action == "go" || action == "reset")
+    {
+        string& draft = bcDraft[eventIn.user.id];
+        if (action == "num")
+        {
+            if (eventIn.words.size() != 3 || eventIn.words[2].size() != 1 || !isdigit((unsigned char)eventIn.words[2][0]))
+                goto pass;
+            if (draft.size() < 4)
+                draft += eventIn.words[2][0];
+        }
+        else if (action == "del")
+        {
+            if (draft.size())
+                draft.pop_back();
+        }
+        else if (action == "reset")
+            draft.clear();
+        if (action != "go")
+        {
+            eventOut.msg += "ввод: " + (draft.size() ? draft : string("(пусто)")) + " [" + to_string(draft.size()) + "/4]";
+            eventOut.keyboard = bcKeyboard().dump();
+            goto pass;
+        }
+        if (!draft.size())
+        {
+            eventOut.msg += "нечего проверять — набери число.";
+            eventOut.keyboard = bcKeyboard().dump();
+            goto pass;
+        }
+        eventIn.words[1] = draft; // дальше как обычный ответ цифрой
+        draft.clear();
+    }
+
     if(eventIn.words.size() < 2)
     {
         eventOut.msg+="ты не указал четырёхзначное число.";
+        eventOut.keyboard = bcKeyboard().dump();
         goto pass;
     }
     string userNumber = eventIn.words[1];
     if(!(userNumber.size() == 4 && str::fromString(userNumber) && userNumber[0] != '0')) // если это не четырёх значное число
     {
         eventOut.msg+="ты указал не четырёхзначное число.";
+        eventOut.keyboard = bcKeyboard().dump();
         goto pass;
     }
 
@@ -640,6 +713,7 @@ _pass:
     {
         eventOut.msg+="молодец!!! Ты отгадал число!";
         randNumbers.erase(eventIn.user.id);
+        bcDraft.erase(eventIn.user.id);
         goto pass;
     }
 
@@ -663,6 +737,7 @@ _pass:
     }
 
     eventOut.msg = "найдено:\n  Коров: " + to_string(c) + "\n  Быков: " + to_string(b);
+    eventOut.keyboard = bcKeyboard().dump();
     bcL.unlock();
 }
 

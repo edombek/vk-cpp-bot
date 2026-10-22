@@ -53,8 +53,8 @@ OpenCV 2.4, x86) и остаются только как историческо�
 
 - `eventIn` / `eventOut` (класс `Event`): `msg` (string, можно менять), `type`,
   `from_id`, `peer_id`, `id`, `timestamp`, `is_chat`, `words` (list), `user` — read-only;
-  `docs`/`fwds` (списки `Doc`/`Event`); методы `send()` → dict ответа VK,
-  `pysend()` → JSON-строка, `getOut()` → новый `Event`-ответ
+  `docs`/`fwds` (списки `Doc`/`Event`), `keyboard` (string — JSON-клавиатура, см. ниже);
+  методы `send()` → dict ответа VK, `pysend()` → JSON-строка, `getOut()` → новый `Event`-ответ
 - `vk.send(method, args={}, user=False)` → dict (ответ VK API; `user=True` — юзер-токеном)
 - `net.send(url)` / `net.send(url, params: dict, post=True)` / `net.upload(url, filename, data)`
 - `vkcppbot.fs`: `exists(path)`, `readData(path)`, `writeData(path, data)`
@@ -63,7 +63,13 @@ OpenCV 2.4, x86) и остаются только как историческо�
 - `vkcppbot.timer`: `sleep(мс)`, `getWorkTime()` — аптайм бота (`Xd:hh:mm:ss`)
 - классы: `Doc()` (поля `type/owner_id/doc_id/acess_key/ext/url/timestamp`,
   `get()`, `uploadDoc(filename, data, net, vk, peer_id, audio_message=False)`,
-  `uploadPhoto(...)`), `User` (`name/id/acess/msgs`)
+  `uploadPhoto(...)`), `User` (`name/id/acess/msgs`),
+  `Keyboard(one_time=False, inline=False)` — клавиатура VK: `button(label, payload, color)`
+  (callback-кнопка, payload — команда боту), `textButton(label)`, `link(label, url)`,
+  `row()`, `dump()` → JSON для `eventOut.keyboard`
+
+Нажатия callback-кнопок приходят боту как событие `message_event`: бот отвечает
+`messages.sendMessageEventAnswer` и обрабатывает payload как обычную команду.
 
 Пример:
 

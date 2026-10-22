@@ -14,6 +14,7 @@
 
 #include "doc.h"
 #include "fs.h"
+#include "keyboard.h"
 #include "net.h"
 #include "str.h"
 #include "timer.h"
@@ -75,9 +76,26 @@ PYBIND11_EMBEDDED_MODULE(vkcppbot, m, py::multiple_interpreters::per_interpreter
         .def_readonly("user", &Event::user)
         .def_readwrite("docs", &Event::docs)
         .def_readwrite("fwds", &Event::fwds)
+        .def_readwrite("keyboard", &Event::keyboard) // JSON строка Keyboard
+        .def_readonly("event_id", &Event::event_id)
         .def("send", &Event::send)      // результат как dict (json-кастер)
         .def("pysend", &Event::pysend)  // результат как JSON-строка
         .def("getOut", &Event::getOut);
+
+    py::class_<Keyboard>(m, "Keyboard")
+        .def(py::init<bool, bool>(), py::arg("one_time") = false, py::arg("inline") = false)
+        .def("button", [](Keyboard& k, const std::string& label, const std::string& payload, const std::string& color) -> Keyboard&
+             { return k.button(label, payload, color); },
+             py::arg("label"), py::arg("payload"), py::arg("color") = "secondary", py::return_value_policy::reference)
+        .def("textButton", [](Keyboard& k, const std::string& label, const std::string& color) -> Keyboard&
+             { return k.textButton(label, color); },
+             py::arg("label"), py::arg("color") = "secondary", py::return_value_policy::reference)
+        .def("link", [](Keyboard& k, const std::string& label, const std::string& url, const std::string& color) -> Keyboard&
+             { return k.link(label, url, color); },
+             py::arg("label"), py::arg("url"), py::arg("color") = "secondary", py::return_value_policy::reference)
+        .def("row", [](Keyboard& k) -> Keyboard& { return k.row(); }, py::return_value_policy::reference)
+        .def("dump", &Keyboard::dump)
+        .def("clear", &Keyboard::clear);
 
     py::class_<Net>(m, "Net")
         .def("send", py::overload_cast<std::string, std::string>(&Net::send),

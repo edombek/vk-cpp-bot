@@ -10,11 +10,12 @@ private:
 
 public:
     Net();
-    ~Net();
+    virtual ~Net();
     static void init();
     static void deinit();
     std::string urlEncode(std::string str);
-    std::string send(std::string url, std::string params = "");
-    std::string send(std::string url, table_t param, bool post = true);
-    std::string upload(std::string url, std::string filename, std::string& data);
+    // виртуальные: тесты подменяют сеть моком (FakeNet), end-to-end без токенов
+    virtual std::string send(std::string url, std::string params = "");
+    virtual std::string send(std::string url, table_t param, bool post = true);
+    virtual std::string upload(std::string url, std::string filename, std::string& data);
 };
