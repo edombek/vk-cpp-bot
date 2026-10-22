@@ -2,13 +2,17 @@
 // Сеть почти не используется: единственный сетевой тест проверяет, что Net
 // ограничивает число повторов (заведомо нескладывающийся хост .invalid).
 #include "bd.h"
+#include "cmd.h"
+#include "doc.h"
 #include "events.h"
 #include "fs.h"
+#include "game.h"
 #include "img.h"
 #include "keyboard.h"
 #include "net.h"
 #include "str.h"
 #include "timer.h"
+#include "users.h"
 #include "worker.h"
 
 #include "fakenet.h"
@@ -142,6 +146,9 @@ static cv::Mat refNeon(const cv::Mat& src)
 int main()
 {
     Net::init();
+    // герметичность: игнорируем возможные старые u_*.json от прошлых запусков
+    conf.get() = json::object();
+    bd.get() = json::object();
 
     // --- U1: Net ограничивает повторы (бывшая бесконечная рекурсия) ---
     {
@@ -370,6 +377,240 @@ int main()
                         kbdOk = true;
         }
         check(kbdOk, "U12b help keyboard (разделы)", msg && msg->params.count("keyboard") ? msg->params.at("keyboard") : "(нет)");
+    }
+
+    // --- U13: парсинг message_new: вложения (photo/doc), пересылки, беседа ---
+    {
+        Net net;
+        Vk vk(net);
+        json photoAttach =
+        {
+            { "type", "photo" },
+            { "photo",
+              {
+                  { "id", 5 }, { "owner_id", -1 }, { "access_key", "ak" }, { "date", 10 },
+                  { "sizes",
+                    {
+                        { { "width", 100 }, { "height", 100 }, { "url", "http://x/small.jpg" } },
+                        { { "width", 200 }, { "height", 200 }, { "url", "http://x/big.jpg" } }
+                    } }
+              } }
+        };
+        json docAttach = { { "type", "doc" }, { "doc", { { "id", 9 }, { "owner_id", 2 }, { "access_key", "dk" }, { "ext", "txt" }, { "date", 1 }, { "url", "http://d/f.txt" } } } };
+        json attach = json::array();
+        attach.push_back(photoAttach);
+        attach.push_back(docAttach);
+        json ev =
+        {
+            { "type", "message_new" },
+            { "object",
+              {
+                  { "date", 100 }, { "peer_id", 2000000001 }, { "from_id", 42 }, { "text", "привет мир" },
+                  { "random_id", 7 }, { "attachments", attach },
+                  { "fwd_messages", json::array({ { { "date", 90 }, { "from_id", 42 }, { "text", "первоисточник" }, { "peer_id", 2000000001 } } }) }
+              } }
+        };
+        Event e(net, vk, ev);
+        check(e.words.size() == 2 && e.is_chat, "U13a text/chat");
+        check(e.docs.size() == 2, "U13b attachments", std::to_string(e.docs.size()));
+        check(e.docs.size() == 2 && e.docs[0].type == "photo" && e.docs[0].url == "http://x/big.jpg" && e.docs[0].ext == "jpg",
+              "U13c biggest photo", e.docs.size() ? e.docs[0].url : "");
+        check(e.docs.size() == 2 && e.docs[1].get() == "doc2_9_dk", "U13d doc get", e.docs.size() ? e.docs[1].get() : "");
+        check(e.fwds.size() == 1 && e.fwds[0].msg == "первоисточник", "U13e forwards");
+    }
+
+    // --- U14: wall_post_new → ответ через wall.createComment ---
+    {
+        FakeNet fn;
+        fn.responses["wall.createComment"] = "{\"response\":1}";
+        Vk vk(fn);
+        json ev =
+        {
+            { "type", "wall_post_new" },
+            { "object", { { "from_id", 42 }, { "date", 5 }, { "text", "/stat" }, { "id", 3 }, { "owner_id", -1 } } }
+        };
+        Event e(fn, vk, ev);
+        check(e.peer_id == static_cast<uint32_t>(-1) && e.id == 3, "U14a wall ids");
+        e.msg = "коммент";
+        e.send();
+        const FakeNet::Call* c = fn.first("wall.createComment");
+        check(c && c->params.count("post_id") && c->params.at("post_id") == "3", "U14b wall comment sent", c ? c->params.count("post_id") ? c->params.at("post_id") : "?" : "(нет вызова)");
+    }
+
+    // --- U15: диспетчер cmd::start: неизвестная команда, права, выполнение ---
+    {
+        FakeNet fn;
+        Vk vk(fn);
+        Event in(fn, vk), out(fn, vk);
+        in.user = out.user = users::user { "U", 1, 1, 0 };
+        check(!cmd::start("/нет-такой", in, out, nullptr), "U15a unknown command");
+        check(!cmd::start("/con", in, out, nullptr), "U15b access denied (con, acess 1)");
+        out.msg.clear();
+        check(cmd::start("/stat", in, out, nullptr), "U15c /stat dispatched");
+        check(out.msg.find("Работаю") != std::string::npos, "U15d /stat output", out.msg.substr(0, 80));
+    }
+
+    // --- U16: users::getUser (новый пользователь через users.get), инкремент, changeUser ---
+    {
+        FakeNet fn;
+        fn.responses["users.get"] = "{\"response\":[{\"id\":555,\"first_name\":\"Пятый\"}]}";
+        Vk vk(fn);
+        users::user u = users::getUser(555, vk);
+        check(u.name == "Пятый" && u.acess == 1 && u.msgs == 0, "U16a newUser", u.name + "/" + std::to_string(u.acess));
+        users::getUser(555, vk); // inc=true по умолчанию
+        check(bd.get()["users"]["555"]["msgs"] == 2, "U16b msgs increment", bd.get()["users"]["555"]["msgs"].dump());
+        users::getUser(555, vk, false);
+        check(bd.get()["users"]["555"]["msgs"] == 2, "U16c no increment with inc=false");
+        u.acess = 3;
+        users::changeUser(555, u);
+        check(bd.get()["users"]["555"]["acess"] == 3, "U16d changeUser");
+    }
+
+    // --- U17: Doc get() без access_key и пустой Doc ---
+    {
+        Doc d;
+        check(d.get() == "_0_0" || d.get() == "0_0", "U17a empty doc get", d.get());
+        json v = { { "type", "video" }, { "video", { { "id", 1 }, { "owner_id", 2 }, { "date", 3 } } } };
+        Doc vd(v);
+        check(vd.get() == "video2_1", "U17b video get", vd.get());
+    }
+
+    // --- U18: game: стартовое состояние, ход, смена игрока, формат карты ---
+    {
+        game g;
+        check(g.user == 1, "U18a first move user");
+        check(!g.isWin(), "U18b not win at start");
+        g.gameUplevel(1, 1);
+        check(!g.isWin(), "U18c still playing after move");
+        std::string map = g.nexStep();
+        check(g.user == 0, "U18d turn switched");
+        check(map.find("⭕") != std::string::npos && map.find("1⃣") != std::string::npos, "U18e map rendered", map.substr(0, 20));
+    }
+
+    // --- U19: /bc через кнопки: старт, набор цифры, проверка (FakeNet+Worker) ---
+    {
+        FakeNet fn;
+        fn.responses["users.get"] = "{\"response\":[{\"id\":333,\"first_name\":\"Игрок\"}]}";
+        fn.responses["/method/messages."] = "{\"response\":1}";
+        Vk vk(fn);
+        auto lastMsg = [&fn]() -> std::string
+        {
+            const FakeNet::Call* c = nullptr;
+            for (const auto& x : fn.calls)
+                if (x.url == "https://api.vk.com/method/messages.send")
+                    c = &x;
+            return c && c->params.count("message") ? c->params.at("message") : "(нет)";
+        };
+        auto lastKbdButtons = [&fn]() -> int
+        {
+            const FakeNet::Call* c = nullptr;
+            for (const auto& x : fn.calls)
+                if (x.url == "https://api.vk.com/method/messages.send" && x.params.count("keyboard"))
+                    c = &x;
+            if (!c)
+                return -1;
+            return (int)json::parse(c->params.at("keyboard"))["buttons"].size();
+        };
+        auto sendMsg = [&](const std::string& text)
+        {
+            fn.reset();
+            json ev = { { "type", "message_new" },
+                        { "object", { { "date", 1 }, { "peer_id", 333 }, { "from_id", 333 }, { "text", text }, { "random_id", 1 } } } };
+            Worker w;
+            w.work(ev, fn, vk);
+        };
+        auto pressBtn = [&](const std::string& payload)
+        {
+            fn.reset();
+            json ev = { { "type", "message_event" },
+                        { "object", { { "peer_id", 333 }, { "user_id", 333 }, { "event_id", "b" + payload }, { "payload", payload } } } };
+            Worker w;
+            w.work(ev, fn, vk);
+        };
+        sendMsg("/bc");
+        check(lastMsg().find("цель данной игры") != std::string::npos, "U19a bc intro", lastMsg().substr(0, 60));
+        check(lastKbdButtons() == 2, "U19b bc keyboard rows", std::to_string(lastKbdButtons()));
+        for (char d : std::string("1234"))
+            pressBtn(std::string("/bc num ") + d);
+        check(lastMsg().find("ввод: 1234 [4/4]") != std::string::npos, "U19c digit draft", lastMsg());
+        pressBtn("/bc go");
+        bool guess = lastMsg().find("найдено") != std::string::npos || lastMsg().find("отгадал") != std::string::npos;
+        check(guess, "U19d check submitted", lastMsg());
+    }
+
+    // --- U20: /w без аргумента — кнопки городов; /w Москва — разбор погоды (FakeNet) ---
+    {
+        conf.lock.lock();
+        conf.get()["openweathermap_token"] = "TESTKEY";
+        conf.lock.unlock();
+        FakeNet fn;
+        fn.responses["users.get"] = "{\"response\":[{\"id\":444,\"first_name\":\"Город\"}]}";
+        fn.responses["api.openweathermap.org"] =
+            "{\"main\":{\"temp\":20.5,\"humidity\":50},\"wind\":{\"speed\":3},"
+            "\"weather\":[{\"description\":\"ясно\"}],\"name\":\"Moscow\",\"sys\":{\"country\":\"RU\"}}";
+        fn.responses["/method/messages."] = "{\"response\":1}"; // ключ с /method/ — иначе матчит и .../data/2.5/weather
+        Vk vk(fn);
+        auto sendMsg = [&](const std::string& text)
+        {
+            fn.reset();
+            json ev = { { "type", "message_new" },
+                        { "object", { { "date", 1 }, { "peer_id", 444 }, { "from_id", 444 }, { "text", text }, { "random_id", 1 } } } };
+            Worker w;
+            w.work(ev, fn, vk);
+            const FakeNet::Call* c = nullptr;
+            for (const auto& x : fn.calls)
+                if (x.url == "https://api.vk.com/method/messages.send")
+                    c = &x;
+            return c ? std::make_pair(c->params.count("message") ? c->params.at("message") : std::string("(нет)"),
+                                      static_cast<bool>(c->params.count("keyboard"))) : std::make_pair(std::string("(нет вызова)"), false);
+        };
+        auto r1 = sendMsg("/w");
+        check(r1.first.find("город введёшь") != std::string::npos && r1.second, "U20a weather buttons", r1.first);
+        bool hasMoscow = false;
+        const FakeNet::Call* c1 = nullptr;
+        for (const auto& x : fn.calls)
+            if (x.url == "https://api.vk.com/method/messages.send" && x.params.count("keyboard"))
+                c1 = &x;
+        if (c1)
+        {
+            json kbd = json::parse(c1->params.at("keyboard")); // именованная переменная: временный объект live-time
+            for (const auto& row : kbd["buttons"])
+                for (const auto& b : row)
+                    if (b["action"]["payload"] == "/w Москва")
+                        hasMoscow = true;
+        }
+        check(hasMoscow, "U20b /w Москва payload");
+        auto r2 = sendMsg("/w Москва");
+        check(r2.first.find("погода в RU/Moscow") != std::string::npos, "U20c weather parsed", r2.first.substr(0, 80));
+    }
+
+    // --- U21: /set без аргументов — кнопки уровней (для админа) ---
+    {
+        FakeNet fn;
+        fn.responses["users.get"] = "{\"response\":[{\"id\":888,\"first_name\":\"Админ\"}]}";
+        fn.responses["messages."] = "{\"response\":1}";
+        Vk vk(fn);
+        users::user adm = users::getUser(888, vk);
+        adm.acess = 5;
+        users::changeUser(888, adm);
+        json ev = { { "type", "message_new" },
+                    { "object", { { "date", 1 }, { "peer_id", 888 }, { "from_id", 888 }, { "text", "/set" }, { "random_id", 1 } } } };
+        Worker w;
+        w.work(ev, fn, vk);
+        const FakeNet::Call* c = nullptr;
+        for (const auto& x : fn.calls)
+            if (x.url == "https://api.vk.com/method/messages.send")
+                c = &x;
+        bool hasAdmBtn = false;
+        if (c && c->params.count("keyboard"))
+        {
+            json kbd = json::parse(c->params.at("keyboard"));
+            for (const auto& row : kbd["buttons"])
+                for (const auto& b : row)
+                    if (b["action"]["payload"] == "/set 888 5")
+                        hasAdmBtn = true;
+        }
+        check(hasAdmBtn, "U21 set level buttons", c ? "(есть ответ)" : "(нет вызова)");
     }
 
     Net::deinit();

@@ -15,7 +15,8 @@ Doc::Doc(json lpDoc)
         if (lpDoc["access_key"].is_string())
             this->acess_key = lpDoc["access_key"];
         this->ext = lpDoc["ext"];
-        this->timestamp = lpDoc["date"];
+        if (lpDoc["date"].is_number())
+            this->timestamp = lpDoc["date"];
         this->url = lpDoc["url"];
     }
     else if (this->type == "photo")
@@ -25,7 +26,8 @@ Doc::Doc(json lpDoc)
         this->owner_id = lpDoc["owner_id"];
         if (lpDoc["access_key"].is_string())
             this->acess_key = lpDoc["access_key"];
-        this->timestamp = lpDoc["date"];
+        if (lpDoc["date"].is_number())
+            this->timestamp = lpDoc["date"];
         int maxS = 0;
         for (auto s : lpDoc["sizes"])
             if (maxS < s["width"].get<int>() * s["height"].get<int>())
@@ -42,7 +44,8 @@ Doc::Doc(json lpDoc)
         this->owner_id = lpDoc["owner_id"];
         if (lpDoc["access_key"].is_string())
             this->acess_key = lpDoc["access_key"];
-        this->timestamp = lpDoc["date"];
+        if (lpDoc["date"].is_number())
+            this->timestamp = lpDoc["date"];
     }
     else if (this->type == "graffiti")
     {
@@ -62,7 +65,8 @@ Doc::Doc(json lpDoc)
         if (lpDoc["access_key"].is_string())
             this->acess_key = lpDoc["access_key"];
         this->ext = "mp3";
-        this->timestamp = lpDoc["date"];
+        if (lpDoc["date"].is_number())
+            this->timestamp = lpDoc["date"];
         this->url = lpDoc["url"];
     }
     else if (this->type == "audio_message")
