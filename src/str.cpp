@@ -5,7 +5,7 @@
 
 using namespace std;
 
-long long int str::fromString(string s)
+long long int str::fromString(const string& s)
 {
     istringstream iss(s);
     long long int res;
@@ -80,7 +80,7 @@ static unsigned utf8Decode(const string& s, size_t i, size_t& len)
     return 0xFFFFFFFF;
 }
 
-string str::summ(args_t words, unsigned int s)
+string str::summ(const args_t& words, unsigned int s)
 {
     string r = "";
     if (s + 1 > words.size())
@@ -94,14 +94,14 @@ string str::summ(args_t words, unsigned int s)
     return r;
 }
 
-bool str::at(string str1, string str2)
+bool str::at(const string& str1, const string& str2)
 {
-    str1 = str::low(str1);
-    str2 = str::low(str2);
-    return strstr(str1.c_str(), str2.c_str());
+    string s1 = str::low(str1);
+    string s2 = str::low(str2);
+    return strstr(s1.c_str(), s2.c_str());
 }
 
-string str::low(string str)
+string str::low(const string& str)
 {
     // Понижается регистр ASCII и кириллицы (А–Я, Ё); остальные символы
     // проходят без изменений (прежняя реализация через wstring_convert/локаль
@@ -150,23 +150,14 @@ string str::low(string str)
     return out;
 }
 
-string str::replase(string str, string findstr, string replasestr)
+string str::replase(const string& str, const string& findstr, const string& replasestr)
 {
+    string out = str;
     string::size_type index;
-    while ((index = str.find(findstr)) != string::npos)
+    while ((index = out.find(findstr)) != string::npos)
     {
-        str.replace(index, findstr.size(), replasestr);
+        out.replace(index, findstr.size(), replasestr);
     }
-    return str;
+    return out;
 }
 
-string str::convertHtml(string str)
-{
-    str = str::replase(str, "&amp;", "&");
-    str = str::replase(str, "&quot;", "\"");
-    str = str::replase(str, "&gt;", ">");
-    str = str::replase(str, "&lt;", "<");
-    str = str::replase(str, "»", ">>");
-    str = str::replase(str, "—", "--");
-    return str;
-}

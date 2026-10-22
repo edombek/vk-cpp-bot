@@ -60,6 +60,13 @@ Event::Event(Net &n, Vk &v, json lpEv)
 
 Event::Event(const Event& e): net(e.net), vk(e.vk)
 {
+    this->copyBody(e);
+}
+
+// копирует все поля, кроме ссылок net/vk — общий код для конструктора копирования
+// и operator= (ранее список полей дублировался трижды)
+void Event::copyBody(const Event& e)
+{
     this->type = e.type;
     this->msg = e.msg;
     this->words = e.words;
@@ -108,7 +115,7 @@ std::string Event::pysend()
     return this->send().dump(4);
 }
 
-Event Event::getOut()
+Event Event::getOut() const
 {
     Event event(this->net, this->vk);
     event.type = this->type;

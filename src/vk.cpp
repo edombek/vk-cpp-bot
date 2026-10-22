@@ -36,7 +36,7 @@ void Vk::validate()
 
 #include "timer.h"
 static const int vkFloodRetries = 3; // повторов при флуд-ошибке VK (была бесконечная рекурсия)
-json Vk::send(string method, table_t args, bool user)
+json Vk::send(const string& method, table_t args, bool user)
 {
     if (user)
         args["access_token"] = this->user_token;

@@ -13,9 +13,9 @@ public:
     virtual ~Net();
     static void init();
     static void deinit();
-    std::string urlEncode(std::string str);
+    std::string urlEncode(const std::string& str);
     // виртуальные: тесты подменяют сеть моком (FakeNet), end-to-end без токенов
-    virtual std::string send(std::string url, std::string params = "");
-    virtual std::string send(std::string url, table_t param, bool post = true);
-    virtual std::string upload(std::string url, std::string filename, std::string& data);
+    virtual std::string send(const std::string& url, const std::string& params = "");
+    virtual std::string send(const std::string& url, const table_t& param, bool post = true);
+    virtual std::string upload(const std::string& url, const std::string& filename, const std::string& data);
 };

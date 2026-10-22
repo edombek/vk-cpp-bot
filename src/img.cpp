@@ -8,7 +8,7 @@
 #endif
 
 #include "str.h"
-img::img(Doc d, Net& n):doc(d), net(n){}
+img::img(const Doc& d, Net& n):doc(d), net(n){}
 
 cv::Mat img::getMat(bool full)
 {

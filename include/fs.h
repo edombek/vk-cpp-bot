@@ -14,7 +14,7 @@ private:
 
 public:
     std::fstream* getStream();
-    void write(std::string data);
+    void write(const std::string& data);
     void writeBinary(const char* data, size_t size);
     std::string read();
     void readBinary(char* data, size_t size);
@@ -26,17 +26,16 @@ class exception
     std::string what_str;
 
 public:
-    exception(std::string what);
-    std::string what();
+    exception(const std::string& what);
+    std::string what() const;
 };
 
-bool exists(std::string path);
+bool exists(const std::string& path);
 
-file* open(std::string path, int flags = FS_READ | FS_WRITE);
+file* open(const std::string& path, int flags = FS_READ | FS_WRITE);
 
-void writeData(std::string path, std::string data);
-void safeWriteData(std::string path, std::string data);
-std::string readData(std::string path);
-std::string getRootPath();
-void rename(std::string oldname, std::string newname);
+void writeData(const std::string& path, const std::string& data);
+void safeWriteData(const std::string& path, const std::string& data);
+std::string readData(const std::string& path);
+void rename(const std::string& oldname, const std::string& newname);
 }

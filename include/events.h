@@ -6,6 +6,8 @@
 
 class Event
 {
+private:
+    void copyBody(const Event& e); // общие поля, кроме ссылок net/vk (они не переприсваиваются)
 public:
     Net& net;
     Vk& vk;
@@ -14,25 +16,10 @@ public:
     Event& operator=(const Event& e)
     {
         if (this != &e) // ссылки net/vk не переприсваиваются — остальное копируем
-        {
-            this->type = e.type;
-            this->msg = e.msg;
-            this->words = e.words;
-            this->from_id = e.from_id;
-            this->peer_id = e.peer_id;
-            this->id = e.id;
-            this->random_id = e.random_id;
-            this->timestamp = e.timestamp;
-            this->is_chat = e.is_chat;
-            this->event_id = e.event_id;
-            this->keyboard = e.keyboard;
-            this->user = e.user;
-            this->docs = e.docs;
-            this->fwds = e.fwds;
-        }
+            this->copyBody(e);
         return *this;
     };
-    bool operator==(const Event& e)
+    bool operator==(const Event& e) const
     {
         return this->id==e.id;
     };
@@ -48,10 +35,9 @@ public:
     std::string event_id; // для message_event (нажатие callback-кнопки)
     std::string keyboard; // JSON Keyboard — прикрепляется к ответу (messages.send)
     users::user user = {};
-    Event getOut();
+    Event getOut() const; // новый пустой ответ на основе этого события
     std::vector<Doc> docs;
     std::vector<Event> fwds;
     json send();
     std::string pysend();
 };
-

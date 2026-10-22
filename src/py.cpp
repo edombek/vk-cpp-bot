@@ -98,9 +98,9 @@ PYBIND11_EMBEDDED_MODULE(vkcppbot, m, py::multiple_interpreters::per_interpreter
         .def("clear", &Keyboard::clear);
 
     py::class_<Net>(m, "Net")
-        .def("send", py::overload_cast<std::string, std::string>(&Net::send),
+        .def("send", py::overload_cast<const std::string&, const std::string&>(&Net::send),
              py::arg("url"), py::arg("params") = std::string())
-        .def("send", py::overload_cast<std::string, table_t, bool>(&Net::send),
+        .def("send", py::overload_cast<const std::string&, const table_t&, bool>(&Net::send),
              py::arg("url"), py::arg("params"), py::arg("post") = true)
         .def("upload",
              [](Net& self, std::string url, std::string filename, py::object data)
@@ -112,7 +112,7 @@ PYBIND11_EMBEDDED_MODULE(vkcppbot, m, py::multiple_interpreters::per_interpreter
 
     py::class_<Vk>(m, "Vk")
         // args dict -> table_t автоматически (кастер значений через str)
-        .def("send", static_cast<json (Vk::*)(std::string, table_t, bool)>(&Vk::send),
+        .def("send", static_cast<json (Vk::*)(const std::string&, table_t, bool)>(&Vk::send),
              py::arg("method"), py::arg("args") = table_t{}, py::arg("user") = false);
 
     // --- расширение API (фаза 2): файловые/строковые/временные утилиты ---
@@ -166,8 +166,8 @@ struct pyF::Impl
         ns = py::dict();
         ns["eventIn"] = py::cast(&eventIn, py::return_value_policy::reference);
         ns["eventOut"] = py::cast(&eventOut, py::return_value_policy::reference);
-        ns["net"] = py::cast(&eventOut.net, py::return_value_policy::reference);
-        ns["vk"] = py::cast(&eventOut.vk, py::return_value_policy::reference);
+        ns["net"] = py::cast(&eventIn.net, py::return_value_policy::reference);
+        ns["vk"] = py::cast(&eventIn.vk, py::return_value_policy::reference);
     }
 };
 

@@ -10,7 +10,7 @@ private:
     bool dirty = false; // данные менялись, но ещё не записаны
 
 public:
-    BD(std::string path);
+    BD(const std::string& path);
     ~BD();
     std::mutex lock;
     json& get();

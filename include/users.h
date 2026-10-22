@@ -14,5 +14,5 @@ typedef struct user_t
 } user;
 json newUser(uint32_t id, Vk& vk);
 user getUser(uint32_t id, Vk& vk, bool inc = true); // inc = false — чтение без увеличения счётчика msgs
-void changeUser(uint32_t id, user edited);
+void changeUser(uint32_t id, const user& edited);
 }

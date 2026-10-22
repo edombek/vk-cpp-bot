@@ -5,7 +5,7 @@
 
 using namespace std;
 
-bool fs::exists(string path)
+bool fs::exists(const string& path)
 {
     ifstream fin;
     fin.open(path);
@@ -19,7 +19,7 @@ bool fs::exists(string path)
 
 /* --------- FILE CLASS ---------*/
 
-fs::file* fs::open(string path, int flags)
+fs::file* fs::open(const string& path, int flags)
 {
     file* _file = new file();
     _file->getStream()->open(path, (ios_base::openmode)flags);
@@ -51,7 +51,7 @@ fstream* fs::file::getStream()
     return &this->_stream;
 }
 
-void fs::file::write(string data)
+void fs::file::write(const string& data)
 {
     this->_stream << data;
 }
@@ -63,7 +63,7 @@ void fs::file::writeBinary(const char* data, size_t size)
 
 /* --------- /FILE CLASS/ ---------*/
 
-void fs::writeData(string path, string data)
+void fs::writeData(const string& path, const string& data)
 {
     if (fs::file* file = fs::open(path, FS_WRITE))
     {
@@ -72,14 +72,14 @@ void fs::writeData(string path, string data)
     }
 }
 
-void fs::safeWriteData(string path, string data)
+void fs::safeWriteData(const string& path, const string& data)
 {
     fs::writeData(path + ".safe", data);
     remove(path.c_str());
     fs::rename(path + ".safe", path);
 }
 
-string fs::readData(string path)
+string fs::readData(const string& path)
 {
     string data;
     fs::file* in = fs::open(path);
@@ -88,18 +88,18 @@ string fs::readData(string path)
     return data;
 }
 
-void fs::rename(string oldname, string newname)
+void fs::rename(const string& oldname, const string& newname)
 {
     ::rename(oldname.c_str(), newname.c_str());
 }
 
 /* CLASS EXCEPTION */
-fs::exception::exception(string what)
+fs::exception::exception(const string& what)
 {
     this->what_str = what;
 }
 
-string fs::exception::what()
+string fs::exception::what() const
 {
     return this->what_str;
 }

@@ -3,11 +3,10 @@
 
 namespace str
 {
-long long int fromString(std::string s);
+long long int fromString(const std::string& s);
 args_t words(const std::string& s, char delim = ' ');
-std::string summ(args_t words, unsigned int s);
-bool at(std::string str1, std::string str2);
-std::string low(std::string str);
-std::string replase(std::string str, std::string findstr, std::string replasestr);
-std::string convertHtml(std::string str);
+std::string summ(const args_t& words, unsigned int s);
+bool at(const std::string& str1, const std::string& str2);
+std::string low(const std::string& str);
+std::string replase(const std::string& str, const std::string& findstr, const std::string& replasestr);
 }

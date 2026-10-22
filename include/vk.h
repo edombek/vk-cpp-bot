@@ -13,5 +13,5 @@ private:
 public:
     Vk(Net& n); // только загрузка токенов из conf; сеть не трогает
     void validate(); // проверка боевого токена группы (сетапит Lp на старте); бросает runtime_error при ошибке
-    json send(std::string method, table_t args = {}, bool user = false);
+    json send(const std::string& method, table_t args = {}, bool user = false);
 };

@@ -1,7 +1,7 @@
 #include "bd.h"
 #include "fs.h"
 
-BD::BD(std::string path)
+BD::BD(const std::string& path)
 {
     this->file = path;
     if (fs::exists(path))

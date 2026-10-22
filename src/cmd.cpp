@@ -48,24 +48,24 @@ void help(Event &eventIn, Event &eventOut, Worker *worker)
     string section = eventIn.words.size() > 1 ? str::low(eventIn.words[1]) : "";
     if (section == "все" || section == "все команды")
         section = "";
-    eventOut.msg += "твой уровень прав: " + to_string(eventOut.user.acess);
+    eventOut.msg += "твой уровень прав: " + to_string(eventIn.user.acess);
     if (section.size())
         eventOut.msg += ", раздел: " + section;
     eventOut.msg += "\n";
     Keyboard kbd(false, false);
-    for (auto cat : cmdCats)
+    for (const auto& cat : cmdCats)
     {
         // раздела без доступных пользователю команд не показываем
         bool any = false;
-        for (auto cmdInfo : cmdsList)
-            if (cmdInfo.second.disp && cmdInfo.second.cat == cat && cmdInfo.second.acess <= eventOut.user.acess)
+        for (const auto& cmdInfo : cmdsList)
+            if (cmdInfo.second.disp && cmdInfo.second.cat == cat && cmdInfo.second.acess <= eventIn.user.acess)
                 any = true;
         if (!any || (section.size() && section != cat))
             continue;
         if (section.size()) // внутри раздела печатаем команды
-            for (auto cmdInfo : cmdsList)
+            for (const auto& cmdInfo : cmdsList)
             {
-                if (!cmdInfo.second.disp || cmdInfo.second.cat != cat || eventOut.user.acess < cmdInfo.second.acess)
+                if (!cmdInfo.second.disp || cmdInfo.second.cat != cat || eventIn.user.acess < cmdInfo.second.acess)
                     continue;
                 eventOut.msg += cmdInfo.first + " - " + cmdInfo.second.info + " (" + to_string(cmdInfo.second.acess) + ")\n";
             }
@@ -88,10 +88,11 @@ bool cmd::start(const std::string &comand, Event &eventIn, Event &eventOut, Work
 {
     if (!findinmap(cmdsList, comand))
         return false;
-    if (cmdsList[comand].acess > eventOut.user.acess)
+    const cmd_t &ci = cmdsList[comand];
+    if (ci.acess > eventIn.user.acess) // права — по входящему событию (eventOut — лишь его копия-ответ)
         return false;
     fprintf(stderr, "\n%s vk.com/id%d (%d/%d(%s))", comand.c_str(), eventIn.user.id, eventIn.user.id, eventIn.peer_id, eventIn.type.c_str());
-    cmdsList[comand].func(eventIn, eventOut, worker);
+    ci.func(eventIn, eventOut, worker);
     fprintf(stderr, "\n%s vk.com/id%d (%d/%d(%s))-done!\n", comand.c_str(), eventIn.user.id, eventIn.user.id, eventIn.peer_id, eventIn.type.c_str());
     return true;
 }

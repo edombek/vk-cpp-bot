@@ -22,20 +22,20 @@ public:
     std::string defaultResponse = "{}"; // если подстрока не совпала
     std::map<std::string, std::string> responses; // подстрока URL -> ответ
 
-    std::string send(std::string url, std::string params) override
+    std::string send(const std::string& url, const std::string& params) override
     {
         calls.push_back({url, {}, params});
         return respond(url);
     }
 
-    std::string send(std::string url, table_t param, bool post) override
+    std::string send(const std::string& url, const table_t& param, bool post) override
     {
         (void)post;
         calls.push_back({url, param, ""});
         return respond(url);
     }
 
-    std::string upload(std::string url, std::string filename, std::string& data) override
+    std::string upload(const std::string& url, const std::string& filename, const std::string& data) override
     {
         calls.push_back({url, { { "filename", filename } }, data});
         return respond(url);

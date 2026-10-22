@@ -45,7 +45,7 @@ void Net::deinit()
     curl_global_cleanup();
 }
 
-string Net::urlEncode(string str)
+string Net::urlEncode(const string& str)
 {
     char* esc_text = curl_easy_escape(NULL, str.c_str(), str.length());
     string result = esc_text;
@@ -54,7 +54,7 @@ string Net::urlEncode(string str)
     return result;
 }
 
-string Net::send(string url, table_t param, bool post)
+string Net::send(const string& url, const table_t& param, bool post)
 {
     if (!param.size())
         return this->send(url);
@@ -68,7 +68,7 @@ string Net::send(string url, table_t param, bool post)
     return this->send(url + "?" + paramline);
 }
 
-string Net::send(string url, string params)
+string Net::send(const string& url, const string& params)
 {
     string buffer;
     if (!this->curl)
@@ -107,7 +107,7 @@ string Net::send(string url, string params)
     return buffer;
 }
 
-string Net::upload(string url, string filename, string& data)
+string Net::upload(const string& url, const string& filename, const string& data)
 {
     string buffer;
     if (!this->curl)

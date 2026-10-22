@@ -9,7 +9,7 @@ private:
     ThreadPool pool;
 public:
     Worker():pool(5) {}
-    void add_event(json);
+    void add_event(const json& event);
     void work(json event); // берёт thread_local Net/Vk этого потока
     // обработчик с явной сетью: тесты подсовывают FakeNet без пула и сети
     void work(json event, Net& net, Vk& vk);

@@ -29,7 +29,7 @@ users::user users::getUser(uint32_t id, Vk& vk, bool inc)
     return u;
 }
 
-void users::changeUser(uint32_t id, users::user edited)
+void users::changeUser(uint32_t id, const users::user& edited)
 {
     bd.lock.lock();
     json& us = bd.get()["users"];

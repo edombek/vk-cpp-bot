@@ -2,7 +2,7 @@
 
 using namespace std;
 
-void Worker::add_event(json event)
+void Worker::add_event(const json& event)
 {
     this->pool.enqueue([this](json event)
     {

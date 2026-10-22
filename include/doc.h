@@ -6,9 +6,9 @@ class Doc
 {
 public:
     Doc(json lpDoc = NULL);
-    Doc(std::string jsonstr): Doc(json::parse(jsonstr)) {}
-    bool uploadDoc(std::string filename, std::string& data, Net& net, Vk& vk, uint32_t peer_id, bool audio_message = false);
-    bool uploadPhoto(std::string filename, std::string& data, Net& net, Vk& vk, uint32_t peer_id);
+    Doc(const std::string& jsonstr): Doc(json::parse(jsonstr)) {}
+    bool uploadDoc(const std::string& filename, const std::string& data, Net& net, Vk& vk, uint32_t peer_id, bool audio_message = false);
+    bool uploadPhoto(const std::string& filename, const std::string& data, Net& net, Vk& vk, uint32_t peer_id);
     std::string get() const;
     std::string type;
     int owner_id = 0;
@@ -17,7 +17,7 @@ public:
     std::string ext;
     std::string url;
     int timestamp = 0;
-    bool operator==(const Doc& d)
+    bool operator==(const Doc& d) const
     {
         return (this->get()) == (d.get());
     }
