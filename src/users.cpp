@@ -11,7 +11,7 @@ json users::newUser(uint32_t id, Vk& vk)
     return u;
 }
 
-users::user users::getUser(uint32_t id, Vk& vk)
+users::user users::getUser(uint32_t id, Vk& vk, bool inc)
 {
     users::user u;
     bd.lock.lock();
@@ -23,7 +23,8 @@ users::user users::getUser(uint32_t id, Vk& vk)
     u.name = us[strid]["name"];
     u.acess = us[strid]["acess"];
     u.msgs = us[strid]["msgs"];
-    us[strid]["msgs"] = u.msgs + 1;
+    if (inc)
+        us[strid]["msgs"] = u.msgs + 1;
     bd.lock.unlock();
     return u;
 }
@@ -35,7 +36,6 @@ void users::changeUser(uint32_t id, users::user edited)
     std::string strid = std::to_string(id);
     us[strid]["name"] = edited.name;
     us[strid]["acess"] = edited.acess;
-    us[strid]["msgs"] = edited.msgs;
     us[strid]["msgs"] = edited.msgs;
     bd.lock.unlock();
 }

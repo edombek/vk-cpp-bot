@@ -28,15 +28,27 @@ g++ $OUT/*.o -pthread -lcurl -lopencv_core -lopencv_objdetect -lopencv_photo \
 Минимальная проверка без Python: убрать `py.cpp`, `$(python-config --cflags)`,
 линковка `-lboost_python314` и `--ldflags`; добавить `-DNO_PYTHON`.
 
-## Предупреждения компилятора, релевантные как «тест» на регресс
+## Предупреждения компилятора — тест на регресс
 
-После фазы 0 сборка должна стать чистой по этим пунктам:
+Компиляция с `-Wall` должна оставаться чистой (см. матрицу ниже). Регресс = возвращение
+любого из ранее исправленных предупреждений.
 
-- ❌ `fs.cpp` — infinite recursion в `fs::rename`
-- ❌ `events.h`/`img.h` — `-Wreturn-local-addr` (operator=)
-- ❌ `cmds.cpp` vox() — 4× `-Wunused-result` (fread)
-- ⚠️ `py.h` — deprecated `PyEval_InitThreads` (исчезнет с миграцией на pybind11)
-- ⚠️ ~6× `-Wsign-compare`, 1× `-Wreorder`
+## Предупреждения компилятора (после фазы 0)
+
+Сборка с `-Wall` (обе конфигурации) чистая, кроме намеренно оставленных:
+
+- ⚠️ `PyEval_InitThreads` deprecated — исчезнет при миграции на pybind11 (фаза 2)
+- ⚠️ `#pragma comment` в `py.cpp` — тоже уйдёт с pybind11-миграцией
+
+Устранены на фазе 0: infinite recursion (`fs::rename`), `-Wreturn-local-addr` (operator=
+в `Event`/`img`), `-Wunused-result` (fread в vox), `-Wsign-compare` (neon/events),
+`-Wreorder` (img), анонимные typedef (`-Wnon-c-typedef-for-linkage`).
+
+Runtime-проверки фазы 0:
+- `fs::safeWriteData` → файл создан с корректным содержимым (рекурсия убрана).
+- 711 реальных `vox/*.wav` прогнаны через валидацию: субчанк-размеры 16/18, все проходят;
+  2 битых файла (`a.wav`, `invallid.wav`, обрезанные) теперь корректно пропускаются вместо
+  чтения за концом буфера.
 
 ## Python-интеграция: стресс-прогоны
 

@@ -4,7 +4,7 @@
 using namespace std;
 
 typedef void (*msg_func_t)(cmdHead); // func(cmdHead)
-typedef struct
+typedef struct cmd_t
 {
     string info;
     msg_func_t func;

@@ -17,8 +17,9 @@ public:
     };
     img& operator=(const img& im)
     {
-        img imtemp(this->doc, this->net);
-        return imtemp;
+        if (this != &im) // ссылка net не переприсваивается — копируем doc
+            this->doc = im.doc;
+        return *this;
     };
 
     img(Doc doc, Net& n);
@@ -32,14 +33,14 @@ public:
 
 //color transformations
 
-typedef struct
+typedef struct rgb_t
 {
     double r; // a fraction between 0 and 1
     double g; // a fraction between 0 and 1
     double b; // a fraction between 0 and 1
 } rgb_t;
 
-typedef struct
+typedef struct hsv_t
 {
     double h; // angle in degrees
     double s; // a fraction between 0 and 1

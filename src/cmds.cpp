@@ -114,9 +114,8 @@ void setc(cmdHead)
             eventOut.msg += "/set <id> <level>...";
         else
         {
-            users::user user = users::getUser(id, eventOut.vk);
+            users::user user = users::getUser(id, eventOut.vk, false); // без инкремента msgs
             user.acess = str::fromString(eventIn.words[2]);
-            user.msgs--;
             users::changeUser(id, user);
             eventOut.msg += "done!";
         }
@@ -440,11 +439,11 @@ struct chunk_t
 
 void vox(cmdHead)
 {
-    unsigned long size = 0;
+    uint32_t size = 0;
     string data;
-    wav_header_t wavHeader;
-    chunk_t wavChunk;
-    for (int i = 1; i < eventIn.words.size(); i++)
+    wav_header_t wavHeader = {};
+    chunk_t wavChunk = {};
+    for (size_t i = 1; i < eventIn.words.size(); i++)
     {
         bool pause = true;
         if (eventIn.words[i][0] == '-')
@@ -456,33 +455,52 @@ void vox(cmdHead)
         FILE* wavFile = fopen(path.c_str(), "rb");
         if (wavFile == NULL)
             continue;
-        fread(&wavHeader, sizeof(wav_header_t), 1, wavFile);
-        uint8_t* offset = new uint8_t[wavHeader.subchunk1Size - 16];
-        fread(offset, wavHeader.subchunk1Size - 16, 1, wavFile);
-        delete[] offset;
-        fread(&wavChunk, sizeof(chunk_t), 1, wavFile);
-        uint8_t* dataIn = new uint8_t[wavChunk.size];
-        fread(dataIn, wavChunk.size, 1, wavFile);
+        // повреждённый wav пропускаем, а не обрываемся на мусорных размерах
+        if (fread(&wavHeader, sizeof(wav_header_t), 1, wavFile) != 1
+            || wavHeader.subchunk1Size < 16 || wavHeader.subchunk1Size > 128)
+        {
+            fclose(wavFile);
+            continue;
+        }
+        if (wavHeader.subchunk1Size > 16
+            && fseek(wavFile, wavHeader.subchunk1Size - 16, SEEK_CUR) != 0)
+        {
+            fclose(wavFile);
+            continue;
+        }
+        if (fread(&wavChunk, sizeof(chunk_t), 1, wavFile) != 1
+            || wavChunk.size == 0 || wavChunk.size > 0x800000) // wav-фонемы заведомо меньше 8МБ
+        {
+            fclose(wavFile);
+            continue;
+        }
+        vector<uint8_t> dataIn(wavChunk.size);
+        if (fread(dataIn.data(), 1, wavChunk.size, wavFile) != wavChunk.size)
+        {
+            fclose(wavFile);
+            continue;
+        }
         fclose(wavFile);
         size += wavChunk.size;
         if (pause)
         {
-            size += TPAUSE * wavHeader.byteRate;
-            for (int s = 0; s < TPAUSE * wavHeader.byteRate; s++)
-                data += data[data.size() - 1];
+            size += uint32_t(TPAUSE * wavHeader.byteRate);
+            char lastByte = data.size() ? data[data.size() - 1] : 0;
+            for (uint32_t s = 0; s < uint32_t(TPAUSE * wavHeader.byteRate); s++)
+                data += lastByte;
         }
-        for (int s = ofset; s < wavChunk.size - ofset; s++)
+        for (uint32_t s = ofset; s + ofset < wavChunk.size; s++)
             data += dataIn[s];
-        delete[] dataIn;
     }
     if (!data.size())
     {
         eventOut.msg += "неверная комбинация vox";
         return;
     }
-    size += TPAUSE * wavHeader.byteRate;
-    for (int s = 0; s < TPAUSE * wavHeader.byteRate; s++)
-        data += data[data.size() - 1];
+    size += uint32_t(TPAUSE * wavHeader.byteRate);
+    char lastByte = data[data.size() - 1];
+    for (uint32_t s = 0; s < uint32_t(TPAUSE * wavHeader.byteRate); s++)
+        data += lastByte;
     wavChunk.size = size;
     wavHeader.subchunk1Size = 16;
     string wavDat((char*)&wavHeader, sizeof(wav_header_t));
@@ -570,13 +588,14 @@ void line(cmdHead)
 }*/
 
 #include <algorithm>
+#include <random>
 string getNumber() // генерация случайного четырёхзначного числа без повторений цифр
 {
     string nums = "1234567890";
-    srand(time(NULL));
-    random_shuffle(nums.begin(), nums.end());
+    static mt19937 rng(random_device{}()); // один сеятель на процесс, потокобезопасная инициализация
+    shuffle(nums.begin(), nums.end(), rng);
     if(nums[0]=='0')
-        nums[0]=nums[9];
+        swap(nums[0], nums[9]);
     nums.resize(4);
     return nums;
 }
@@ -677,8 +696,8 @@ void neon(cmdHead)
         cv::Mat low(myROI.height, myROI.width, CV_8UC3, cv::Scalar(0, 0, 0));
         cv::bitwise_and(cvim,low, cvim, imgEdge);
         imgEdge.release();
-        for(unsigned int i = 0; i < cvim.rows; i++)
-            for(unsigned int j = 0; j < cvim.cols; j++)
+        for(int i = 0; i < cvim.rows; i++)
+            for(int j = 0; j < cvim.cols; j++)
             {
                 cv::Vec3b &bgrPixel = cvim.at<cv::Vec3b>(i, j);
                 if (bgrPixel[0] + bgrPixel[1] + bgrPixel[2] == 0) continue;

@@ -27,7 +27,7 @@ void Lp::loop()
     {
         string buff = this->net.send(this->server, { { "act", "a_check" }, { "key", this->key }, { "ts", this->ts }, { "wait", "25" } });
         while (buff == "")
-            string buff = this->net.send(this->server, { { "act", "a_check" }, { "key", this->key }, { "ts", this->ts }, { "wait", "25" } });
+            buff = this->net.send(this->server, { { "act", "a_check" }, { "key", this->key }, { "ts", this->ts }, { "wait", "25" } });
         json resp = json::parse(buff);
         if (resp["failed"].is_number())
         {

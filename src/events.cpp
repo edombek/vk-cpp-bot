@@ -34,7 +34,7 @@ Event::Event(Net &n, Vk &v, json lpEv)
         this->peer_id = lpEv["owner_id"];
         this->id = lpEv["id"];
     }
-    this->is_chat = this->from_id != this->peer_id;
+    this->is_chat = uint32_t(this->from_id) != this->peer_id; // явный каст: сравнение сохраняет поведение для from_id < 0
     if (!lpEv["attachments"].is_null())
     {
         for (auto attach : lpEv["attachments"])

@@ -94,7 +94,7 @@ string fs::readData(string path)
 
 void fs::rename(string oldname, string newname)
 {
-    rename(oldname.c_str(), newname.c_str());
+    ::rename(oldname.c_str(), newname.c_str());
 }
 
 /* CLASS EXCEPTION */
