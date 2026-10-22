@@ -18,13 +18,18 @@ git gcc make curl opencv boost python-pip python dlib(aur или вручную)
 
 ```
 git submodule update --init vox thr
-make
+cmake -S . -B build -DVKBOT_WITH_PYTHON=ON
+cmake --build build
 ```
 
-Для сборки без python:
-```
-make NO_PYTHON=1
-```
+Для сборки без python: `-DVKBOT_WITH_PYTHON=OFF`.
+
+Привычный `make` тоже работает — он теперь тонкий шим над cmake
+(`make`, `make NO_PYTHON=1`); артефакты в `./build`.
+
+Зависимости для cmake: `cmake`, `libcurl-dev`, OpenCV (>=3.4, компоненты
+core imgproc imgcodecs objdetect photo), для Python-слоя — Boost.Python
+(будет заменён на pybind11, см. `docs/TASKS.md`).
 
 Windows
 ```

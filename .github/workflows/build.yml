@@ -1,0 +1,41 @@
+name: Build
+
+on:
+  push:
+    branches: [ "master", "ai-optimization" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            cmake libcurl4-openssl-dev libopencv-dev \
+            libboost-python-dev python3-dev
+
+      - name: Configure (with Python)
+        run: cmake -S . -B build -DVKBOT_WITH_PYTHON=ON
+
+      - name: Build (with Python)
+        run: cmake --build build -j
+
+      - name: Configure (without Python)
+        run: cmake -S . -B build-nopy -DVKBOT_WITH_PYTHON=OFF
+
+      - name: Build (without Python)
+        run: cmake --build build-nopy -j
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vkbot-linux
+          path: |
+            build/vkbot
+            build-nopy/vkbot

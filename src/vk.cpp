@@ -1,4 +1,5 @@
 #include "vk.h"
+#include <stdexcept>
 
 #define ver "5.92"
 
@@ -13,7 +14,7 @@ Vk::Vk(Net& n)
     if (c["token"].is_null() || c["user_token"].is_null())
     {
         conf.save();
-        throw;
+        throw std::runtime_error("Vk: не заданы token и/или user_token в config.json");
     }
     this->token = c["token"];
     this->user_token = c["user_token"];
@@ -22,7 +23,7 @@ Vk::Vk(Net& n)
     {
         c["token"] = NULL;
         conf.save();
-        throw;
+        throw std::runtime_error("Vk: токен группы не прошёл groups.getTokenPermissions (проверьте token в config.json)");
     }
 }
 

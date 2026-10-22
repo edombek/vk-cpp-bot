@@ -25,27 +25,19 @@
 | users: двойная запись `msgs`, хак `msgs--` в `setc` | `src/users.cpp`, `src/cmds.cpp` | ✅ (`getUser(..., inc=false)`) |
 | Мелочь: `-Wall`-чистота (reorder, sign-compare, анонимные typedef) | `img.*`, `events.cpp`, `cmd.cpp`, заголовки | ✅ |
 
-## Фаза 1 — сборка/Makefile
+## Фаза 1 — сборка/Makefile: ❌ пропущена по решению владельца (сразу CMake)
+
+## Фаза 1.5 — переход на CMake (вместо Makefile) ✅ (завершена 2026-10-22)
 
 | Задача | Статус |
 |---|---|
-| Убрать boost-python (линуется pybind11 header-only) | ⬜ |
-| pybind11-инклюды (`python3 -m pybind11 --includes`) | ⬜ |
-| Автоопределение OpenCV (`/usr/include/opencv*`, pkg-config) | ⬜ |
-| `-MMD -MP` (зависимости от заголовков) | ⬜ |
-| `-Ofast` → `-O2` | ⬜ |
-
-## Фаза 1.5 — переход на CMake (вместо Makefile)
-
-| Задача | Статус |
-|---|---|
-| `CMakeLists.txt`: две конфигурации (`VKBOT_WITH_PYTHON` ON/OFF), опции как кэшированные переменные | ⬜ |
-| автопоиск Python (`find_package(Python3 ... Development)`), OpenCV (`find_package(OpenCV ...)`), CURL | ⬜ |
-| pybind11 через `find_package(pybind11)` / `python3 -m pybind11 --includes` | ⬜ |
-| версии GIT_URL/GIT_VER через `git describe` на этапе configure (замена `-DGIT_URL/-DGIT_VER`) | ⬜ |
-| цель-alinester предупреждений (компиляция с `-Wall` как регресс-проверка из `docs/TESTS.md`) | ⬜ |
-| сборка в отдельном build-каталоге (инкрементальные зависимости «из коробки») | ⬜ |
-| Makefile оставить тонким шимом над cmake (или удалить после проверки) | ⬜ |
+| `CMakeLists.txt`: конфигурация `VKBOT_WITH_PYTHON` ON/OFF | ✅ |
+| find_package: CURL, OpenCV (5.0 найдена), Python3::Development, Boost.Python (config-режим + fallback) | ✅ |
+| `GIT_URL`/`GIT_VER` через git на configure (fallback «unknown») | ✅ |
+| `-Wall` для не-MSVC; CMP0167 (удалённый FindBoost в CMake 4) обработан | ✅ |
+| Makefile → тонкий шим (`make`, `make NO_PYTHON=1`), объекты в `./build` | ✅ |
+| CI: `.github/workflows/build.yml` — обе конфигурации на ubuntu-latest | ✅ (отправлен, ждёт первого прогона на GitHub) |
+| Попутно (smoke-тест): голый `throw;` в `Vk` → `std::runtime_error`; try/catch в `main` | ✅ |
 
 ## Фаза 2 — Python-интеграция на pybind11 + расширение API
 

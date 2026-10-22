@@ -17,24 +17,25 @@
 - `docs/TESTS.md` — состояние сборок/проверок, команды воспроизведения, план тестирования.
 - `docs/ARCHITECTURE.md` — блочная схема и описание потоков выполнения.
 
-## Сборка
+## Сборка (фаза 1.5: CMake; Makefile — шим)
 
 ```
 git submodule update --init vox thr   # vox = wav-файлы для /vox, thr = ThreadPool
-make                                  # с Python
-make NO_PYTHON=1                      # без Python
+make                                  # шим: cmake -B build + build, с Python
+make NO_PYTHON=1                      # то же без Python
 ```
 
-- Требуется: g++, libcurl, OpenCV (core/imgproc/imgcodecs/objdetect/photo), Python dev,
-  Boost.Python (или pybind11 — см. ниже).
-- **Makefile захардкодит пути под старую систему**: `-lboost_python39` и `-I/usr/include/opencv4`.
-  На современных машинах обычно `libboost_python3NN` (NN = версия python) и `/usr/include/opencvN`
-  (N != 4). Подбирайте флаги под окружение, `make` из коробки упадёт на линковке/инклюдах.
-- Отдельные файлы нельзя компилировать без `-DGIT_URL='"..."' -DGIT_VER='"..."'` — `cmds.cpp`
-  их использует (`#error` не будет, просто не скомпилируется).
-- **`-DNO_PYTHON` меняет состав классов** (`Vk::send(dict)` есть только с Python). При переключении
-  конфигурации обязательно `make clean`, иначе ODR/линофные ошибки. Зависимостей от заголовков
-  Makefile не отслеживает.
+- Требуется: cmake ≥3.16, libcurl-dev, OpenCV (core/imgproc/imgcodecs/objdetect/photo,
+  любые /usr-инсталляции находятся через find_package), Python dev, Boost.Python
+  (фаза 2 заменит его на pybind11 — header-only).
+- Все объекты и `vkbot` — в `./build/`; `build/` в .gitignore.
+- `GIT_URL`/`GIT_VER` определяются cmake на configure (`git` в PATH; при его отсутствии —
+  «unknown»).
+- **`-DNO_PYTHON` меняет состав классов** (`Vk::send(dict)` есть только с Python) — CMake
+  сам пересобирает при переключении `VKBOT_WITH_PYTHON`, но смешивать старые объекты вручную
+  нельзя.
+- CI: `.github/workflows/build.yml` собирает обе конфигурации на ubuntu-latest
+  (push в `master`/`ai-optimization`, PR в `master`); CodeQL отдельно.
 - Windows (`.appveyor.yml`, `*.vcxproj`, `win32deps`) рассчитан на устаревший стек
   (VS2015, boost 1.68, OpenCV 2.4, x86) и сейчас **не поддерживается** — не чинить без явного запроса.
 

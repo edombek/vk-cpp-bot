@@ -3,3 +3,4 @@
 *.layout
 vkbot
 *.jpg
+build/

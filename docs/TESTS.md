@@ -1,41 +1,22 @@
 # Состояние тестов и проверок
 
-Тестов в репозитории нет; CI — только CodeQL. Ниже — фактические прогоны проверок.
-Обновлено: 2026-10-22.
+CI: CodeQL + сборочный workflow (`.github/workflows/build.yml`, добавлен на фазе 1.5).
+Юнит-тестов пока нет. Обновлено: 2026-10-22.
 
-## Матрица сборок (Linux, g++ 16.2.1, Python 3.14.8, Boost 1.92, OpenCV 5, libcurl)
+## Матрица сборок (Linux, g++ 16.2.1, CMake 4.4.4, Python 3.14.8, Boost 1.92, OpenCV 5)
 
-| Проверка | Штатный `make` | Ручная сборка с подобранными флагами |
+| Конфигурация | Команда | Результат |
 |---|---|---|
-| `NO_PYTHON` | ❌ `-I/usr/include/opencv4` отсутствует — падают `img.cpp`/`cmds.cpp` | ✅ `/tmp/opencode/build/vkbot` |
-| С Python | ❌ `-lboost_python39` нет в системе; `-I/usr/include/opencv4` нет | ✅ `/tmp/opencode/build/vkbot_python` (13 МБ) |
+| С Python | `make` (шим cmake) или `cmake -B build && cmake --build build` | ✅ `-Wall` чист (кроме Python-слоя, см. ниже) |
+| Без Python | `make NO_PYTHON=1` / `-DVKBOT_WITH_PYTHON=OFF` | ✅ |
+| Smoke-запуск без config.json | `./build/vkbot` | ✅ чистый `FATAL: Vk: не заданы token...`, exit 1 (раньше — `terminate`) |
 
-Пример команды, которой воспроизводится успешная сборка (артефакты — во временный каталог,
-без `.o` в исходниках):
-
-```bash
-OUT=/tmp/opencode/build; mkdir -p $OUT
-for f in src/*.cpp; do
-  g++ -std=c++11 -c -Ofast -DGIT_URL='"test"' -DGIT_VER='"test"' -Wno-psabi \
-      -Iinclude -I/usr/include/opencv5 -Ithr $(python-config --cflags) \
-      "$f" -o $OUT/$(basename $f .cpp).o
-done
-g++ $OUT/*.o -pthread -lcurl -lopencv_core -lopencv_objdetect -lopencv_photo \
-    -lopencv_imgproc -lopencv_imgcodecs $(python-config --ldflags --embed) \
-    -lboost_python314 -o $OUT/vkbot_python
-```
-
-Минимальная проверка без Python: убрать `py.cpp`, `$(python-config --cflags)`,
-линковка `-lboost_python314` и `--ldflags`; добавить `-DNO_PYTHON`.
+История: до фазы 1.5 штатный `make` не собирался (захардкоженные `-lboost_python39`,
+`-I/usr/include/opencv4`), проверки делались ручной компиляцией с подобранными флагами.
 
 ## Предупреждения компилятора — тест на регресс
 
-Компиляция с `-Wall` должна оставаться чистой (см. матрицу ниже). Регресс = возвращение
-любого из ранее исправленных предупреждений.
-
-## Предупреждения компилятора (после фазы 0)
-
-Сборка с `-Wall` (обе конфигурации) чистая, кроме намеренно оставленных:
+Сборка с `-Wall` должна оставаться чистой, кроме намеренно оставленных:
 
 - ⚠️ `PyEval_InitThreads` deprecated — исчезнет при миграции на pybind11 (фаза 2)
 - ⚠️ `#pragma comment` в `py.cpp` — тоже уйдёт с pybind11-миграцией
