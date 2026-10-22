@@ -613,6 +613,37 @@ int main()
         check(hasAdmBtn, "U21 set level buttons", c ? "(есть ответ)" : "(нет вызова)");
     }
 
+    // --- U22: игра /g в беседе: создание, вход, ходы, стоп (Worker+FakeNet) ---
+    {
+        FakeNet fn;
+        fn.responses["users.get"] = "{\"response\":[{\"id\":0,\"first_name\":\"Игрок\"}]}";
+        fn.responses["/method/messages."] = "{\"response\":1}";
+        Vk vk(fn);
+        auto gmsg = [&](uint32_t from, const std::string& text) -> std::string
+        {
+            fn.reset();
+            json ev = { { "type", "message_new" },
+                        { "object", { { "date", 1 }, { "peer_id", 2000000005u }, { "from_id", from }, { "text", text }, { "random_id", 1 } } } };
+            Worker w;
+            w.work(ev, fn, vk);
+            std::string all; // /g шлёт два сообщения (карту и «Ходит…») — склеиваем
+            for (const auto& x : fn.calls)
+                if (x.url == "https://api.vk.com/method/messages.send" && x.params.count("message"))
+                    all += x.params.at("message");
+            return all;
+        };
+        check(gmsg(111, "/g").find("ожидаем второго игрока") != std::string::npos, "U22a game created");
+        check(gmsg(111, "/g").find("нельзя создать игру с самим собой") != std::string::npos, "U22b self-game removed");
+        check(gmsg(111, "/g").find("ожидаем второго игрока") != std::string::npos, "U22c created again");
+        std::string m4 = gmsg(222, "/g"); // второй игрок входит — сразу карта, nexStep передаёт ход создателю
+        check(m4.find("1⃣") != std::string::npos && m4.find("Ходит @id111") != std::string::npos, "U22d join shows map", m4.substr(0, 60));
+        check(gmsg(222, "/g 1 1").find("не твой ход") != std::string::npos, "U22e not your turn");
+        std::string m6 = gmsg(111, "/g 1 1"); // ход создателя
+        check(m6.find("1⃣") != std::string::npos && m6.find("Ходит @id222") != std::string::npos, "U22f move + map", m6.substr(0, 60));
+        check(gmsg(222, "/g").find("кординату введи") != std::string::npos, "U22g need coords");
+        check(gmsg(222, "/g stop").find("игра остановлена") != std::string::npos, "U22h stop");
+    }
+
     Net::deinit();
 
     std::cout << "\n=== " << passed << " passed, " << failed << " failed ===" << std::endl;

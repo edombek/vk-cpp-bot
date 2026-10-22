@@ -5,104 +5,100 @@
 #include "str.h"
 #include <algorithm>
 #include <cctype>
+#include <memory>
 #include <mutex>
 #include <random>
 
 using namespace std;
 
-map<uint32_t, game*> gameNew = {}; // новые игры в чате
-map<uint32_t, map<uint32_t, game*>> gameUsers = {}; // все игры в [chat][user]
+map<uint32_t, shared_ptr<game>> gameNew = {}; // новые игры в чате
+map<uint32_t, map<uint32_t, shared_ptr<game>>> gameUsers = {}; // все игры в [chat][user]
 mutex gameL;
 
-void cleanGames(game *t, uint32_t peer_id) // удаляем игры в каталогах пользователей и саму игру
+// убираем игру из каталогов пользователей; сама игра живёт в shared_ptr
+// и уничтожается вместе с последней ссылкой (бывший delete)
+static void cleanGames(const shared_ptr<game>& t, uint32_t peer_id)
 {
     gameUsers[peer_id].erase(t->users_id[0]);
-    if(t->users_id[1])
+    if (t->users_id[1])
         gameUsers[peer_id].erase(t->users_id[1]);
-    if(!gameUsers[peer_id].size())
+    if (!gameUsers[peer_id].size())
         gameUsers.erase(peer_id);
-    delete t;
 }
 
 void gameF(Event &eventIn, Event &eventOut, Worker *worker)
 {
-    if(!eventIn.is_chat)
+    if (!eventIn.is_chat)
     {
         eventOut.msg = "только для бесед!";
         return;
     }
-    gameL.lock();
-    game* t;
+    lock_guard<mutex> guard(gameL); // разблокировка на любом выходе из функции
+    shared_ptr<game> t;
+    bool justJoined = false; // присоединились к игре — сразу выводим карту
 
-    if(findinmap(gameUsers, eventIn.peer_id) && findinmap(gameUsers[eventIn.peer_id], eventIn.user.id) && gameUsers[eventIn.peer_id][eventIn.user.id]->users_id[1])//игра готова?
+    if (findinmap(gameUsers, eventIn.peer_id) && findinmap(gameUsers[eventIn.peer_id], eventIn.user.id)
+        && gameUsers[eventIn.peer_id][eventIn.user.id]->users_id[1]) // игра готова?
         t = gameUsers[eventIn.peer_id][eventIn.user.id];
-    else
+    else if (findinmap(gameNew, eventIn.peer_id) && !gameNew[eventIn.peer_id]->users_id[1]) // есть созданная, но без второго игрока?
     {
-        if(findinmap(gameNew, eventIn.peer_id) && !gameNew[eventIn.peer_id]->users_id[1])//есть ли созданная в чате но без второго игрока?
+        if (gameNew[eventIn.peer_id]->users_id[0] == eventIn.user.id)
         {
-            if(gameNew[eventIn.peer_id]->users_id[0]==eventIn.user.id)
-            {
-                eventOut.msg+="нельзя создать игру с самим собой! Удаляем эту игру!";
-                cleanGames(gameNew[eventIn.peer_id], eventIn.peer_id);
-                gameNew.erase(eventIn.peer_id);
-                gameL.unlock();
-                return;
-            }
-            t=gameNew[eventIn.peer_id];
-            t->users_id[1] = eventIn.user.id;
-            gameUsers[eventIn.peer_id][eventIn.user.id] = t;
+            eventOut.msg += "нельзя создать игру с самим собой! Удаляем эту игру!";
+            cleanGames(gameNew[eventIn.peer_id], eventIn.peer_id);
             gameNew.erase(eventIn.peer_id);
-            goto printMap;
-        }
-        else  //создаём новую игру, ожидаем
-        {
-            t = new game;
-            t->users_id[0] = eventIn.user.id;
-            gameNew[eventIn.peer_id] = t;
-            gameUsers[eventIn.peer_id][eventIn.user.id] = t;
-
-            eventOut.msg += "игра создана, ожидаем второго игрока";
-            gameL.unlock();
             return;
         }
+        t = gameNew[eventIn.peer_id];
+        t->users_id[1] = eventIn.user.id;
+        gameUsers[eventIn.peer_id][eventIn.user.id] = t;
+        gameNew.erase(eventIn.peer_id);
+        justJoined = true;
     }
+    else // создаём новую игру, ожидаем второго игрока
+    {
+        t = make_shared<game>();
+        t->users_id[0] = eventIn.user.id;
+        gameNew[eventIn.peer_id] = t;
+        gameUsers[eventIn.peer_id][eventIn.user.id] = t;
 
-    if(eventIn.words.size() > 1 && eventIn.words[1] == "stop")
-    {
-        eventOut.msg+="игра остановлена!";
-        cleanGames(t, eventIn.peer_id);
-        gameL.unlock();
-        return;
-    }
-    if(eventIn.user.id!=t->users_id[t->user])
-    {
-        eventOut.msg+="не твой ход!";
-        gameL.unlock();
-        return;
-    }
-    if(eventIn.words.size() < 3)
-    {
-        eventOut.msg+="кординату введи...";
-        gameL.unlock();
+        eventOut.msg += "игра создана, ожидаем второго игрока";
         return;
     }
 
-    t->gameUplevel(str::fromString(eventIn.words[1]), str::fromString(eventIn.words[2]));
+    if (!justJoined)
+    {
+        if (eventIn.words.size() > 1 && eventIn.words[1] == "stop")
+        {
+            eventOut.msg += "игра остановлена!";
+            cleanGames(t, eventIn.peer_id);
+            return;
+        }
+        if (eventIn.user.id != t->users_id[t->user])
+        {
+            eventOut.msg += "не твой ход!";
+            return;
+        }
+        if (eventIn.words.size() < 3)
+        {
+            eventOut.msg += "кординату введи...";
+            return;
+        }
+        t->gameUplevel(str::fromString(eventIn.words[1]), str::fromString(eventIn.words[2]));
+    }
 
-printMap:
-    eventOut.msg+="\n"+t->nexStep();
+    // вывод карты после хода (бывшая метка printMap)
+    eventOut.msg += "\n" + t->nexStep();
     eventOut.send();
 
-    if(t->isWin()) //выйграл?
+    if (t->isWin()) // выиграл?
     {
-        eventOut.msg="выйграл!";
+        eventOut.msg = "выйграл!";
         cleanGames(t, eventIn.peer_id);
-        gameL.unlock();
         return;
     }
 
-    eventOut.msg="Ходит @id" + to_string(t->users_id[t->user]);
-    gameL.unlock();
+    eventOut.msg = "Ходит @id" + to_string(t->users_id[t->user]);
 }
 
 string getNumber() // генерация случайного четырёхзначного числа без повторений цифр
@@ -116,7 +112,7 @@ string getNumber() // генерация случайного четырёхзн
     return nums;
 }
 
-map<int, string> randNumbers = {}; // все загаданные числа для каждого пользователя
+map<uint32_t, string> randNumbers = {}; // все загаданные числа для каждого пользователя
 map<uint32_t, string> bcDraft = {}; // текущий набор цифр при вводе кнопками
 mutex bcL;
 
@@ -136,25 +132,19 @@ static Keyboard bcKeyboard()
 
 void bc(Event &eventIn, Event &eventOut, Worker *worker)
 {
-    bcL.lock();
+    lock_guard<mutex> guard(bcL); // разблокировка на любом выходе из функции
 
-    goto _pass;
-pass:
-    bcL.unlock();
-    return;
-_pass:
-
-    if(!findinmap(randNumbers, eventIn.user.id))//если игра не создана
+    if (!findinmap(randNumbers, eventIn.user.id)) // если игра не создана
     {
         randNumbers[eventIn.user.id] = getNumber();
-        eventOut.msg+="\
+        eventOut.msg += "\
 цель данной игры отгадать загаданное компьютером число.\n\
 Даются подсказки в виде двух значений.\n\
 Коров -- числа совпадений цифр без совпадений их положения.\n\
 Быков -- числа точных совпадений цифр.\n\
 Ответ боту даётся как аргумент к этой команде или кнопками:";
         eventOut.keyboard = bcKeyboard().dump();
-        goto pass;
+        return;
     }
 
     // ввод с клавиатуры: "/bc num <цифра>", "/bc del", "/bc go", "/bc reset"
@@ -165,7 +155,7 @@ _pass:
         if (action == "num")
         {
             if (eventIn.words.size() != 3 || eventIn.words[2].size() != 1 || !isdigit((unsigned char)eventIn.words[2][0]))
-                goto pass;
+                return;
             if (draft.size() < 4)
                 draft += eventIn.words[2][0];
         }
@@ -180,54 +170,53 @@ _pass:
         {
             eventOut.msg += "ввод: " + (draft.size() ? draft : string("(пусто)")) + " [" + to_string(draft.size()) + "/4]";
             eventOut.keyboard = bcKeyboard().dump();
-            goto pass;
+            return;
         }
         if (!draft.size())
         {
             eventOut.msg += "нечего проверять — набери число.";
             eventOut.keyboard = bcKeyboard().dump();
-            goto pass;
+            return;
         }
         eventIn.words[1] = draft; // дальше как обычный ответ цифрой
         draft.clear();
     }
 
-    if(eventIn.words.size() < 2)
+    if (eventIn.words.size() < 2)
     {
-        eventOut.msg+="ты не указал четырёхзначное число.";
+        eventOut.msg += "ты не указал четырёхзначное число.";
         eventOut.keyboard = bcKeyboard().dump();
-        goto pass;
+        return;
     }
     string userNumber = eventIn.words[1];
-    if(!(userNumber.size() == 4 && str::fromString(userNumber) && userNumber[0] != '0')) // если это не четырёх значное число
+    if (!(userNumber.size() == 4 && str::fromString(userNumber) && userNumber[0] != '0')) // если это не четырёх значное число
     {
-        eventOut.msg+="ты указал не четырёхзначное число.";
+        eventOut.msg += "ты указал не четырёхзначное число.";
         eventOut.keyboard = bcKeyboard().dump();
-        goto pass;
+        return;
     }
 
-
-    if(userNumber == randNumbers[eventIn.user.id])
+    if (userNumber == randNumbers[eventIn.user.id])
     {
-        eventOut.msg+="молодец!!! Ты отгадал число!";
+        eventOut.msg += "молодец!!! Ты отгадал число!";
         randNumbers.erase(eventIn.user.id);
         bcDraft.erase(eventIn.user.id);
-        goto pass;
+        return;
     }
 
     string randNumber = randNumbers[eventIn.user.id];
 
     uint8_t c = 0; // коровы
     uint8_t b = 0; // быки
-    for(uint8_t ri = 0; ri < 4; ri++)
+    for (uint8_t ri = 0; ri < 4; ri++)
     {
-        if(randNumber[ri] == userNumber[ri])// если бык
+        if (randNumber[ri] == userNumber[ri]) // если бык
         {
             b++;
             continue;
         }
-        for(uint8_t ui = 0; ui < 4; ui++)
-            if(randNumber[ri] == userNumber[ui]) // если корова
+        for (uint8_t ui = 0; ui < 4; ui++)
+            if (randNumber[ri] == userNumber[ui]) // если корова
             {
                 c++;
                 break;
@@ -236,5 +225,4 @@ _pass:
 
     eventOut.msg = "найдено:\n  Коров: " + to_string(c) + "\n  Быков: " + to_string(b);
     eventOut.keyboard = bcKeyboard().dump();
-    bcL.unlock();
 }

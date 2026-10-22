@@ -7,10 +7,6 @@
 
 using namespace std;
 
-#ifndef MAX
-#define MAX(a,b) ((a) > (b) ? (a) : (b))
-#endif // MAX
-
 #ifndef MIN
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 #endif // MIN
@@ -59,35 +55,39 @@ void videos(Event &eventIn, Event &eventOut, Worker *worker)
 void apod(Event &eventIn, Event &eventOut, Worker *worker)
 {
     json resp = json::parse(eventIn.net.send("https://api.nasa.gov/planetary/apod", {{"api_key", "DEMO_KEY"}}, false));
+    auto err = [&resp, &eventOut]() // ответ об сбое с дампом ответа NASA (бывшая метка err)
+    {
+        eventOut.msg += "что-то пошло не так, перешлите сообщение разработчику\n\n" + resp.dump(4);
+    };
+    if (resp["title"].is_null())
+    {
+        err();
+        return;
+    }
+    eventOut.msg += resp["title"].get<string>() + ":\n\n";
     string imgurl;
-    Doc img;
-    if(resp["title"].is_null())
-        goto err;
-    eventOut.msg+= resp["title"].get<string>()+":\n\n";
-    if(resp["hdurl"].is_null())
-        if(resp["url"].is_null())
-            goto err;
-        else
-            imgurl = resp["url"];
-    else
+    if (!resp["hdurl"].is_null())
         imgurl = resp["hdurl"];
-    if(!resp["explanation"].is_null())
-        eventOut.msg+=resp["explanation"].get<string>();
-    if(resp["media_type"]=="image")
+    else if (!resp["url"].is_null())
+        imgurl = resp["url"];
+    else
+    {
+        err();
+        return;
+    }
+    if (!resp["explanation"].is_null())
+        eventOut.msg += resp["explanation"].get<string>();
+    if (resp["media_type"] == "image")
     {
         string dat = eventIn.net.send(imgurl);
-        if(img.uploadPhoto("img.jpg", dat, eventIn.net, eventIn.vk, eventIn.peer_id))
+        Doc img;
+        if (img.uploadPhoto("img.jpg", dat, eventIn.net, eventIn.vk, eventIn.peer_id))
             eventOut.docs.push_back(img);
     }
-    else if(resp["media_type"]=="video")
-        eventOut.msg+="\n\n"+imgurl;
+    else if (resp["media_type"] == "video")
+        eventOut.msg += "\n\n" + imgurl;
     else
-        goto err;
-
-    return;
-err:
-    eventOut.msg+="что-то пошло не так, перешлите сообщение разработчику\n\n"+resp.dump(4);
-    return;
+        err();
 }
 
 #define imgdelta 8.0
