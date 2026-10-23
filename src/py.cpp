@@ -1,5 +1,6 @@
 #include "py.h"
 
+#include <chrono>
 #include <memory>
 #include <string>
 
@@ -148,18 +149,102 @@ PyMainThread::~PyMainThread() = default;
 // ---------------------------------------------------------------------------
 // pyF: под-интерпретатор + изолированное пространство имён на один скрипт
 // ---------------------------------------------------------------------------
-// Обёртка над print: вывод скрипта попадает в ответное сообщение (eventOut.msg),
-// а не в консоль бота. sys.stdout тоже перехвачен; print(file=sys.stderr) — нет.
+// Обёртка над print: каждый print отправляет ОТДЕЛЬНОЕ сообщение в чат.
+// Флуд-контроль: не чаще одного сообщения в py_print_interval_ms мс (default
+// 1000) и не более py_print_max_msgs сообщений на скрипт (default 30); после
+// лимита — одно уведомление об обрезке, дальше print'ы игнорируются.
+// print(..., file=...) не перехватывается (обычный вывод в консоль бота).
+
+struct ScriptPrinter
+{
+    Event& eventOut;
+    int intervalMs = 1000;
+    int maxMsgs = 30;
+    int sent = 0;
+    bool stopped = false;
+    std::chrono::steady_clock::time_point last{};
+
+    ScriptPrinter(Event& out)
+        : eventOut(out)
+    {
+        conf.lock.lock();
+        json& c = conf.get();
+        if (c["py_print_interval_ms"].is_number())
+            intervalMs = c["py_print_interval_ms"].get<int>();
+        if (c["py_print_max_msgs"].is_number())
+            maxMsgs = c["py_print_max_msgs"].get<int>();
+        conf.lock.unlock();
+        if (intervalMs < 0)
+            intervalMs = 0;
+        if (maxMsgs < 0)
+            maxMsgs = 0;
+    }
+
+    void emit(const std::string& line)
+    {
+        if (stopped)
+            return;
+        if (sent >= maxMsgs)
+        {
+            stopped = true;
+            send("… вывод обрезан: print не более " + std::to_string(maxMsgs) + " сообщений (флуд-защита)");
+            return;
+        }
+        if (sent > 0 && intervalMs > 0)
+        {
+            auto now = std::chrono::steady_clock::now();
+            long long ms = std::chrono::duration_cast<std::chrono::milliseconds>(now - last).count();
+            if (ms < intervalMs)
+                timer::sleep(static_cast<int>(intervalMs - ms));
+        }
+        last = std::chrono::steady_clock::now();
+        std::string text = line.empty() ? " " : line; // VK не принимает пустые сообщения
+        if (text.size() > 4000) // лимит сообщения VK — 4096, берём с запасом
+            text = text.substr(0, 4000) + "…";
+        send(text);
+        sent++;
+    }
+
+    int printsSent() const { return sent; }
+
+private:
+    void send(const std::string& text)
+    {
+        table_t param;
+        param["peer_id"] = std::to_string(eventOut.peer_id);
+        param["random_id"] = "0";
+        param["message"] = text;
+        param["disable_mentions"] = "1";
+        eventOut.vk.send("messages.send", param);
+    }
+};
+
 static const char* PY_PRINT_PRELUDE = R"PY(
 import builtins as _vk_builtins, io as _vk_io, sys as _vk_sys
-_vk_buf = _vk_io.StringIO()
 _vk_print = _vk_builtins.print
 def print(*a, **k):
-    if 'file' not in k:
-        k['file'] = _vk_buf
-    _vk_print(*a, **k)
-_vk_sys.stdout = _vk_buf
-del _vk_builtins, _vk_io, _vk_sys
+    if 'file' in k: # явный file= (в т.ч. sys.stderr) — без отправки в чат
+        _vk_print(*a, **k)
+        return
+    _buf = _vk_io.StringIO()
+    _vk_print(*a, file=_buf, **k)
+    _text = _buf.getvalue()
+    _end = k.get('end', '\n')
+    if _end and _text.endswith(_end):
+        _text = _text[:-len(_end)]
+    for _line in _text.split('\n'):
+        _vk_emit(_line)
+class _VkStdout:
+    def write(self, s):
+        s = str(s)
+        for _line in s.split('\n'):
+            if _line:
+                _vk_emit(_line)
+        return len(s)
+    def flush(self):
+        pass
+_vk_sys.stdout = _VkStdout()
+del _vk_builtins, _vk_sys # _vk_io и _vk_print нужны в момент вызова print
 )PY";
 
 struct pyF::Impl
@@ -169,6 +254,7 @@ struct pyF::Impl
     py::subinterpreter sub;
     std::unique_ptr<py::subinterpreter_scoped_activate> act;
     py::object ns;
+    std::unique_ptr<ScriptPrinter> printer;
 
     Impl(Event& in, Event& out)
         : eventIn(in)
@@ -177,26 +263,15 @@ struct pyF::Impl
     {
         act = std::make_unique<py::subinterpreter_scoped_activate>(sub);
         py::module_::import("vkcppbot"); // регистрирует типы в этом под-интерпретаторе
+        printer = std::make_unique<ScriptPrinter>(out);
         ns = py::dict();
         ns["eventIn"] = py::cast(&eventIn, py::return_value_policy::reference);
         ns["eventOut"] = py::cast(&eventOut, py::return_value_policy::reference);
         ns["net"] = py::cast(&eventIn.net, py::return_value_policy::reference);
         ns["vk"] = py::cast(&eventIn.vk, py::return_value_policy::reference);
+        ScriptPrinter* pr = printer.get();
+        ns["_vk_emit"] = py::cpp_function([pr](const std::string& line) { pr->emit(line); });
         py::exec(PY_PRINT_PRELUDE, ns);
-    }
-
-    // дописываем накопленный print в конец сообщения и обнуляем буфер
-    void flushPrint()
-    {
-        if (!ns.contains("_vk_buf"))
-            return;
-        std::string s = py::cast<std::string>(ns["_vk_buf"].attr("getvalue")());
-        while (!s.empty() && (s.back() == '\n' || s.back() == '\r'))
-            s.pop_back();
-        if (!s.empty())
-            eventOut.msg += (eventOut.msg.empty() ? "" : "\n") + s;
-        ns["_vk_buf"].attr("seek")(0);
-        ns["_vk_buf"].attr("truncate")(0);
     }
 };
 
@@ -210,30 +285,19 @@ std::string pyF::exec(std::string& code)
     try
     {
         py::exec(py::str(code), impl->ns);
-        impl->flushPrint();
     }
     catch (const py::error_already_set& e)
     {
-        std::string err = e.what();
-        try
-        {
-            impl->flushPrint(); // что успело напечататься до ошибки — тоже в сообщение
-        }
-        catch (...)
-        {
-        }
-        return err;
+        return e.what();
     }
     catch (const std::exception& e)
     {
-        try
-        {
-            impl->flushPrint();
-        }
-        catch (...)
-        {
-        }
         return std::string("cpp error: ") + e.what();
     }
     return "";
+}
+
+int pyF::printsSent() const
+{
+    return impl->printer->printsSent();
 }

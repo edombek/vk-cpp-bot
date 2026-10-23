@@ -110,7 +110,12 @@ void pycmd(Event &eventIn, Event &eventOut, Worker *worker)
     pyF interpreter(eventIn, eventOut); // под-интерпретатор с собственным GIL (pybind11)
     str = interpreter.exec(str);
     if(str.empty())
-        eventOut.msg += "\ndone!";
+    {
+        if (interpreter.printsSent() == 0)
+            eventOut.msg += "\ndone!";
+        else if (eventOut.msg.empty())
+            eventOut.msg = "готово!"; // print-сообщения уже отправлены, но пустой ответ VK не примет
+    }
     else
         eventOut.msg += "\n" + str;
 #else

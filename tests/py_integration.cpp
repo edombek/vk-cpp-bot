@@ -8,12 +8,14 @@
 
 #include "bd.h"
 #include "events.h"
+#include "fakenet.h"
 #include "fs.h"
 #include "net.h"
 #include "str.h"
 #include "users.h"
 #include "vk.h"
 
+#include <chrono>
 #include <cstdio>
 #include <iostream>
 #include <string>
@@ -203,24 +205,79 @@ int main()
             check(ok, "T10b keyboard json", r.keyboard);
         }
 
-        // --- T11: print() уходит в ответное сообщение (обёртка над print) ---
+        // --- T11: print() отправляет отдельные сообщения (в тестах без пауз) ---
         {
-            RunResult r = run(net, vk, "print('привет')\nprint(2 + 2)");
-            check(r.err.empty(), "T11a print exec ok", r.err);
-            check(r.msg == "привет\n4", "T11b print -> msg", r.msg);
+            conf.lock.lock();
+            conf.get()["py_print_interval_ms"] = 0; // без пауз внутри теста
+            conf.get()["py_print_max_msgs"] = 30;
+            conf.lock.unlock();
+            FakeNet fn;
+            fn.responses["/method/messages.send"] = "{\"response\":1}";
+            Vk vkp(fn);
+            RunResult r = run(fn, vkp, "print('привет')\nprint(2 + 2)");
+            auto sends = fn.find("/method/messages.send");
+            check(r.err.empty() && sends.size() == 2, "T11a два сообщения из print", std::to_string(sends.size()) + " " + r.err);
+            bool content = sends.size() == 2 && sends[0]->params.at("message") == "привет" && sends[1]->params.at("message") == "4";
+            check(content, "T11b содержимое print", sends.empty() ? "" : sends[0]->params.at("message"));
         }
 
-        // --- T12: eventOut.msg + print — оба в ответе, в правильном порядке ---
+        // --- T12: eventOut.msg и print — msg отправляет вызывающий код, print — отдельно ---
         {
-            RunResult r = run(net, vk, "eventOut.msg = 'шаг'\nprint('ещё')");
-            check(r.msg == "шаг\nещё", "T12 msg + print", r.msg);
+            FakeNet fn;
+            fn.responses["/method/messages.send"] = "{\"response\":1}";
+            Vk vkp(fn);
+            RunResult r = run(fn, vkp, "eventOut.msg = 'шаг'\nprint('ещё')");
+            auto sends = fn.find("/method/messages.send");
+            bool ok = r.msg == "шаг" && sends.size() == 1 && sends[0]->params.at("message") == "ещё";
+            check(ok, "T12 msg и print раздельно", r.msg + " / " + std::to_string(sends.size()));
         }
 
-        // --- T13: print до исключения — тоже попадает в msg, ошибка возвращается ---
+        // --- T13: print до исключения отправлен, ошибка возвращена как раньше ---
         {
-            RunResult r = run(net, vk, "print('до')\n1 / 0");
+            FakeNet fn;
+            fn.responses["/method/messages.send"] = "{\"response\":1}";
+            Vk vkp(fn);
+            RunResult r = run(fn, vkp, "print('до')\n1 / 0");
+            auto sends = fn.find("/method/messages.send");
             check(!r.err.empty() && r.err.find("ZeroDivisionError") != std::string::npos, "T13a ошибка вернулась", r.err);
-            check(r.msg == "до", "T13b print до ошибки", r.msg);
+            bool ok = sends.size() == 1 && sends[0]->params.at("message") == "до";
+            check(ok, "T13b print до ошибки", std::to_string(sends.size()));
+        }
+
+        // --- T14: флуд-контроль — максимум print-сообщений на скрипт, потом уведомление ---
+        {
+            conf.lock.lock();
+            conf.get()["py_print_max_msgs"] = 3;
+            conf.lock.unlock();
+            FakeNet fn;
+            fn.responses["/method/messages.send"] = "{\"response\":1}";
+            Vk vkp(fn);
+            RunResult r = run(fn, vkp, "for i in range(10): print(i)");
+            auto sends = fn.find("/method/messages.send");
+            bool ok = sends.size() == 4 && // 3 печати + уведомление об обрезке
+                      sends.back()->params.at("message").find("обрезан") != std::string::npos;
+            check(ok, "T14 лимит print-сообщений", std::to_string(sends.size()));
+            conf.lock.lock();
+            conf.get()["py_print_max_msgs"] = 30;
+            conf.lock.unlock();
+        }
+
+        // --- T15: флуд-контроль — минимальный интервал между print-сообщениями ---
+        {
+            conf.lock.lock();
+            conf.get()["py_print_interval_ms"] = 300;
+            conf.lock.unlock();
+            FakeNet fn;
+            fn.responses["/method/messages.send"] = "{\"response\":1}";
+            Vk vkp(fn);
+            auto t0 = std::chrono::steady_clock::now();
+            RunResult r = run(fn, vkp, "print('a')\nprint('b')\nprint('c')");
+            long long ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - t0).count();
+            auto sends = fn.find("/method/messages.send");
+            check(sends.size() == 3 && ms >= 590, "T15 пауза между print", std::to_string(ms) + "ms / " + std::to_string(sends.size()));
+            conf.lock.lock();
+            conf.get()["py_print_interval_ms"] = 0;
+            conf.lock.unlock();
         }
     }
 

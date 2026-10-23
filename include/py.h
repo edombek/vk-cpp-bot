@@ -35,6 +35,7 @@ public:
     pyF& operator=(const pyF&) = delete;
 
     std::string exec(std::string& code); // "" == успех, иначе traceback
+    int printsSent() const;              // сколько сообщений отправлено print'ами
 
 private:
     struct Impl;

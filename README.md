@@ -79,9 +79,10 @@ w = vkcppbot.str.words(eventIn.msg)
 eventOut.msg = "Привет, " + eventIn.user.name + "! Ты написал " + str(len(w) - 1) + " слов."
 ```
 
-`print()` в скрипте тоже попадает в ответное сообщение (обёртка над print: вывод
-накапливается и дописывается в `eventOut.msg`; `sys.stdout` перехвачен,
-`print(..., file=sys.stderr)` — нет; напечатанное до исключения сохраняется).
+`print()` в скрипте отправляет отдельное сообщение в чат (обёртка над print;
+`sys.stdout` тоже перехвачен, `print(..., file=...)` — нет). Флуд-контроль:
+не чаще одного сообщения в `py_print_interval_ms` мс (default 1000) и не более
+`py_print_max_msgs` (default 30) на скрипт — значения в `config.json`.
 
 ## Настройка
 config.json:
