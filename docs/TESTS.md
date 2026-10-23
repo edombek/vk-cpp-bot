@@ -11,7 +11,7 @@ CI: включена (2026-10-23) — build.yml собирает обе конф
 |---|---|---|
 | С Python | `make` (шим cmake) или `cmake -B build && cmake --build build` | ✅ `-Wall` чист (`-Wno-attributes` точечно на `src/py.cpp`, см. ниже) |
 | Без Python | `make NO_PYTHON=1` / `-DVKBOT_WITH_PYTHON=OFF` | ✅ |
-| Smoke-запуск без config.json | `./build/vkbot` | ✅ чистый `FATAL: Vk: не заданы token...`, exit 1 (раньше — `terminate`) |
+| Smoke-запуск без config.json (временно перенести файл) | `./build/vkbot` | ✅ чистый `FATAL: Vk: не задан token...`, exit 1 (раньше — `terminate`) |
 | Автотесты | `make test` или `cd build && ctest --output-on-failure` | ✅ 2/2 теста (units 76/76 + py_integration 18/18); в NO_PYTHON — 1/1 (только units) |
 
 История: до фазы 1.5 штатный `make` не собирался (захардкоженные `-lboost_python39`,
@@ -43,8 +43,11 @@ Runtime-проверки фазы 0:
 бесконечный цикл с longpoll-сервером VK, автотесты вызывают функциональность мимо него
 напрямую (`Worker::work(event, FakeNet, Vk)`). Что проверить только вживую:
 
-1. `./build/vkbot` с настоящим `config.json` (`token`, `user_token`) — бот должен
-   сказать `Vk: токен группы не прошёл...` при битом токене и уйти в longpoll при живом.
+1. `./build/vkbot` с настоящим `config.json` (обязателен `token` сообщества, `user_token`
+   опционален) — бот должен сказать `Vk: токен группы не прошёл...` при битом токене и
+   уйти в longpoll при живом. **Проверено 2026-10-23**: с боевым ключом сообщества
+   (`vk_cpp_bot`, id 178228638) бот стартовал, `getTokenPermissions` прошёл, longpoll-сессия
+   к API висит (2 ESTAB), warning про отсутствие `user_token` — штатный.
 2. Личные сообщения: `/help` (кнопки разделов → нажатия работают = `message_event` +
    `sendMessageEventAnswer`), `/w Москва`, `/stat`.
 3. Беседа: `/g` (создание/вход вторым/ходы/`stop`), `/bc` кнопками.

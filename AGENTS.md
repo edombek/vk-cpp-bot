@@ -55,11 +55,16 @@ make NO_PYTHON=1                      # то же без Python
 - Кроме тестов обязательна успешная компиляция и линковка обеих конфигураций
   (`make` и `make NO_PYTHON=1`) с чистым `-Wall` (кроме точечного `-Wno-attributes`
   на `src/py.cpp`). Линтера нет; статанализ — CodeQL в CI.
-- Запустить бота end-to-end нельзя без реальных токенов VK в `config.json`
-  (`token`, `user_token`) и созданного `dat.json` (см. README). Smoke-проверка:
-  `./build/vkbot` без конфигов должен напечатать `FATAL: Vk: не заданы token...` и
-  выйти с кодом 1. Новые тесты добавляйте в `tests/units.cpp` / `tests/py_integration.cpp`
-  (CTest-registrация в CMakeLists.txt), а не отдельными скриптами.
+- **Токены в репозиторий не коммитим**: `config.json`/`dat.json` покрыты `*.json`
+  в `.gitignore` и никогда не добавляются в git. VK API: `https://api.vk.ru/method/`,
+  версия `5.131` (`ver` в `src/vk.cpp`). Обязателен только `token` (ключ сообщества);
+  `user_token` опционален — без него бот предупреждает и работает (кроме `/video`
+  и аудиосообщений).
+- Запустить бота end-to-end нельзя без реального ключа сообщества в `config.json`.
+  Smoke-проверка (с временно перенесённым `config.json`): `./build/vkbot` печатает
+  `FATAL: Vk: не задан token...` и выходит с кодом 1. Новые тесты добавляйте в
+  `tests/units.cpp` / `tests/py_integration.cpp` (CTest-registrация в CMakeLists.txt),
+  а не отдельными скриптами.
 
 ## Архитектура (неочевидно с первого взгляда)
 

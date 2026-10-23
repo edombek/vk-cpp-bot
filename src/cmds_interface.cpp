@@ -32,7 +32,7 @@ static string getParamOfPath(const string& path, const string& p)
 void stat(Event &eventIn, Event &eventOut, Worker *worker)
 {
     timer t;
-    eventOut.net.send("http://api.vk.com");
+    eventOut.net.send("https://api.vk.ru");
 #ifndef WIN32
     eventOut.msg += GIT_URL;
     eventOut.msg += " (" + string(GIT_VER) + ")\n";

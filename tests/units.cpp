@@ -243,15 +243,22 @@ int main()
         cv::minMaxLoc(diff, nullptr, &maxd);
         check(maxd <= 2.0, "U7a neonColors == reference", "max diff " + std::to_string((int)maxd));
 
-        // бенчмарк на большом кадре — печатается для docs/TESTS.md
+        // бенчмарк на большом кадре — печатается для docs/TESTS.md;
+        // минимум из 3 прогонов, чтобы CI-шум не ронял проверку U7b
         cv::Mat big(720, 1280, CV_8UC3);
         cv::randu(big, 0, 255);
-        auto t0 = std::chrono::steady_clock::now();
-        img::neonColors(big);
-        auto tVec = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - t0).count();
-        t0 = std::chrono::steady_clock::now();
-        refNeon(big);
-        auto tRef = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - t0).count();
+        long long tVec = 1000000, tRef = 1000000;
+        for (int rep = 0; rep < 3; rep++)
+        {
+            auto t0 = std::chrono::steady_clock::now();
+            img::neonColors(big);
+            long long dt = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - t0).count();
+            if (dt < tVec) tVec = dt;
+            t0 = std::chrono::steady_clock::now();
+            refNeon(big);
+            dt = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - t0).count();
+            if (dt < tRef) tRef = dt;
+        }
         std::cout << "[info] neon 1280x720: scalar=" << tRef << "ms vector=" << tVec << "ms speedup x"
                   << (tVec ? double(tRef) / double(tVec) : 0.0) << std::endl;
         check(tVec < tRef, "U7b vector faster than scalar", std::to_string(tRef) + " -> " + std::to_string(tVec) + "ms");
@@ -336,7 +343,7 @@ int main()
         const FakeNet::Call* ans = fn.first("sendMessageEventAnswer");
         check(ans != nullptr && ans->params.count("event_id") && ans->params.at("event_id") == "ev-777" && ans->params.at("user_id") == "777",
               "U11a sendMessageEventAnswer", ans ? ans->params.count("event_id") ? ans->params.at("event_id") : "(нет event_id)" : "(нет вызова)");
-        const FakeNet::Call* msg = fn.firstExact("https://api.vk.com/method/messages.send");
+        const FakeNet::Call* msg = fn.firstExact("https://api.vk.ru/method/messages.send");
         check(msg != nullptr && msg->params.count("message") && msg->params.at("message").find("done!") != std::string::npos,
               "U11b команда выполнена", msg ? msg->params.count("message") ? msg->params.at("message") : "(пусто)" : "(нет вызова)");
         check(bd.get()["users"]["777"]["name"] == "Тест", "U11c rename применился", bd.get()["users"]["777"]["name"].dump());
@@ -363,7 +370,7 @@ int main()
         };
         Worker w;
         w.work(ev, fn, vk);
-        const FakeNet::Call* msg = fn.firstExact("https://api.vk.com/method/messages.send");
+        const FakeNet::Call* msg = fn.firstExact("https://api.vk.ru/method/messages.send");
         check(msg != nullptr && msg->params.count("message") && msg->params.at("message").find("уровень прав") != std::string::npos,
               "U12a help отправлен", msg ? msg->params.count("message") ? msg->params.at("message") : "(нет message)" : "(нет вызова)");
         // верхний уровень справки — кнопки разделов; проверяем наличие раздела «игры» (там /bc)
@@ -497,7 +504,7 @@ int main()
         {
             const FakeNet::Call* c = nullptr;
             for (const auto& x : fn.calls)
-                if (x.url == "https://api.vk.com/method/messages.send")
+                if (x.url == "https://api.vk.ru/method/messages.send")
                     c = &x;
             return c && c->params.count("message") ? c->params.at("message") : "(нет)";
         };
@@ -505,7 +512,7 @@ int main()
         {
             const FakeNet::Call* c = nullptr;
             for (const auto& x : fn.calls)
-                if (x.url == "https://api.vk.com/method/messages.send" && x.params.count("keyboard"))
+                if (x.url == "https://api.vk.ru/method/messages.send" && x.params.count("keyboard"))
                     c = &x;
             if (!c)
                 return -1;
@@ -559,7 +566,7 @@ int main()
             w.work(ev, fn, vk);
             const FakeNet::Call* c = nullptr;
             for (const auto& x : fn.calls)
-                if (x.url == "https://api.vk.com/method/messages.send")
+                if (x.url == "https://api.vk.ru/method/messages.send")
                     c = &x;
             return c ? std::make_pair(c->params.count("message") ? c->params.at("message") : std::string("(нет)"),
                                       static_cast<bool>(c->params.count("keyboard"))) : std::make_pair(std::string("(нет вызова)"), false);
@@ -569,7 +576,7 @@ int main()
         bool hasMoscow = false;
         const FakeNet::Call* c1 = nullptr;
         for (const auto& x : fn.calls)
-            if (x.url == "https://api.vk.com/method/messages.send" && x.params.count("keyboard"))
+            if (x.url == "https://api.vk.ru/method/messages.send" && x.params.count("keyboard"))
                 c1 = &x;
         if (c1)
         {
@@ -599,7 +606,7 @@ int main()
         w.work(ev, fn, vk);
         const FakeNet::Call* c = nullptr;
         for (const auto& x : fn.calls)
-            if (x.url == "https://api.vk.com/method/messages.send")
+            if (x.url == "https://api.vk.ru/method/messages.send")
                 c = &x;
         bool hasAdmBtn = false;
         if (c && c->params.count("keyboard"))
@@ -628,7 +635,7 @@ int main()
             w.work(ev, fn, vk);
             std::string all; // /g шлёт два сообщения (карту и «Ходит…») — склеиваем
             for (const auto& x : fn.calls)
-                if (x.url == "https://api.vk.com/method/messages.send" && x.params.count("message"))
+                if (x.url == "https://api.vk.ru/method/messages.send" && x.params.count("message"))
                     all += x.params.at("message");
             return all;
         };

@@ -1,7 +1,7 @@
 #include "vk.h"
 #include <stdexcept>
 
-#define ver "5.92"
+#define ver "5.131" // актуальная версия VK API (dev.vk.ru, «Формат запросов»)
 
 #include <iostream>
 
@@ -21,8 +21,10 @@ Vk::Vk(Net& n)
 
 void Vk::validate()
 {
-    if (this->token.empty() || this->user_token.empty())
-        throw std::runtime_error("Vk: не заданы token и/или user_token в config.json");
+    if (this->token.empty())
+        throw std::runtime_error("Vk: не задан token в config.json");
+    if (this->user_token.empty()) // пользовательский токен опционален: longpoll и большинство команд работают с токеном группы
+        std::cerr << "WARNING: user_token не задан — video.search и аудиосообщения работать не будут" << std::endl;
     json resp = this->send("groups.getTokenPermissions");
     if (resp["response"].is_null())
     {
@@ -46,7 +48,7 @@ json Vk::send(const string& method, table_t args, bool user)
         args["v"] = ver;
     for (int attempt = 0;; attempt++)
     {
-        json buff = json::parse(this->net.send("https://api.vk.com/method/" + method, args));
+        json buff = json::parse(this->net.send("https://api.vk.ru/method/" + method, args));
         if (!buff["error"]["error_code"].is_number())
             return buff;
         int code = buff["error"]["error_code"].get<int>();
