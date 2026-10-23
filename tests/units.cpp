@@ -452,6 +452,8 @@ int main()
         check(msg != nullptr && msg->params.count("message") && msg->params.at("message").find("done!") != std::string::npos,
               "U11b команда выполнена", msg ? msg->params.count("message") ? msg->params.at("message") : "(пусто)" : "(нет вызова)");
         check(bd.get()["users"]["777"]["name"] == "Тест", "U11c rename применился", bd.get()["users"]["777"]["name"].dump());
+        check(ans != nullptr && ans->params.count("event_data") && !ans->params.count("answer"),
+              "U11d event_data вместо answer", ans && ans->params.count("event_data") ? ans->params.at("event_data") : "(нет)");
     }
 
     // --- U12: /help по message → ответ с клавиатурой разделов ---

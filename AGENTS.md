@@ -108,6 +108,7 @@ make NO_PYTHON=1                      # то же без Python
 - Формат callback-кнопок (стр. 911 при нарушении): `payload` — только JSON-строка в
   фигурных скобках ≤255 (у нас `{"cmd": "<команда>"}`, генерируется в `Keyboard::button`);
   ≤5 кнопок в ряду, пустые ряды запрещены (билдер чинит сам); label ≤40 символов.
+  Ответ на нажатие — `messages.sendMessageEventAnswer` с параметром `event_data` (не `answer`).
 - С API ≥ 5.103 `object` события `message_new` — обёртка `{ message, client_info }`
   (не плоское сообщение, как было до 5.103): `events.cpp` спускается в `lpEv["message"]`;
   `client_info` (возможности клиента: keyboard/inline/carousel) пока не используется.

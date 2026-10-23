@@ -12,7 +12,7 @@ CI: включена (2026-10-23) — build.yml собирает обе конф
 | С Python | `make` (шим cmake) или `cmake -B build && cmake --build build` | ✅ `-Wall` чист (`-Wno-attributes` точечно на `src/py.cpp`, см. ниже) |
 | Без Python | `make NO_PYTHON=1` / `-DVKBOT_WITH_PYTHON=OFF` | ✅ |
 | Smoke-запуск без config.json (временно перенести файл) | `./build/vkbot` | ✅ чистый `FATAL: Vk: не задан token...`, exit 1 (раньше — `terminate`) |
-| Автотесты | `make test` или `cd build && ctest --output-on-failure` | ✅ 2/2 теста (units 86/86 + py_integration 18/18); в NO_PYTHON — 1/1 (только units) |
+| Автотесты | `make test` или `cd build && ctest --output-on-failure` | ✅ 2/2 теста (units 87/87 + py_integration 18/18); в NO_PYTHON — 1/1 (только units) |
 
 История: до фазы 1.5 штатный `make` не собирался (захардкоженные `-lboost_python39`,
 `-I/usr/include/opencv4`), проверки делались ручной компиляцией с подобранными флагами.
@@ -88,7 +88,7 @@ Runtime-проверки фазы 0:
 | U23 | `message_new` с `text: null` (сообщение без текста) и вложения photo/audio_message без `sizes`/`link_mp3` — без исключений и UB (найдено живой проверкой) | ✅ |
 | U24 | `message_new` в формате API ≥ 5.103: `object = { message, client_info }` — поля и вложения читаются из вложенного `message` (регресс после поднятия версии API — найдено живой проверкой) | ✅ |
 
-Итого: 86/86 проверок (тесты герметичны: сброс `conf`/`bd` в начале, повторные запуски проходят).
+Итого: 87/87 проверок (тесты герметичны: сброс `conf`/`bd` в начале, повторные запуски проходят).
 Бенчмарк U7b — минимум из 3 замеров: одиночные прогоны под фоновой нагрузкой давали ложные падения.
 Бенчмарк U7 (1280x720): scalar ≈ 23 ms → vector ≈ 13 ms (x1.7).
 
