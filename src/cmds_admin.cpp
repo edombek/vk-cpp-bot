@@ -122,3 +122,19 @@ void pycmd(Event &eventIn, Event &eventOut, Worker *worker)
     eventOut.msg = "не собрано";
 #endif
 }
+
+void pywiki(Event &eventIn, Event &eventOut, Worker *worker)
+{
+#ifndef NO_PYTHON
+    // справка по /py реализуется самим /py: разделы уходят print-сообщениями
+    std::string code(pyWikiScript());
+    pyF interpreter(eventIn, eventOut);
+    std::string err = interpreter.exec(code);
+    if (!err.empty())
+        eventOut.msg += "\n" + err;
+    else if (eventOut.msg.empty())
+        eventOut.msg = "вики отправлена сообщениями выше";
+#else
+    eventOut.msg = "не собрано";
+#endif
+}

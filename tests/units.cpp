@@ -506,7 +506,8 @@ int main()
                      all->params.at("message").find("[ игры ]") != std::string::npos &&
                      all->params.at("message").find("/bc") != std::string::npos &&
                      all->params.at("message").find("или текстом: /интерфейс") != std::string::npos &&
-                     all->params.at("message").find("/py") == std::string::npos; // недоступное не показывается
+                     all->params.at("message").find("/py ") == std::string::npos &&
+                     all->params.at("message").find("/py\n") == std::string::npos; // недоступное /py не показывается (/pywiki — можно, у него доступ 1)
         check(allOk, "U12d /help все — команды по разделам", all && all->params.count("message") ? all->params.at("message") : "(нет)");
         fn.reset();
         json ev3 = ev;

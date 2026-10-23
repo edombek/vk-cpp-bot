@@ -12,7 +12,7 @@ CI: включена (2026-10-23) — build.yml собирает обе конф
 | С Python | `make` (шим cmake) или `cmake -B build && cmake --build build` | ✅ `-Wall` чист (`-Wno-attributes` точечно на `src/py.cpp`, см. ниже) |
 | Без Python | `make NO_PYTHON=1` / `-DVKBOT_WITH_PYTHON=OFF` | ✅ |
 | Smoke-запуск без config.json (временно перенести файл) | `./build/vkbot` | ✅ чистый `FATAL: Vk: не задан token...`, exit 1 (раньше — `terminate`) |
-| Автотесты | `make test` или `cd build && ctest --output-on-failure` | ✅ 2/2 теста (units 91/91 + py_integration 25/25); в NO_PYTHON — 1/1 (только units) |
+| Автотесты | `make test` или `cd build && ctest --output-on-failure` | ✅ 2/2 теста (units 91/91 + py_integration 27/27); в NO_PYTHON — 1/1 (только units) |
 
 История: до фазы 1.5 штатный `make` не собирался (захардкоженные `-lboost_python39`,
 `-I/usr/include/opencv4`), проверки делались ручной компиляцией с подобранными флагами.
@@ -114,8 +114,9 @@ Runtime-проверки фазы 0:
 | T13 | `print` до исключения — сообщение отправлено, ошибка возвращается как раньше | ✅ |
 | T14 | флуд-контроль print: `py_print_max_msgs` (лимит на скрипт + уведомление об обрезке) | ✅ |
 | T15 | флуд-контроль print: `py_print_interval_ms` (минимальный интервал между сообщениями) | ✅ |
+| T16 | `/pywiki`: текст вики (`pyWikiScript()`) исполняется как скрипт и уходит print-сообщениями | ✅ |
 
-Итого: 25/25 проверок, `ctest` 1/1 passed (~0.2 c).
+Итого: 27/27 проверок, `ctest` 1/1 passed (~0.2 c).
 
 ## Python-интеграция: стресс-прогоны (исторические, дофазовые)
 

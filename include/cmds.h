@@ -30,6 +30,7 @@ void weather(Event &eventIn, Event &eventOut, Worker *worker);
 void gameF(Event &eventIn, Event &eventOut, Worker *worker);
 void apod(Event &eventIn, Event &eventOut, Worker *worker);
 void pycmd(Event &eventIn, Event &eventOut, Worker *worker);
+void pywiki(Event &eventIn, Event &eventOut, Worker *worker);
 void pix(Event &eventIn, Event &eventOut, Worker *worker);
 void vox(Event &eventIn, Event &eventOut, Worker *worker);
 void crt(Event &eventIn, Event &eventOut, Worker *worker);

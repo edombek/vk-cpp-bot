@@ -103,6 +103,8 @@ make NO_PYTHON=1                      # то же без Python
   классы `Doc`/`User`/`Event`/`Keyboard`.
 - Кастеры `table_t↔dict` и `json↔py` — в `include/py_casters.h` (значения dict приводятся
   через str() — нестроковые аргументы больше не роняют бота).
+- `/pywiki` — справка по `/py`, реализована самим python-движком: текст разделён на
+  print-секции в `pyWikiScript()` (`py.cpp`), команда в `cmds_admin.cpp` (доступ 1).
 - Критический инвариант: `PyMainThread` удерживает `gil_scoped_release` навсегда; без него
   создание под-интерпретатора из worker-потока — deadlock (закрыт тестом T9 в ctest).
 - `Vk(Net&)` не трогает сеть; сетевая валидация токена — `Vk::validate()` (вызывает Lp).

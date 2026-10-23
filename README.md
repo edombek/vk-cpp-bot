@@ -84,6 +84,9 @@ eventOut.msg = "Привет, " + eventIn.user.name + "! Ты написал " +
 не чаще одного сообщения в `py_print_interval_ms` мс (default 1000) и не более
 `py_print_max_msgs` (default 30) на скрипт — значения в `config.json`.
 
+Справка по возможностям `/py` — команда `/pywiki` (разделы уходят отдельными
+сообщениями; текст вики — `pyWikiScript()` в `py.cpp`).
+
 ## Настройка
 config.json:
 ```

@@ -301,3 +301,21 @@ int pyF::printsSent() const
 {
     return impl->printer->printsSent();
 }
+
+// ---------------------------------------------------------------------------
+// Вики по python-скриптам: текст разделён на print-разделы — каждый уходит
+// отдельным сообщением (со штатным флуд-контролем ScriptPrinter)
+// ---------------------------------------------------------------------------
+const char* pyWikiScript()
+{
+    static const char* wiki = R"PY(
+print("Wiki /py (1/7). Python-скрипты прямо в чате: /py <код>. Каждый запуск — изолированный под-интерпретатор, свои переменные, таймаутов нет; код одной строкой, операторы через «;»")
+print("(2/7) Переменные: eventIn — входящее событие: msg, words, from_id, peer_id, is_chat, user (name/id/acess/msgs), docs, fwds; eventOut — ответ: msg, keyboard; net — HTTP: net.send(url, params); vk — VK API: vk.send('users.get', {'user_ids': 1})")
+print("(3/7) Модуль vkcppbot: import vkcppbot; vkcppbot.fs.exists/readData/writeData; vkcppbot.str.words/low/summ/replase; vkcppbot.timer.sleep(мс)/getWorkTime()")
+print("(4/7) Классы: Keyboard(one_time, inline): button(подпись, payload)/textButton/link/row/dump; Doc(): uploadDoc(файл, данные, net, vk, peer_id)/uploadDoc с audio_message=True/uploadPhoto; Event: getOut/send/pysend")
+print("(5/7) print() отправляет отдельное сообщение в чат (sys.stdout — тоже). Флуд-защита: не чаще 1 сообщения в секунду (py_print_interval_ms) и максимум 30 на скрипт (py_print_max_msgs), обе настройки в config.json")
+print("(6/7) Примеры: /py import vkcppbot; print(vkcppbot.str.low(eventIn.msg)) ; /py print(eventIn.user.name + ', ' + str(len(eventIn.words)) + ' слов')")
+print("(7/7) Ещё: /py eventOut.msg = 'привет' — обычный ответ без print ; /py eventOut.keyboard = vkcppbot.Keyboard().button('да', '/yes').dump() — клавиатура; /pywiki — эта справка заново")
+)PY";
+    return wiki;
+}

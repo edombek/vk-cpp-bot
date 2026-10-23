@@ -279,6 +279,20 @@ int main()
             conf.get()["py_print_interval_ms"] = 0;
             conf.lock.unlock();
         }
+
+        // --- T16: /pywiki — текст вики исполняется как скрипт и уходит print-сообщениями ---
+        {
+            FakeNet fn;
+            fn.responses["/method/messages.send"] = "{\"response\":1}";
+            Vk vkp(fn);
+            RunResult r = run(fn, vkp, pyWikiScript());
+            auto sends = fn.find("/method/messages.send");
+            bool content = sends.size() >= 5 && !sends.empty() &&
+                           sends.front()->params.count("message") &&
+                           sends.front()->params.at("message").find("Wiki /py") != std::string::npos;
+            check(r.err.empty(), "T16a вики-скрипт без ошибок", r.err);
+            check(content, "T16b вики печатается разделами", std::to_string(sends.size()));
+        }
     }
 
     remove("test_conf.json");

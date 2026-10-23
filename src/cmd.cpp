@@ -40,6 +40,7 @@ cmds_t cmdsList =
     { "/g", { "игра", &gameF, 1, true, "игры" } },
     { "/apod", { "астрофото на каждый день", &apod, 1, true, "медиа" } },
     {"/py", { "интерпретатор душманского змия", &pycmd, 5, true, "админ" }},
+    {"/pywiki", { "справка по python-скриптам", &pywiki, 1, true, "интерфейс" }},
     {"/pix", { "8bit art", &pix, 1, true, "медиа" }},
     {"/vox", { "Half-Life vox", &vox, 1, true, "медиа" }},
     {"/crt", { "cartoon art", &crt, 1, true, "медиа" }},

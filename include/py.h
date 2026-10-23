@@ -41,3 +41,6 @@ private:
     struct Impl;
     std::unique_ptr<Impl> impl;
 };
+
+// Текст вики по python-скриптам (команда /pywiki) — печатается print'ами по разделам
+const char* pyWikiScript();
