@@ -2,7 +2,7 @@
 #include "bd.h"
 #include <iostream>
 
-json users::newUser(uint32_t id, Vk& vk)
+json users::newUser(uint64_t id, Vk& vk)
 {
     json u = {};
     u["acess"] = 1;
@@ -11,7 +11,7 @@ json users::newUser(uint32_t id, Vk& vk)
     return u;
 }
 
-users::user users::getUser(uint32_t id, Vk& vk, bool inc)
+users::user users::getUser(uint64_t id, Vk& vk, bool inc)
 {
     users::user u;
     bd.lock.lock();
@@ -29,7 +29,7 @@ users::user users::getUser(uint32_t id, Vk& vk, bool inc)
     return u;
 }
 
-void users::changeUser(uint32_t id, const users::user& edited)
+void users::changeUser(uint64_t id, const users::user& edited)
 {
     bd.lock.lock();
     json& us = bd.get()["users"];

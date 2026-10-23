@@ -27,7 +27,7 @@ Event::Event(Net &n, Vk &v, json lpEv)
         else if (lpEv["text"].is_string()) // inline text-кнопки приходят как text
             this->msg = lpEv["text"];
         this->words = str::words(this->msg);
-        this->is_chat = uint32_t(this->from_id) != this->peer_id;
+        this->is_chat = this->from_id != this->peer_id;
         return;
     }
     if (lpEv["random_id"].is_number())
@@ -61,7 +61,7 @@ Event::Event(Net &n, Vk &v, json lpEv)
         this->peer_id = lpEv["owner_id"];
         this->id = lpEv["id"];
     }
-    this->is_chat = uint32_t(this->from_id) != this->peer_id; // явный каст: сравнение сохраняет поведение для from_id < 0
+    this->is_chat = this->from_id != this->peer_id; // знаковое сравнение: от «отрицательного» отправления бота (отрицательный from_id это не спасает)
     if (!lpEv["attachments"].is_null())
     {
         for (auto attach : lpEv["attachments"])

@@ -88,7 +88,7 @@ Doc::Doc(json lpDoc)
     }
 }
 
-bool Doc::uploadDoc(const std::string& filename, const std::string& data, Net& net, Vk& vk, uint32_t peer_id, bool audio_message)
+bool Doc::uploadDoc(const std::string& filename, const std::string& data, Net& net, Vk& vk, uint64_t peer_id, bool audio_message)
 {
     table_t params;
     if (peer_id)
@@ -150,7 +150,7 @@ bool Doc::uploadDoc(const std::string& filename, const std::string& data, Net& n
     return true;
 }
 
-bool Doc::uploadPhoto(const std::string& filename, const std::string& data, Net& net, Vk& vk, uint32_t peer_id)
+bool Doc::uploadPhoto(const std::string& filename, const std::string& data, Net& net, Vk& vk, uint64_t peer_id)
 {
     table_t params;
     if (peer_id)
