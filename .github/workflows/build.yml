@@ -28,13 +28,14 @@ jobs:
           restore-keys: |
             apt-${{ runner.os }}-
 
-      # pybind11-dev вместо libboost-python-dev: python-слой на pybind11 (фаза 2)
+      # pybind11 из apt (2.11) без py::subinterpreter — нужен актуальный pip-пакет;
+      # CMake подхватит его через fallback (`python3 -m pybind11 --includes`)
       - name: Install dependencies
         run: |
           sudo apt-get update -o Acquire::Retries=3
           sudo apt-get install -y --no-install-recommends \
-            cmake libcurl4-openssl-dev libopencv-dev \
-            python3-dev pybind11-dev
+            cmake libcurl4-openssl-dev libopencv-dev python3-dev
+          python3 -m pip install --break-system-packages --quiet pybind11
 
       - name: Configure (with Python)
         run: cmake -S . -B build -DVKBOT_WITH_PYTHON=ON

@@ -117,7 +117,7 @@
 |---|---|
 | Вернуть CI: `build.yml` — push/PR, apt-кэш OpenCV (`actions/cache`), `--no-install-recommends`, ретраи apt, `timeout-minutes` | ✅ 2026-10-23 |
 | `ctest` обеих конфигураций в CI (unit 76 + py 18) | ✅ |
-| Зависимость python-слоя в CI: `pybind11-dev` вместо `libboost-python-dev` | ✅ |
+| Зависимость python-слоя в CI: `pybind11` из pip (apt 2.11 без subinterpreter), boost убран из установки | ✅ |
 | CodeQL: actions v2→v3/v4, триггеры push/PR/schedule возвращены, зависимости для C++-автобилда | ✅ |
 | Первый зелёный прогон CI на GitHub (наблюдение `gh run watch`) | ⬜ |
 | AppVeyor | ⬜ остаётся `.disabled` — Windows не поддерживается (решение владельца) |

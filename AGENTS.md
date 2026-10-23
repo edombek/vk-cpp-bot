@@ -39,7 +39,7 @@ make NO_PYTHON=1                      # то же без Python
   OpenCV — самая тяжёлая зависимость), `--no-install-recommends`, `Acquire::Retries` и
   `timeout-minutes` (прежнее зависание apt больше не блокирует прогон). Обе конфигурации
   собираются и прогоняют `ctest`. CodeQL (actions v3) — push/PR/schedule. Зависимость
-  python-слоя на раннере — `pybind11-dev` (не boost). `.appveyor.yml` остаётся
+  python-слоя на раннере — `pybind11` из pip (в apt-версии нет `py::subinterpreter`; boost не нужен). `.appveyor.yml` остаётся
   `.disabled` (Windows не поддерживается). Локальная проверка обеих конфигураций —
   по-прежнему обязательна перед пушем.
 - Windows (`.appveyor.yml`, `*.vcxproj`, `win32deps`) рассчитан на устаревший стек
