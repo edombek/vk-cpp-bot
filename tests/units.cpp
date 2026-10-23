@@ -514,6 +514,15 @@ int main()
                      sec->params.at("message").find("раздел: игры") != std::string::npos &&
                      sec->params.at("message").find("/bc") != std::string::npos;
         check(secOk, "U12e ярлык /игры == /help игры", sec && sec->params.count("message") ? sec->params.at("message") : "(нет)");
+        fn.reset();
+        json ev4 = ev;
+        ev4["object"]["text"] = "/всекоманды";
+        w.work(ev4, fn, vk);
+        const FakeNet::Call* vc = fn.firstExact("https://api.vk.ru/method/messages.send");
+        bool vcOk = vc && vc->params.count("message") &&
+                    vc->params.at("message").find("[ игры ]") != std::string::npos &&
+                    vc->params.at("message").find(", все команды") != std::string::npos;
+        check(vcOk, "U12f ярлык /всекоманды — полный список", vc && vc->params.count("message") ? vc->params.at("message") : "(нет)");
     }
 
     // --- U13: парсинг message_new: вложения (photo/doc), пересылки, беседа ---

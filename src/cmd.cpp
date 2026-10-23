@@ -27,6 +27,8 @@ cmds_t cmdsList =
     { "/игры", { "раздел справки", &help, 1, false, "игры" } },
     { "/медиа", { "раздел справки", &help, 1, false, "медиа" } },
     { "/админ", { "раздел справки", &help, 1, false, "админ" } },
+    { "/все", { "полный список команд", &help, 1, false, "интерфейс" } },
+    { "/всекоманды", { "полный список команд", &help, 1, false, "интерфейс" } },
     { "/setc", { "редактор конфига", &setCfg, 5, true, "админ" } },
     { "/stat", { "статус бота", &stat, 1, true, "интерфейс" } },
     { "/con", { "консоль)", &con, 5, true, "админ" } },
@@ -52,11 +54,14 @@ static const vector<string> cmdCats = { "интерфейс", "утилиты", 
 void help(Event &eventIn, Event &eventOut, Worker *worker)
 {
     string section = eventIn.words.size() > 1 ? str::low(eventIn.words[1]) : "";
-    if (section.empty() && eventIn.words.size()) // ярлык раздела текстом: /игры == /help игры
-        for (const string& cat : cmdCats)
-            if (str::low(eventIn.words[0]) == "/" + cat)
+    bool allCmds = (section == "все" || section == "все команды" || section == "всекоманды");
+    string w0 = eventIn.words.size() ? str::low(eventIn.words[0]) : "";
+    if (w0 == "/все" || w0 == "/всекоманды") // ярлык полного списка текстом (и «/все команды» с пробелом)
+        allCmds = true;
+    else if (section.empty() && !w0.empty())
+        for (const string& cat : cmdCats) // ярлык раздела текстом: /игры == /help игры
+            if (w0 == "/" + cat)
                 section = cat;
-    bool allCmds = (section == "все" || section == "все команды");
     if (allCmds)
         section = "";
     eventOut.msg += "твой уровень прав: " + to_string(eventIn.user.acess);
