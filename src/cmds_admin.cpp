@@ -1,4 +1,4 @@
-// Административные команды: /setc, /con, /u, /set, /py
+// Административные команды: /setc, /con, /u, /set
 #include "cmds.h"
 #include "bd.h"
 #include "fs.h"
@@ -7,10 +7,6 @@
 #include "timer.h"
 #include "users.h"
 #include <cstdio>
-
-#ifndef NO_PYTHON
-#include "py.h"
-#endif // NO_PYTHON
 
 using namespace std;
 
@@ -101,40 +97,4 @@ void setCfg(Event &eventIn, Event &eventOut, Worker *worker)
     conf.get()[param] = json::parse(eventIn.words[2]);
     conf.lock.unlock();
     conf.save();
-}
-
-void pycmd(Event &eventIn, Event &eventOut, Worker *worker)
-{
-#ifndef NO_PYTHON
-    std::string str(str::summ(eventIn.words, 1));
-    pyF interpreter(eventIn, eventOut); // под-интерпретатор с собственным GIL (pybind11)
-    str = interpreter.exec(str);
-    if(str.empty())
-    {
-        if (interpreter.printsSent() == 0)
-            eventOut.msg += "\ndone!";
-        else if (eventOut.msg.empty())
-            eventOut.msg = "готово!"; // print-сообщения уже отправлены, но пустой ответ VK не примет
-    }
-    else
-        eventOut.msg += "\n" + str;
-#else
-    eventOut.msg = "не собрано";
-#endif
-}
-
-void pywiki(Event &eventIn, Event &eventOut, Worker *worker)
-{
-#ifndef NO_PYTHON
-    // справка по /py реализуется самим /py: разделы уходят print-сообщениями
-    std::string code(pyWikiScript());
-    pyF interpreter(eventIn, eventOut);
-    std::string err = interpreter.exec(code);
-    if (!err.empty())
-        eventOut.msg += "\n" + err;
-    else if (eventOut.msg.empty())
-        eventOut.msg = "вики отправлена сообщениями выше";
-#else
-    eventOut.msg = "не собрано";
-#endif
 }
