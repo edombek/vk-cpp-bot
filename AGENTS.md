@@ -34,12 +34,14 @@ make NO_PYTHON=1                      # то же без Python
 - **`-DNO_PYTHON` меняет состав классов** (`Vk::send(dict)` есть только с Python) — CMake
   сам пересобирает при переключении `VKBOT_WITH_PYTHON`, но смешивать старые объекты вручную
   нельзя.
-- **CI временно ОТКЛЮЧЕНА (2026-10-22, решение владельца)**: `build.yml` и CodeQL переведены
-  в `workflow_dispatch` (ручной запуск: `gh workflow run build.yml`), `.appveyor.yml` →
-  `.appveyor.yml.disabled`. Причина зависания Build: apt-установка OpenCV на раннере.
-  До включения — обязательная локальная проверка обеих конфигураций (`make`,
-  `make NO_PYTHON=1`). Автоматические триггеры закомментированы в файлах, раскомментируются
-  при возврате.
+- **CI включена (2026-10-23)**: `build.yml` — push в `master`/`ai-optimization` и PR в
+  `master`; ставит зависимости через apt с кэшем `actions/cache` (`/var/cache/apt/archives`,
+  OpenCV — самая тяжёлая зависимость), `--no-install-recommends`, `Acquire::Retries` и
+  `timeout-minutes` (прежнее зависание apt больше не блокирует прогон). Обе конфигурации
+  собираются и прогоняют `ctest`. CodeQL (actions v3) — push/PR/schedule. Зависимость
+  python-слоя на раннере — `pybind11-dev` (не boost). `.appveyor.yml` остаётся
+  `.disabled` (Windows не поддерживается). Локальная проверка обеих конфигураций —
+  по-прежнему обязательна перед пушем.
 - Windows (`.appveyor.yml`, `*.vcxproj`, `win32deps`) рассчитан на устаревший стек
   (VS2015, boost 1.68, OpenCV 2.4, x86) и сейчас **не поддерживается** — не чинить без явного запроса.
 
@@ -52,7 +54,7 @@ make NO_PYTHON=1                      # то же без Python
   Подробности и список проверок — `docs/TESTS.md`.
 - Кроме тестов обязательна успешная компиляция и линковка обеих конфигураций
   (`make` и `make NO_PYTHON=1`) с чистым `-Wall` (кроме точечного `-Wno-attributes`
-  на `src/py.cpp`). Линтера нет; CI — только CodeQL (в ручном запуске).
+  на `src/py.cpp`). Линтера нет; статанализ — CodeQL в CI.
 - Запустить бота end-to-end нельзя без реальных токенов VK в `config.json`
   (`token`, `user_token`) и созданного `dat.json` (см. README). Smoke-проверка:
   `./build/vkbot` без конфигов должен напечатать `FATAL: Vk: не заданы token...` и

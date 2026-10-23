@@ -6,26 +6,27 @@
 #
 # ******** NOTE ********
 # We have attempted to detect the languages in your repository. Please check
-# the `language` matrix defined below to confirm you have the correct set of
+# the `language` matrix defined below to confirm to the correct set of
 # supported CodeQL languages.
 #
 name: "CodeQL"
 
-# ВРЕМЕННО ОТКЛЮЧЕНО (2026-10-22) по решению владельца — только ручной запуск.
-# Для возврата раскомментируй push/pull_request/schedule.
+# CI возвращена 2026-10-23: автоматические прогоны включены (actions обновлены
+# до v3/v4; для C++-анализа ставятся зависимости, как в build.yml).
 on:
+  push:
+    branches: [ "master", "ai-optimization" ]
+  pull_request:
+    branches: [ "master" ]
+  schedule:
+    - cron: '31 9 * * 2'
   workflow_dispatch:
-  # push:
-  #   branches: [ "master" ]
-  # pull_request:
-  #   branches: [ "master" ]
-  # schedule:
-  #   - cron: '31 9 * * 2'
 
 jobs:
   analyze:
     name: Analyze
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     permissions:
       actions: read
       contents: read
@@ -40,30 +41,47 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
+      with:
+        submodules: true
+
+    - name: Cache apt packages (OpenCV)
+      uses: actions/cache@v4
+      with:
+        path: /var/cache/apt/archives
+        key: apt-${{ runner.os }}-${{ hashFiles('.github/workflows/build.yml') }}
+        restore-keys: |
+          apt-${{ runner.os }}-
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update -o Acquire::Retries=3
+        sudo apt-get install -y --no-install-recommends \
+          cmake libcurl4-openssl-dev libopencv-dev \
+          python3-dev pybind11-dev
 
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@v2
+      uses: github/codeql-action/init@v3
       with:
         languages: ${{ matrix.language }}
         # If you wish to specify custom queries, you can do so here or in a config file.
-        # By default, queries listed here will override any specified in a config file.
+        # By default, queries listed here will override a specified set of queries.
         # Prefix the list here with "+" to use these queries and those in the config file.
-        
+
         # Details on CodeQL's query packs refer to : https://docs.github.com/en/code-security/code-scanning/automatically-scanning-your-code-for-vulnerabilities-and-errors/configuring-code-scanning#using-queries-in-ql-packs
         # queries: security-extended,security-and-quality
 
-        
+
     # Autobuild attempts to build any compiled languages  (C/C++, C#, or Java).
     # If this step fails, then you should remove it and run the build manually (see below)
     - name: Autobuild
-      uses: github/codeql-action/autobuild@v2
+      uses: github/codeql-action/autobuild@v3
 
     # ℹ️ Command-line programs to run using the OS shell.
     # 📚 See https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstepsrun
 
-    #   If the Autobuild fails above, remove it and uncomment the following three lines. 
+    #   If the Autobuild fails above, remove it and uncomment the following three lines.
     #   modify them (or add more) to build your code if your project, please refer to the EXAMPLE below for guidance.
 
     # - run: |
@@ -71,4 +89,4 @@ jobs:
     #   ./location_of_script_within_repo/buildscript.sh
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v2
+      uses: github/codeql-action/analyze@v3

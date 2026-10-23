@@ -1,29 +1,40 @@
 name: Build
 
-# ВРЕМЕННО ОТКЛЮЧЕНО (2026-10-22): установка зависимостей через apt на раннере
-# подвешивается; сборка проверяется локально (cmake, см. docs/TESTS.md).
-# Для возврата автоматических прогонов раскомментируй push/pull_request.
+# CI возвращена 2026-10-23. Причина прошлой приостановки — apt-установка OpenCV
+# подвешивалась на скачивании пакетов; теперь архивы apt кэшируются, установка идёт
+# без recommended-зависимостей с ретраями, а у джоба есть timeout (зависаний нет).
 on:
+  push:
+    branches: [ "master", "ai-optimization" ]
+  pull_request:
+    branches: [ "master" ]
   workflow_dispatch:
-  # push:
-  #   branches: [ "master", "ai-optimization" ]
-  # pull_request:
-  #   branches: [ "master" ]
 
 jobs:
   build-linux:
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: true
 
+      # OpenCV — самая тяжёлая зависимость: держим скачанные .deb в actions/cache
+      - name: Cache apt packages (OpenCV)
+        uses: actions/cache@v4
+        with:
+          path: /var/cache/apt/archives
+          key: apt-${{ runner.os }}-${{ hashFiles('.github/workflows/build.yml') }}
+          restore-keys: |
+            apt-${{ runner.os }}-
+
+      # pybind11-dev вместо libboost-python-dev: python-слой на pybind11 (фаза 2)
       - name: Install dependencies
         run: |
-          sudo apt-get update
+          sudo apt-get update -o Acquire::Retries=3
           sudo apt-get install -y --no-install-recommends \
             cmake libcurl4-openssl-dev libopencv-dev \
-            libboost-python-dev python3-dev
+            python3-dev pybind11-dev
 
       - name: Configure (with Python)
         run: cmake -S . -B build -DVKBOT_WITH_PYTHON=ON
@@ -31,11 +42,17 @@ jobs:
       - name: Build (with Python)
         run: cmake --build build -j
 
+      - name: Tests (with Python)
+        run: ctest --test-dir build --output-on-failure
+
       - name: Configure (without Python)
         run: cmake -S . -B build-nopy -DVKBOT_WITH_PYTHON=OFF
 
       - name: Build (without Python)
         run: cmake --build build-nopy -j
+
+      - name: Tests (without Python)
+        run: ctest --test-dir build-nopy --output-on-failure
 
       - uses: actions/upload-artifact@v4
         with:
