@@ -61,3 +61,9 @@ jobs:
           path: |
             build/vkbot
             build-nopy/vkbot
+
+      # после sudo apt кэш пакетов принадлежит root — иначе actions/cache не может
+      # его сохранить (tar exit 2 в аннотациях)
+      - name: Fix apt cache ownership
+        if: always()
+        run: sudo chown -R "$USER":"$USER" /var/cache/apt/archives || true

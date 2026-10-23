@@ -13,9 +13,11 @@ name: "CodeQL"
 
 # CI возвращена 2026-10-23: автоматические прогоны включены (actions обновлены
 # до v3/v4; для C++-анализа ставятся зависимости, как в build.yml).
+# ВАЖНО: code-scanning анализирует ветки, для которых workflow есть в default
+# ветке (master) — на feature-ветках CodeQL стартует после появления файла в master.
 on:
   push:
-    branches: [ "master", "ai-optimization" ]
+    branches: [ "master" ]
   pull_request:
     branches: [ "master" ]
   schedule:
@@ -91,3 +93,8 @@ jobs:
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
+
+    # кэш apt после sudo принадлежит root — отдать раннеру для сохранения
+    - name: Fix apt cache ownership
+      if: always()
+      run: sudo chown -R "$USER":"$USER" /var/cache/apt/archives || true
