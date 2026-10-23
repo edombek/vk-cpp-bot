@@ -505,6 +505,15 @@ int main()
                      all->params.at("message").find("/bc") != std::string::npos &&
                      all->params.at("message").find("/py") == std::string::npos; // недоступное не показывается
         check(allOk, "U12d /help все — команды по разделам", all && all->params.count("message") ? all->params.at("message") : "(нет)");
+        fn.reset();
+        json ev3 = ev;
+        ev3["object"]["text"] = "/игры";
+        w.work(ev3, fn, vk);
+        const FakeNet::Call* sec = fn.firstExact("https://api.vk.ru/method/messages.send");
+        bool secOk = sec && sec->params.count("message") &&
+                     sec->params.at("message").find("раздел: игры") != std::string::npos &&
+                     sec->params.at("message").find("/bc") != std::string::npos;
+        check(secOk, "U12e ярлык /игры == /help игры", sec && sec->params.count("message") ? sec->params.at("message") : "(нет)");
     }
 
     // --- U13: парсинг message_new: вложения (photo/doc), пересылки, беседа ---
