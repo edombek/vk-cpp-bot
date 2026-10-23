@@ -9,7 +9,7 @@ flowchart LR
     subgraph bot ["Процесс vkbot (src/main.cpp)"]
         MAIN["main()<br/>global conf=config.json<br/>global bd=dat.json"]
         LP["Lp (src/lp.cpp)<br/>longpoll-цикл<br/>+ периодический bd.saveIfDirty()"]
-        W["Worker (src/worker.cpp)<br/>ThreadPool(5) из thr/<br/>thread_local Net+Vk<br/>message_event → workButton"]
+        W["Worker (src/worker.cpp)<br/>ThreadPool (include/ThreadPool.h, часть проекта)<br/>thread_local Net+Vk<br/>message_event → workButton"]
         EV["Event (src/events.cpp)<br/>разбор update, fwds, docs<br/>поле keyboard"]
         KBD["Keyboard (src/keyboard.cpp)<br/>JSON-клавиатуры VK"]
         CMD["cmd::start (src/cmd.cpp)<br/>таблица cmdsList + категории"]
@@ -78,6 +78,6 @@ flowchart LR
 
 | Путь | Что | Когда нужен |
 |---|---|---|
-| `thr/` | ThreadPool.h | всегда (сборка) |
+| `include/ThreadPool.h` | ThreadPool (перенесён из субмодуля thr в проект, оптимизирован) | всегда (сборка) |
 | `vox/` | wav-фонемы Half-Life | runtime для `/vox` |
 | `win32deps/` | win-зависимости | только Windows (не поддерживается) |

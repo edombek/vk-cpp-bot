@@ -582,7 +582,7 @@ int main()
             { "object", { { "from_id", 42 }, { "date", 5 }, { "text", "/stat" }, { "id", 3 }, { "owner_id", -1 } } }
         };
         Event e(fn, vk, ev);
-        check(e.peer_id == static_cast<uint32_t>(-1) && e.id == 3, "U14a wall ids");
+        check(e.peer_id == -1 && e.id == 3, "U14a wall ids"); // owner_id сообщества знаковый: wall.createComment ждёт «-1», не 2^32-1
         e.msg = "коммент";
         e.send();
         const FakeNet::Call* c = fn.first("wall.createComment");
@@ -805,6 +805,74 @@ int main()
         auto secs = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - t0).count();
         check(r.empty(), "U25a blackhole host -> пустой ответ");
         check(secs < 20, "U25b setTimeout сработал (не ждать 600 c)", std::to_string(secs) + "s");
+    }
+
+    // --- U26: id новых диалогов с ботом (~2*10^11) не обрезаются до 32 бит (регресс 2026, найдено живой проверкой) ---
+    {
+        FakeNet fn;
+        fn.responses["users.get"] = "{\"response\":[{\"id\":200006334752,\"first_name\":\"Гигант\"}]}";
+        fn.responses["messages.send"] = "{\"response\":26}";
+        Vk vk(fn);
+        json ev =
+        {
+            { "type", "message_new" },
+            { "object",
+              {
+                  { "message",
+                    {
+                        { "id", 18683 },
+                        { "date", 1700000026 },
+                        { "peer_id", 200006334752 },
+                        { "from_id", 200006334752 },
+                        { "text", "/stat" },
+                        { "random_id", 0 },
+                        { "attachments", json::array() }
+                    } }
+              } }
+        };
+        Worker w;
+        w.work(ev, fn, vk);
+        const FakeNet::Call* msg = fn.firstExact("https://api.vk.ru/method/messages.send");
+        check(msg && msg->params.count("peer_id") && msg->params.at("peer_id") == "200006334752",
+              "U26a ответ ушёл на большой peer_id", msg ? (msg->params.count("peer_id") ? msg->params.at("peer_id") : "(нет peer_id)") : "(нет вызова)");
+        bool inBd = false;
+        bd.lock.lock();
+        inBd = bd.get()["users"]["200006334752"].is_object();
+        bd.lock.unlock();
+        check(inBd, "U26b пользователь с большим id заведён");
+    }
+
+    // --- U27: ThreadPool (теперь часть проекта): future-результаты, post(), стойкость к исключениям ---
+    {
+        ThreadPool tp(2);
+        std::atomic<int> sum{0};
+        std::vector<std::future<void>> fs;
+        for (int i = 1; i <= 50; ++i)
+            fs.push_back(tp.enqueue([&sum, i] { sum += i; }));
+        int r = tp.enqueue([](int x) { return x * 2; }, 21).get();
+        for (auto& f : fs)
+            f.get();
+        check(sum == 1275 && r == 42, "U27a enqueue: результаты и future", std::to_string(sum) + "/" + std::to_string(r));
+        bool caught = false;
+        try
+        {
+            tp.enqueue([] { throw std::runtime_error("boom"); }).get();
+        }
+        catch (const std::exception&)
+        {
+            caught = true;
+        }
+        check(caught, "U27b исключение задачи доезжает до future");
+        // post(): исключение не убивает поток пула (раньше — terminate процесса)
+        tp.post([] { throw std::runtime_error("boom-post"); });
+        bool failedSeen = false;
+        for (int i = 0; i < 200 && !failedSeen; ++i)
+        {
+            timer::sleep(10);
+            failedSeen = tp.failedTasks() >= 1;
+        }
+        int alive = tp.enqueue([] { return 7; }).get();
+        check(failedSeen && alive == 7, "U27c пул жив после исключения в post", std::to_string(tp.failedTasks()));
     }
 
     Net::deinit();

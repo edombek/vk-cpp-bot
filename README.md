@@ -17,7 +17,7 @@ git cmake make curl opencv pybind11 python-pip python dlib(aur или вручн
 ## Сборка
 
 ```
-git submodule update --init vox thr
+git submodule update --init vox
 cmake -S . -B build -DVKBOT_WITH_PYTHON=ON
 cmake --build build
 ```

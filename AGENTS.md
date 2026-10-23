@@ -22,7 +22,7 @@
 ## Сборка (фаза 1.5: CMake; Makefile — шим)
 
 ```
-git submodule update --init vox thr   # vox = wav-файлы для /vox, thr = ThreadPool
+git submodule update --init vox   # vox = wav-файлы для /vox (ThreadPool — уже в include/)
 make                                  # шим: cmake -B build + build, с Python
 make NO_PYTHON=1                      # то же без Python
 ```
@@ -71,7 +71,8 @@ make NO_PYTHON=1                      # то же без Python
 ## Архитектура (неочевидно с первого взгляда)
 
 - Поток: `src/main.cpp` (глобальные `conf`=`config.json`, `bd`=`dat.json`) → `Lp::loop()`
-  (longpoll) → `Worker::work()` (пул из 5 потоков, `thr/ThreadPool.h`) → `cmd::start()`
+  (longpoll) → `Worker::work()` (пул потоков, `include/ThreadPool.h` — часть проекта,
+  размер = `pool_size` из `config.json`, default 5) → `cmd::start()`
   (таблица команд в `src/cmd.cpp`) → функции в `src/cmds_*.cpp` (модули по категориям).
 - **Кнопки VK (фаза 6)**: `Keyboard` (`include/keyboard.h`) собирает JSON-клавиатуру,
   `Event::keyboard` прикрепляет её к `messages.send`. Нажатие callback-кнопки приходит
@@ -79,7 +80,7 @@ make NO_PYTHON=1                      # то же без Python
   `messages.sendMessageEventAnswer` и диспетчеризует payload как обычную команду.
 - **Функции-команды** объявлены в `include/cmds.h` с явными параметрами
   `Event &eventIn, Event &eventOut, Worker *worker` (макрос `cmdHead` убран в фазе 8);
-  реализации разнесены по `src/cmds_{interface,utils,games,media,admin}.cpp`,
+  реализации разнесены по `src/cmds_{interface,utils,games,media,admin,py}.cpp`,
   таблица команд и `/help` — `src/cmd.cpp`.
 - В `src/worker.cpp` — `thread_local Net net; thread_local Vk vk(net);` на каждый поток пула;
   `Worker::work(event, net, vk)` — публичная перегрузка с явной сетью (её используют тесты).

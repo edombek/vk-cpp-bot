@@ -51,14 +51,14 @@ PYBIND11_EMBEDDED_MODULE(vkcppbot, m, py::multiple_interpreters::per_interpreter
         .def_readwrite("timestamp", &Doc::timestamp)
         .def("get", &Doc::get)
         .def("uploadDoc",
-             [](Doc& self, std::string filename, py::object data, Net& net, Vk& vk, uint32_t peer_id, bool audio)
+             [](Doc& self, std::string filename, py::object data, Net& net, Vk& vk, uint64_t peer_id, bool audio)
              {
                  std::string d = py::isinstance<py::bytes>(data) ? py::cast<std::string>(data) : std::string(py::str(data));
                  return self.uploadDoc(filename, d, net, vk, peer_id, audio);
              },
              py::arg("filename"), py::arg("data"), py::arg("net"), py::arg("vk"), py::arg("peer_id"), py::arg("audio_message") = false)
         .def("uploadPhoto",
-             [](Doc& self, std::string filename, py::object data, Net& net, Vk& vk, uint32_t peer_id)
+             [](Doc& self, std::string filename, py::object data, Net& net, Vk& vk, uint64_t peer_id)
              {
                  std::string d = py::isinstance<py::bytes>(data) ? py::cast<std::string>(data) : std::string(py::str(data));
                  return self.uploadPhoto(filename, d, net, vk, peer_id);
