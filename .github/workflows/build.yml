@@ -15,13 +15,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           submodules: true
 
       # OpenCV — самая тяжёлая зависимость: держим скачанные .deb в actions/cache
       - name: Cache apt packages (OpenCV)
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: /var/cache/apt/archives
           key: apt-${{ runner.os }}-${{ hashFiles('.github/workflows/build.yml') }}
@@ -55,7 +55,7 @@ jobs:
       - name: Tests (without Python)
         run: ctest --test-dir build-nopy --output-on-failure
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: vkbot-linux
           path: |
