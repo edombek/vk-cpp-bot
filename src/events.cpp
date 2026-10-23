@@ -17,7 +17,12 @@ Event::Event(Net &n, Vk &v, json lpEv)
             this->peer_id = lpEv["peer_id"];
         if (lpEv["event_id"].is_string())
             this->event_id = lpEv["event_id"];
-        if (lpEv["payload"].is_string())
+        if (lpEv["payload"].is_object()) // наш payload — JSON {"cmd": "<команда>"} (требование VK)
+        {
+            if (lpEv["payload"]["cmd"].is_string())
+                this->msg = lpEv["payload"]["cmd"];
+        }
+        else if (lpEv["payload"].is_string()) // старые клавиатуры/скалярный payload
             this->msg = lpEv["payload"];
         else if (lpEv["text"].is_string()) // inline text-кнопки приходят как text
             this->msg = lpEv["text"];

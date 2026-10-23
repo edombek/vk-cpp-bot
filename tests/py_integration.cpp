@@ -192,7 +192,10 @@ int main()
             try
             {
                 json j = json::parse(r.keyboard);
-                ok = j["buttons"][0][0]["action"]["payload"] == "/yes" && j["buttons"][0][0]["color"] == "positive" && j["buttons"][1][0]["action"]["type"] == "text";
+                // payload VK-формата: JSON-строка {"cmd": "..."}
+                ok = j["buttons"][0][0]["action"]["payload"].is_string() &&
+                     json::parse(j["buttons"][0][0]["action"]["payload"].get<std::string>())["cmd"] == "/yes" &&
+                     j["buttons"][0][0]["color"] == "positive" && j["buttons"][1][0]["action"]["type"] == "text";
             }
             catch (...)
             {

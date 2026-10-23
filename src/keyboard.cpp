@@ -29,7 +29,8 @@ Keyboard& Keyboard::button(const std::string& label, const std::string& payload,
     json action;
     action["type"] = "callback";
     action["label"] = label;
-    action["payload"] = payload;
+    // VK требует payload формата JSON-строки в фигурных скобках (<= 255 символов)
+    action["payload"] = json{{"cmd", payload}}.dump();
     addAction(action, color);
     return *this;
 }

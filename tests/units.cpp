@@ -57,6 +57,15 @@ struct ref_hsv
     double h, s, v;
 };
 
+// payload кнопки VK — JSON-строка {"cmd": "..."} (требование формата keyboard)
+static bool cmdPayload(const json& btn, const std::string& cmd)
+{
+    if (!btn["action"]["payload"].is_string())
+        return false;
+    json p = json::parse(btn["action"]["payload"].get<std::string>(), nullptr, false);
+    return !p.is_discarded() && p.is_object() && p["cmd"] == cmd;
+}
+
 static ref_hsv ref_rgb2hsv(ref_rgb in)
 {
     ref_hsv out;
@@ -273,7 +282,10 @@ int main()
         json j = json::parse(kbd.dump());
         check(j["one_time"] == false && j["inline"] == false, "U8a flags");
         check(j["buttons"].size() == 2 && j["buttons"][0].size() == 2 && j["buttons"][1].size() == 2, "U8b rows");
-        check(j["buttons"][0][0]["action"]["type"] == "callback" && j["buttons"][0][0]["action"]["payload"] == "/yes" && j["buttons"][0][0]["color"] == "positive",
+        check(j["buttons"][0][0]["action"]["type"] == "callback" &&
+              json::parse(j["buttons"][0][0]["action"]["payload"].get<std::string>())["cmd"] == "/yes" &&
+              j["buttons"][0][0]["action"]["payload"].is_string() && // VK: payload — JSON-строка в скобках
+              j["buttons"][0][0]["color"] == "positive",
               "U8c callback button", j["buttons"][0][0].dump());
         check(j["buttons"][1][0]["action"]["type"] == "openlink" && j["buttons"][1][0]["action"]["link"] == "https://example.com", "U8d link button");
         check(j["buttons"][1][1]["action"]["type"] == "text", "U8e text button");
@@ -309,6 +321,20 @@ int main()
         check(e.event_id == "abc-123", "U9b event_id");
         check(e.msg == "/help игры" && e.words.size() == 2, "U9c payload as msg");
         check(e.is_chat, "U9d is_chat");
+        // payload в формате VK: JSON-объект {"cmd": "..."}
+        json ev2 =
+        {
+            { "type", "message_event" },
+            { "object",
+              {
+                  { "peer_id", 111 },
+                  { "user_id", 777 },
+                  { "event_id", "x1" },
+                  { "payload", { { "cmd", "/stat" } } }
+              } }
+        };
+        Event e2(net, vk, ev2);
+        check(e2.msg == "/stat", "U9e object payload {cmd}", e2.msg);
     }
 
     // --- U23: message_new без текста (text: null) и вложения с неполными полями ---
@@ -459,7 +485,7 @@ int main()
             json j = json::parse(msg->params.at("keyboard"));
             for (const auto& row : j["buttons"])
                 for (const auto& b : row)
-                    if (b["action"]["payload"] == "/help игры")
+                    if (cmdPayload(b, "/help игры"))
                         kbdOk = true;
         }
         check(kbdOk, "U12b help keyboard (разделы)", msg && msg->params.count("keyboard") ? msg->params.at("keyboard") : "(нет)");
@@ -662,7 +688,7 @@ int main()
             json kbd = json::parse(c1->params.at("keyboard")); // именованная переменная: временный объект live-time
             for (const auto& row : kbd["buttons"])
                 for (const auto& b : row)
-                    if (b["action"]["payload"] == "/w Москва")
+                    if (cmdPayload(b, "/w Москва"))
                         hasMoscow = true;
         }
         check(hasMoscow, "U20b /w Москва payload");
@@ -693,7 +719,7 @@ int main()
             json kbd = json::parse(c->params.at("keyboard"));
             for (const auto& row : kbd["buttons"])
                 for (const auto& b : row)
-                    if (b["action"]["payload"] == "/set 888 5")
+                    if (cmdPayload(b, "/set 888 5"))
                         hasAdmBtn = true;
         }
         check(hasAdmBtn, "U21 set level buttons", c ? "(есть ответ)" : "(нет вызова)");
