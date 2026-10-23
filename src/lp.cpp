@@ -1,5 +1,6 @@
 #include "lp.h"
 #include "common.h"
+#include "timer.h"
 #include "worker.h"
 #include <iostream>
 
@@ -25,31 +26,46 @@ void Lp::loop()
 {
     Worker worker;
     time_t lastSave = time(NULL);
+    this->net.setTimeout(60); // a_check ждёт ответа сервера 25 с — 600-секундный дефолт только вешает цикл на мёртвом соединении
     while (true)
     {
         string buff = this->net.send(this->server, { { "act", "a_check" }, { "key", this->key }, { "ts", this->ts }, { "wait", "25" } });
         while (buff == "")
-            buff = this->net.send(this->server, { { "act", "a_check" }, { "key", this->key }, { "ts", this->ts }, { "wait", "25" } });
-        json resp = json::parse(buff);
-        if (resp["failed"].is_number())
         {
-            switch (resp["failed"].get<int>())
+            cout << "Lp: пустой ответ longpoll, повтор через 1 с" << endl;
+            timer::sleep(1000);
+            buff = this->net.send(this->server, { { "act", "a_check" }, { "key", this->key }, { "ts", this->ts }, { "wait", "25" } });
+        }
+        try
+        {
+            json resp = json::parse(buff);
+            if (resp["failed"].is_number())
             {
-            case 1:
+                switch (resp["failed"].get<int>())
+                {
+                case 1:
+                    this->ts = resp["ts"];
+                    break;
+                default:
+                    this->getServer();
+                    break;
+                }
+            }
+            else
+            {
                 this->ts = resp["ts"];
-                break;
-            default:
-                this->getServer();
-                break;
+                for (json update : resp["updates"])
+                {
+                    worker.add_event(update);
+                }
             }
         }
-        else
+        catch (const std::exception& e)
         {
-            this->ts = resp["ts"];
-            for (json update : resp["updates"])
-            {
-                worker.add_event(update);
-            }
+            // битый JSON (или протроченный key в unexpected форме) — не роняем процесс, берём новый сервер
+            cout << "Lp: разбор ответа longpoll не удался (" << e.what() << ") — обновляю сервер" << endl;
+            this->getServer();
+            timer::sleep(1000);
         }
         if (time(NULL) - lastSave >= 30) // периодически сбрасываем помеченные изменения bd
         {

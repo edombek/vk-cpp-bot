@@ -7,6 +7,7 @@ class Net
 private:
     CURL* curl;
     CURLcode result;
+    long timeoutSec = 600; // таймаут одного запроса (см. setTimeout)
 
 public:
     Net();
@@ -14,6 +15,7 @@ public:
     static void init();
     static void deinit();
     std::string urlEncode(const std::string& str);
+    void setTimeout(long seconds); // таймаут всех последующих запросов этого Net
     // виртуальные: тесты подменяют сеть моком (FakeNet), end-to-end без токенов
     virtual std::string send(const std::string& url, const std::string& params = "");
     virtual std::string send(const std::string& url, const table_t& param, bool post = true);

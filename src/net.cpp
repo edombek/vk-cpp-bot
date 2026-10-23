@@ -54,6 +54,13 @@ string Net::urlEncode(const string& str)
     return result;
 }
 
+void Net::setTimeout(long seconds)
+{
+    if (seconds < 1)
+        seconds = 1;
+    this->timeoutSec = seconds;
+}
+
 string Net::send(const string& url, const table_t& param, bool post)
 {
     if (!param.size())
@@ -79,7 +86,7 @@ string Net::send(const string& url, const string& params)
         curl_easy_setopt(this->curl, CURLOPT_WRITEDATA, &buffer);
         curl_easy_setopt(this->curl, CURLOPT_USERAGENT, net_agent);
         curl_easy_setopt(this->curl, CURLOPT_WRITEFUNCTION, writer);
-        curl_easy_setopt(this->curl, CURLOPT_TIMEOUT, 600L);
+        curl_easy_setopt(this->curl, CURLOPT_TIMEOUT, this->timeoutSec);
         curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
         if (params != "")
         {
@@ -129,7 +136,7 @@ string Net::upload(const string& url, const string& filename, const string& data
         curl_easy_setopt(this->curl, CURLOPT_WRITEDATA, &buffer);
         curl_easy_setopt(this->curl, CURLOPT_USERAGENT, net_agent);
         curl_easy_setopt(this->curl, CURLOPT_WRITEFUNCTION, writer);
-        curl_easy_setopt(this->curl, CURLOPT_TIMEOUT, 600L);
+        curl_easy_setopt(this->curl, CURLOPT_TIMEOUT, this->timeoutSec);
         this->result = curl_easy_perform(curl);
         if (this->result != CURLE_OK)
             cout << "CURL ERROR(" << this->result << "): " << curl_easy_strerror(this->result) << endl;

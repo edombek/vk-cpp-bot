@@ -796,6 +796,17 @@ int main()
         check(gmsg(222, "/g stop").find("игра остановлена") != std::string::npos, "U22h stop");
     }
 
+    // --- U25: Net setTimeout — запрос на «чёрную дыру» обрезается таймаутом (longpoll-фикс) ---
+    {
+        Net net;
+        net.setTimeout(1); // 10.255.255.1: соединение висит, CURLOPT_TIMEOUT должен обрезать
+        auto t0 = std::chrono::steady_clock::now();
+        std::string r = net.send("http://10.255.255.1/");
+        auto secs = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - t0).count();
+        check(r.empty(), "U25a blackhole host -> пустой ответ");
+        check(secs < 20, "U25b setTimeout сработал (не ждать 600 c)", std::to_string(secs) + "s");
+    }
+
     Net::deinit();
 
     std::cout << "\n=== " << passed << " passed, " << failed << " failed ===" << std::endl;
