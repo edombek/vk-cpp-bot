@@ -29,6 +29,9 @@ Event::Event(Net &n, Vk &v, json lpEv)
         this->random_id = lpEv["random_id"];
     else
         this->random_id = 0;
+    // API 5.103+: object у message_new — обёртка { message: {...}, client_info: {...} }
+    if (lpEv["message"].is_object())
+        lpEv = lpEv["message"];
     if (lpEv["text"].is_string()) // сообщения без текста (вложения, голосовые) приходят с text: null
         this->msg = lpEv["text"];
     this->words = str::words(this->msg);
@@ -36,7 +39,8 @@ Event::Event(Net &n, Vk &v, json lpEv)
         this->from_id = lpEv["from_id"];
     if (this->from_id < 0)
         return;
-    this->timestamp = lpEv["date"];
+    if (lpEv["date"].is_number())
+        this->timestamp = lpEv["date"];
     if (this->type.find("message_") != this->type.npos)
     {
         if(lpEv["peer_id"].is_number())

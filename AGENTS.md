@@ -105,6 +105,9 @@ make NO_PYTHON=1                      # то же без Python
 
 ## Ловушки (актуальный статус)
 
+- С API ≥ 5.103 `object` события `message_new` — обёртка `{ message, client_info }`
+  (не плоское сообщение, как было до 5.103): `events.cpp` спускается в `lpEv["message"]`;
+  `client_info` (возможности клиента: keyboard/inline/carousel) пока не используется.
 - Исправлено в фазе 0 (2026-10): бесконечный цикл longpoll при пустом ответе (`lp.cpp`),
   саморекурсия `fs::rename`, невалидный парсинг WAV в vox, неинициализированные поля
   `Event`/`Doc`/`user`, висячие `operator=`, `srand(time)` в генераторе чисел.

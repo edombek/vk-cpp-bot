@@ -333,6 +333,43 @@ int main()
         check(e.docs[1].ext == "mp3" && e.docs[1].url.empty(), "U23d audio_message без link_mp3");
     }
 
+    // --- U24: message_new в формате API >= 5.103 (object = { message, client_info }) ---
+    {
+        Net net;
+        Vk vk(net);
+        json ev =
+        {
+            { "type", "message_new" },
+            { "object",
+              {
+                  { "client_info",
+                    {
+                        { "button_actions", { "text", "callback" } },
+                        { "keyboard", true },
+                        { "inline_keyboard", true },
+                        { "carousel", false },
+                        { "lang_id", 0 }
+                    } },
+                  { "message",
+                    {
+                        { "id", 2 },
+                        { "date", 1700000001 },
+                        { "peer_id", 111 },
+                        { "from_id", 111 },
+                        { "text", "/help" },
+                        { "random_id", 0 },
+                        { "attachments",
+                          { { { "type", "audio_message" },
+                              { "audio_message", { { "id", 7 }, { "owner_id", -1 }, { "link_mp3", "https://x/y.mp3" } } } } } }
+                    } }
+              } }
+        };
+        Event e(net, vk, ev);
+        check(e.msg == "/help" && e.from_id == 111 && e.peer_id == 111, "U24a fields from message wrapper");
+        check(!e.is_chat && e.timestamp == 1700000001, "U24b is_chat/timestamp");
+        check(e.docs.size() == 1 && e.docs[0].url == "https://x/y.mp3", "U24c attachments inside wrapper", std::to_string(e.docs.size()));
+    }
+
     // --- U10: Event::send передаёт keyboard в messages.send (FakeNet) ---
     {
         FakeNet fn;
