@@ -1,13 +1,35 @@
 #include "worker.h"
+#include "bd.h"
 
 using namespace std;
 
-void Worker::add_event(const json& event)
+static size_t poolSizeFromConf()
 {
-    this->pool.enqueue([this](json event)
+    size_t n = 5;
+    conf.lock.lock();
+    if (conf.get()["pool_size"].is_number())
     {
-        this->work(event);
-    }, event);
+        int v = conf.get()["pool_size"].get<int>();
+        if (v > 0)
+            n = static_cast<size_t>(v);
+    }
+    conf.lock.unlock();
+    return n;
+}
+
+Worker::Worker()
+    : pool(poolSizeFromConf())
+{
+}
+
+void Worker::add_event(json event)
+{
+    // post() без future (результат не забирается) и перенос события в задачу —
+    // json не копируется при постановке в очередь
+    this->pool.post([this](json ev)
+    {
+        this->work(std::move(ev));
+    }, std::move(event));
 }
 
 #include "cmd.h"

@@ -56,7 +56,7 @@ set(VKBOT_CORE_SOURCES
 
 add_executable(vkbot ${VKBOT_CORE_SOURCES} src/main.cpp)
 
-target_include_directories(vkbot PRIVATE include thr ${OpenCV_INCLUDE_DIRS})
+target_include_directories(vkbot PRIVATE include ${OpenCV_INCLUDE_DIRS})
 target_compile_definitions(vkbot PRIVATE GIT_URL="${GIT_REMOTE_URL}" GIT_VER="${GIT_REV}")
 target_link_libraries(vkbot PRIVATE CURL::libcurl ${OpenCV_LIBS})
 
@@ -101,7 +101,7 @@ if(VKBOT_BUILD_TESTS)
 
     # C++-тесты: полный набор исходников (без main.cpp), сеть подменяется FakeNet
     add_executable(vkbot_unit ${VKBOT_CORE_SOURCES} tests/units.cpp)
-    target_include_directories(vkbot_unit PRIVATE include thr tests ${OpenCV_INCLUDE_DIRS})
+    target_include_directories(vkbot_unit PRIVATE include tests ${OpenCV_INCLUDE_DIRS})
     target_compile_definitions(vkbot_unit PRIVATE GIT_URL="${GIT_REMOTE_URL}" GIT_VER="test")
     target_link_libraries(vkbot_unit PRIVATE CURL::libcurl ${OpenCV_LIBS})
     if(MSVC)
@@ -123,7 +123,7 @@ if(VKBOT_BUILD_TESTS)
     # интеграционный тест python-слоя (фаза 2)
     if(VKBOT_WITH_PYTHON)
         add_executable(vkbot_pytest ${VKBOT_CORE_SOURCES} src/py.cpp tests/py_integration.cpp)
-        target_include_directories(vkbot_pytest PRIVATE include thr tests ${OpenCV_INCLUDE_DIRS})
+        target_include_directories(vkbot_pytest PRIVATE include tests ${OpenCV_INCLUDE_DIRS})
         target_compile_definitions(vkbot_pytest PRIVATE GIT_URL="${GIT_REMOTE_URL}" GIT_VER="test")
         target_link_libraries(vkbot_pytest PRIVATE CURL::libcurl ${OpenCV_LIBS})
         if(TARGET pybind11::embed)

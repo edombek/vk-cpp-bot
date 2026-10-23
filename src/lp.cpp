@@ -56,7 +56,7 @@ void Lp::loop()
                 this->ts = resp["ts"];
                 for (json update : resp["updates"])
                 {
-                    worker.add_event(update);
+                    worker.add_event(std::move(update));
                 }
             }
         }
