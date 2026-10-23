@@ -148,6 +148,20 @@ PyMainThread::~PyMainThread() = default;
 // ---------------------------------------------------------------------------
 // pyF: под-интерпретатор + изолированное пространство имён на один скрипт
 // ---------------------------------------------------------------------------
+// Обёртка над print: вывод скрипта попадает в ответное сообщение (eventOut.msg),
+// а не в консоль бота. sys.stdout тоже перехвачен; print(file=sys.stderr) — нет.
+static const char* PY_PRINT_PRELUDE = R"PY(
+import builtins as _vk_builtins, io as _vk_io, sys as _vk_sys
+_vk_buf = _vk_io.StringIO()
+_vk_print = _vk_builtins.print
+def print(*a, **k):
+    if 'file' not in k:
+        k['file'] = _vk_buf
+    _vk_print(*a, **k)
+_vk_sys.stdout = _vk_buf
+del _vk_builtins, _vk_io, _vk_sys
+)PY";
+
 struct pyF::Impl
 {
     Event& eventIn;
@@ -168,6 +182,21 @@ struct pyF::Impl
         ns["eventOut"] = py::cast(&eventOut, py::return_value_policy::reference);
         ns["net"] = py::cast(&eventIn.net, py::return_value_policy::reference);
         ns["vk"] = py::cast(&eventIn.vk, py::return_value_policy::reference);
+        py::exec(PY_PRINT_PRELUDE, ns);
+    }
+
+    // дописываем накопленный print в конец сообщения и обнуляем буфер
+    void flushPrint()
+    {
+        if (!ns.contains("_vk_buf"))
+            return;
+        std::string s = py::cast<std::string>(ns["_vk_buf"].attr("getvalue")());
+        while (!s.empty() && (s.back() == '\n' || s.back() == '\r'))
+            s.pop_back();
+        if (!s.empty())
+            eventOut.msg += (eventOut.msg.empty() ? "" : "\n") + s;
+        ns["_vk_buf"].attr("seek")(0);
+        ns["_vk_buf"].attr("truncate")(0);
     }
 };
 
@@ -181,13 +210,29 @@ std::string pyF::exec(std::string& code)
     try
     {
         py::exec(py::str(code), impl->ns);
+        impl->flushPrint();
     }
     catch (const py::error_already_set& e)
     {
-        return e.what();
+        std::string err = e.what();
+        try
+        {
+            impl->flushPrint(); // что успело напечататься до ошибки — тоже в сообщение
+        }
+        catch (...)
+        {
+        }
+        return err;
     }
     catch (const std::exception& e)
     {
+        try
+        {
+            impl->flushPrint();
+        }
+        catch (...)
+        {
+        }
         return std::string("cpp error: ") + e.what();
     }
     return "";

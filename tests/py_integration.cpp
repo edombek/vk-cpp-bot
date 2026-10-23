@@ -202,6 +202,26 @@ int main()
             }
             check(ok, "T10b keyboard json", r.keyboard);
         }
+
+        // --- T11: print() уходит в ответное сообщение (обёртка над print) ---
+        {
+            RunResult r = run(net, vk, "print('привет')\nprint(2 + 2)");
+            check(r.err.empty(), "T11a print exec ok", r.err);
+            check(r.msg == "привет\n4", "T11b print -> msg", r.msg);
+        }
+
+        // --- T12: eventOut.msg + print — оба в ответе, в правильном порядке ---
+        {
+            RunResult r = run(net, vk, "eventOut.msg = 'шаг'\nprint('ещё')");
+            check(r.msg == "шаг\nещё", "T12 msg + print", r.msg);
+        }
+
+        // --- T13: print до исключения — тоже попадает в msg, ошибка возвращается ---
+        {
+            RunResult r = run(net, vk, "print('до')\n1 / 0");
+            check(!r.err.empty() && r.err.find("ZeroDivisionError") != std::string::npos, "T13a ошибка вернулась", r.err);
+            check(r.msg == "до", "T13b print до ошибки", r.msg);
+        }
     }
 
     remove("test_conf.json");

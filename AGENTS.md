@@ -93,6 +93,9 @@ make NO_PYTHON=1                      # то же без Python
 - Реализация (фаза 2): pybind11, embedded-модуль `vkcppbot` (`src/py.cpp`), каждый `/py` —
   новый под-интерпретатор (`py::subinterpreter`) с изолированным namespace. PImpl в
   `include/py.h`: pybind11 не просачивается в другие TU.
+- `print()` в скриптах попадает в ответное сообщение: `pyF` перед скриптом исполняет
+  преамбулу-обёртку над `print` (буфер дописывается в `eventOut.msg` после запуска,
+  в том числе при исключении); `sys.stdout` перехвачен, `file=sys.stderr` — нет.
 - Скриптам доступны: `eventIn`/`eventOut` (события; read-only поля защищены, `keyboard` —
   JSON-строка клавиатуры), `net`, `vk`, модули `vkcppbot.fs`, `vkcppbot.str`, `vkcppbot.timer`,
   классы `Doc`/`User`/`Event`/`Keyboard`.
