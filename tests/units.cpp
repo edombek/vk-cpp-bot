@@ -277,6 +277,16 @@ int main()
               "U8c callback button", j["buttons"][0][0].dump());
         check(j["buttons"][1][0]["action"]["type"] == "openlink" && j["buttons"][1][0]["action"]["link"] == "https://example.com", "U8d link button");
         check(j["buttons"][1][1]["action"]["type"] == "text", "U8e text button");
+        // VK отвергает пустые ряды и ряды из >5 кнопок (error 911) — билдер чинит сам
+        Keyboard k2;
+        k2.button("a", "/a").row(); // ряд в конце заведомо пустой
+        json j2 = json::parse(k2.dump());
+        check(j2["buttons"].size() == 1, "U8f empty row cut", j2.dump());
+        Keyboard k3;
+        for (int i = 0; i < 7; i++) k3.button(std::to_string(i), "/b" + std::to_string(i));
+        json j3 = json::parse(k3.dump());
+        check(j3["buttons"].size() == 2 && j3["buttons"][0].size() == 5 && j3["buttons"][1].size() == 2,
+              "U8g auto row wrap (>5)", j3.dump());
     }
 
     // --- U9: парсинг message_event (нажатие callback-кнопки) ---
@@ -605,7 +615,7 @@ int main()
         };
         sendMsg("/bc");
         check(lastMsg().find("цель данной игры") != std::string::npos, "U19a bc intro", lastMsg().substr(0, 60));
-        check(lastKbdButtons() == 2, "U19b bc keyboard rows", std::to_string(lastKbdButtons()));
+        check(lastKbdButtons() == 3, "U19b bc keyboard rows (5+5+3)", std::to_string(lastKbdButtons()));
         for (char d : std::string("1234"))
             pressBtn(std::string("/bc num ") + d);
         check(lastMsg().find("ввод: 1234 [4/4]") != std::string::npos, "U19c digit draft", lastMsg());

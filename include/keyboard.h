@@ -2,7 +2,9 @@
 // Билдер клавиатур ВКонтакте (параметр keyboard метода messages.send).
 // Формат: https://dev.vk.com/api/bots/getting-started (раздел «Клавиатура»):
 // кнопки text отправляют label как сообщение, callback — payload событием
-// message_event (текст скрыт); лимиты: 10 кнопок в inline, 10x10 в обычной.
+// message_event (текст скрыт); лимиты VK (dev.vk.ru «Клавиатура»): обычная —
+// до 40 кнопок, 10 рядов по 5; inline — до 10 кнопок, 6 рядов по 5.
+// Пустые ряды недопустимы — dump() их вырезает, addAction() переносит переполненный ряд.
 #include "common.h"
 
 #include <string>

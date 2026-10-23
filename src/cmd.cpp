@@ -77,10 +77,7 @@ void help(Event &eventIn, Event &eventOut, Worker *worker)
     else
         kbd.button("все команды", "/help все", "primary");
     if (!kbd.empty())
-    {
-        kbd.row();
         eventOut.keyboard = kbd.dump();
-    }
 }
 
 #include <cstdio>

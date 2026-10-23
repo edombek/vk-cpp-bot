@@ -16,6 +16,8 @@ void Keyboard::ensureRow()
 void Keyboard::addAction(const json& action, const std::string& color)
 {
     ensureRow();
+    if (buttons.back().size() >= 5) // VK: ряд — максимум 5 кнопок («до 10 рядов по 5 кнопок»)
+        buttons.push_back(json::array());
     json btn;
     btn["action"] = action;
     btn["color"] = color;
@@ -72,6 +74,9 @@ std::string Keyboard::dump() const
     json kbd;
     kbd["one_time"] = oneTime;
     kbd["inline"] = inlineKbd;
-    kbd["buttons"] = buttons;
+    kbd["buttons"] = json::array();
+    for (const json& r : buttons)
+        if (!r.empty()) // пустые ряды VK отвергает (error 911 «row contains too much columns»)
+            kbd["buttons"].push_back(r);
     return kbd.dump();
 }
