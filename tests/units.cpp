@@ -493,8 +493,10 @@ int main()
         check(kbdOk, "U12b help keyboard (разделы)", msg && msg->params.count("keyboard") ? msg->params.at("keyboard") : "(нет)");
         check(msg && msg->params.count("message") &&
               msg->params.at("message").find("поделены на разделы") != std::string::npos &&
-              msg->params.at("message").find("игры (") != std::string::npos,
-              "U12c текст о подгруппах команд", msg && msg->params.count("message") ? msg->params.at("message") : "(нет)");
+              msg->params.at("message").find("игры (") != std::string::npos &&
+              msg->params.at("message").find("текстом: /интерфейс /утилиты /игры /медиа") != std::string::npos &&
+              msg->params.at("message").find("/всекоманды") != std::string::npos,
+              "U12c текст о подгруппах и текстовых ярлыках", msg && msg->params.count("message") ? msg->params.at("message") : "(нет)");
         fn.reset();
         json ev2 = ev;
         ev2["object"]["text"] = "/help все";
@@ -503,6 +505,7 @@ int main()
         bool allOk = all && all->params.count("message") &&
                      all->params.at("message").find("[ игры ]") != std::string::npos &&
                      all->params.at("message").find("/bc") != std::string::npos &&
+                     all->params.at("message").find("или текстом: /интерфейс") != std::string::npos &&
                      all->params.at("message").find("/py") == std::string::npos; // недоступное не показывается
         check(allOk, "U12d /help все — команды по разделам", all && all->params.count("message") ? all->params.at("message") : "(нет)");
         fn.reset();
@@ -512,7 +515,9 @@ int main()
         const FakeNet::Call* sec = fn.firstExact("https://api.vk.ru/method/messages.send");
         bool secOk = sec && sec->params.count("message") &&
                      sec->params.at("message").find("раздел: игры") != std::string::npos &&
-                     sec->params.at("message").find("/bc") != std::string::npos;
+                     sec->params.at("message").find("/bc") != std::string::npos &&
+                     sec->params.at("message").find("работают и текстом: /интерфейс /утилиты /игры /медиа") != std::string::npos &&
+                     sec->params.at("message").find("полный список — /всекоманды") != std::string::npos;
         check(secOk, "U12e ярлык /игры == /help игры", sec && sec->params.count("message") ? sec->params.at("message") : "(нет)");
         fn.reset();
         json ev4 = ev;

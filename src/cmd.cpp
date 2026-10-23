@@ -72,6 +72,7 @@ void help(Event &eventIn, Event &eventOut, Worker *worker)
     eventOut.msg += "\n";
     Keyboard kbd(false, false);
     string catsLine; // «интерфейс (5), утилиты (2)...» — подгруппы команд с количеством
+    string textHint; // « /интерфейс /утилиты...» — текстовые аналоги кнопок для доступных разделов
     for (const auto& cat : cmdCats)
     {
         // раздела без доступных пользователю команд не показываем
@@ -79,7 +80,10 @@ void help(Event &eventIn, Event &eventOut, Worker *worker)
         for (const auto& cmdInfo : cmdsList)
             if (cmdInfo.second.disp && cmdInfo.second.cat == cat && cmdInfo.second.acess <= eventIn.user.acess)
                 cnt++;
-        if (!cnt || (section.size() && section != cat))
+        if (!cnt)
+            continue;
+        textHint += " /" + cat;
+        if (section.size() && section != cat)
             continue;
         if (!section.size()) // верхний уровень и полный список — кнопка раздела
             kbd.button(cat, "/help " + cat);
@@ -100,12 +104,15 @@ void help(Event &eventIn, Event &eventOut, Worker *worker)
     if (section.size())
     {
         kbd.button("все разделы", "/help", "primary").button("все команды", "/help все", "primary");
-        eventOut.msg += "\nкоманды поделены на разделы (подгруппы) — остальные разделы и полный список переключаются кнопками ниже\n";
+        eventOut.msg += "\nэто не все команды — они поделены на разделы; кнопки ниже работают и текстом:" + textHint + ", полный список — /всекоманды\n";
     }
     else if (allCmds)
-        eventOut.msg += "\nэто полный список; обычно команды поделены на разделы — см. кнопки ниже\n";
+        eventOut.msg += "\nэто полный список; по разделам (подгруппам) короче — кнопки ниже или текстом:" + textHint + "\n";
     else
-        eventOut.msg += "команды поделены на разделы (подгруппы): " + catsLine + "\nоткрой раздел кнопкой или нажми «все команды»\n";
+    {
+        eventOut.msg += "команды поделены на разделы (подгруппы): " + catsLine + "\n";
+        eventOut.msg += "раздел открывается кнопкой или текстом:" + textHint + "; полный список — «все команды» или /всекоманды\n";
+    }
     if (!kbd.empty())
         eventOut.keyboard = kbd.dump();
 }
