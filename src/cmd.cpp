@@ -46,36 +46,51 @@ static const vector<string> cmdCats = { "интерфейс", "утилиты", 
 void help(Event &eventIn, Event &eventOut, Worker *worker)
 {
     string section = eventIn.words.size() > 1 ? str::low(eventIn.words[1]) : "";
-    if (section == "все" || section == "все команды")
+    bool allCmds = (section == "все" || section == "все команды");
+    if (allCmds)
         section = "";
     eventOut.msg += "твой уровень прав: " + to_string(eventIn.user.acess);
     if (section.size())
         eventOut.msg += ", раздел: " + section;
+    else if (allCmds)
+        eventOut.msg += ", все команды";
     eventOut.msg += "\n";
     Keyboard kbd(false, false);
+    string catsLine; // «интерфейс (5), утилиты (2)...» — подгруппы команд с количеством
     for (const auto& cat : cmdCats)
     {
         // раздела без доступных пользователю команд не показываем
-        bool any = false;
+        int cnt = 0;
         for (const auto& cmdInfo : cmdsList)
             if (cmdInfo.second.disp && cmdInfo.second.cat == cat && cmdInfo.second.acess <= eventIn.user.acess)
-                any = true;
-        if (!any || (section.size() && section != cat))
+                cnt++;
+        if (!cnt || (section.size() && section != cat))
             continue;
-        if (section.size()) // внутри раздела печатаем команды
+        if (!section.size()) // верхний уровень и полный список — кнопка раздела
+            kbd.button(cat, "/help " + cat);
+        if (section.size() || allCmds) // внутри раздела (или полный список) печатаем команды
+        {
+            if (allCmds)
+                eventOut.msg += "\n[ " + cat + " ]\n";
             for (const auto& cmdInfo : cmdsList)
             {
                 if (!cmdInfo.second.disp || cmdInfo.second.cat != cat || eventIn.user.acess < cmdInfo.second.acess)
                     continue;
                 eventOut.msg += cmdInfo.first + " - " + cmdInfo.second.info + " (" + to_string(cmdInfo.second.acess) + ")\n";
             }
+        }
         else
-            kbd.button(cat, "/help " + cat);
+            catsLine += (catsLine.empty() ? "" : ", ") + cat + " (" + to_string(cnt) + ")";
     }
     if (section.size())
-        kbd.button("все разделы", "/help", "primary");
+    {
+        kbd.button("все разделы", "/help", "primary").button("все команды", "/help все", "primary");
+        eventOut.msg += "\nкоманды поделены на разделы (подгруппы) — остальные разделы и полный список переключаются кнопками ниже\n";
+    }
+    else if (allCmds)
+        eventOut.msg += "\nэто полный список; обычно команды поделены на разделы — см. кнопки ниже\n";
     else
-        kbd.button("все команды", "/help все", "primary");
+        eventOut.msg += "команды поделены на разделы (подгруппы): " + catsLine + "\nоткрой раздел кнопкой или нажми «все команды»\n";
     if (!kbd.empty())
         eventOut.keyboard = kbd.dump();
 }

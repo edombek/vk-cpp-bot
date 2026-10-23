@@ -491,6 +491,20 @@ int main()
                         kbdOk = true;
         }
         check(kbdOk, "U12b help keyboard (разделы)", msg && msg->params.count("keyboard") ? msg->params.at("keyboard") : "(нет)");
+        check(msg && msg->params.count("message") &&
+              msg->params.at("message").find("поделены на разделы") != std::string::npos &&
+              msg->params.at("message").find("игры (") != std::string::npos,
+              "U12c текст о подгруппах команд", msg && msg->params.count("message") ? msg->params.at("message") : "(нет)");
+        fn.reset();
+        json ev2 = ev;
+        ev2["object"]["text"] = "/help все";
+        w.work(ev2, fn, vk);
+        const FakeNet::Call* all = fn.firstExact("https://api.vk.ru/method/messages.send");
+        bool allOk = all && all->params.count("message") &&
+                     all->params.at("message").find("[ игры ]") != std::string::npos &&
+                     all->params.at("message").find("/bc") != std::string::npos &&
+                     all->params.at("message").find("/py") == std::string::npos; // недоступное не показывается
+        check(allOk, "U12d /help все — команды по разделам", all && all->params.count("message") ? all->params.at("message") : "(нет)");
     }
 
     // --- U13: парсинг message_new: вложения (photo/doc), пересылки, беседа ---
