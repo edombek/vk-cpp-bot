@@ -12,7 +12,7 @@ CI: включена (2026-10-23) — build.yml собирает обе конф
 | С Python | `make` (шим cmake) или `cmake -B build && cmake --build build` | ✅ `-Wall` чист (`-Wno-attributes` точечно на `src/py.cpp`, см. ниже) |
 | Без Python | `make NO_PYTHON=1` / `-DVKBOT_WITH_PYTHON=OFF` | ✅ |
 | Smoke-запуск без config.json (временно перенести файл) | `./build/vkbot` | ✅ чистый `FATAL: Vk: не задан token...`, exit 1 (раньше — `terminate`) |
-| Автотесты | `make test` или `cd build && ctest --output-on-failure` | ✅ 2/2 теста (units 76/76 + py_integration 18/18); в NO_PYTHON — 1/1 (только units) |
+| Автотесты | `make test` или `cd build && ctest --output-on-failure` | ✅ 2/2 теста (units 80/80 + py_integration 18/18); в NO_PYTHON — 1/1 (только units) |
 
 История: до фазы 1.5 штатный `make` не собирался (захардкоженные `-lboost_python39`,
 `-I/usr/include/opencv4`), проверки делались ручной компиляцией с подобранными флагами.
@@ -85,8 +85,10 @@ Runtime-проверки фазы 0:
 | U20 | `/w`: кнопки городов без аргумента; разбор ответа openweathermap (FakeNet) | ✅ |
 | U21 | `/set` без аргументов — кнопки уровней для админа | ✅ |
 | U22 | конвейер `/g`: создание игры, отказ «сам с собой», вход, ходы, чужой ход, координаты, стоп (Worker+FakeNet) | ✅ |
+| U23 | `message_new` с `text: null` (сообщение без текста) и вложения photo/audio_message без `sizes`/`link_mp3` — без исключений и UB (найдено живой проверкой) | ✅ |
 
-Итого: 76/76 проверок (тесты герметичны: сброс `conf`/`bd` в начале, повторные запуски проходят).
+Итого: 80/80 проверок (тесты герметичны: сброс `conf`/`bd` в начале, повторные запуски проходят).
+Бенчмарк U7b — минимум из 3 замеров: одиночные прогоны под фоновой нагрузкой давали ложные падения.
 Бенчмарк U7 (1280x720): scalar ≈ 23 ms → vector ≈ 13 ms (x1.7).
 
 ## Автоматический тест python-слоя (фаза 2): `vkbot_pytest` / ctest

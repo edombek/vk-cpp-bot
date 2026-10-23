@@ -29,9 +29,11 @@ Event::Event(Net &n, Vk &v, json lpEv)
         this->random_id = lpEv["random_id"];
     else
         this->random_id = 0;
-    this->msg = lpEv["text"];
+    if (lpEv["text"].is_string()) // сообщения без текста (вложения, голосовые) приходят с text: null
+        this->msg = lpEv["text"];
     this->words = str::words(this->msg);
-    this->from_id = lpEv["from_id"];
+    if (lpEv["from_id"].is_number())
+        this->from_id = lpEv["from_id"];
     if (this->from_id < 0)
         return;
     this->timestamp = lpEv["date"];

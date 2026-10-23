@@ -17,7 +17,8 @@ Doc::Doc(json lpDoc)
         this->ext = lpDoc["ext"];
         if (lpDoc["date"].is_number())
             this->timestamp = lpDoc["date"];
-        this->url = lpDoc["url"];
+        if (lpDoc["url"].is_string())
+            this->url = lpDoc["url"];
     }
     else if (this->type == "photo")
     {
@@ -29,13 +30,16 @@ Doc::Doc(json lpDoc)
         if (lpDoc["date"].is_number())
             this->timestamp = lpDoc["date"];
         int maxS = 0;
-        for (auto s : lpDoc["sizes"])
-            if (maxS < s["width"].get<int>() * s["height"].get<int>())
-            {
-                maxS = s["width"].get<int>() * s["height"].get<int>();
-                this->url = s["url"];
-            }
-        this->ext = *(str::words(this->url, '.').end() - 1);
+        if (lpDoc["sizes"].is_array())
+            for (auto s : lpDoc["sizes"])
+                if (s["width"].is_number() && s["height"].is_number() && s["url"].is_string() &&
+                    maxS < s["width"].get<int>() * s["height"].get<int>())
+                {
+                    maxS = s["width"].get<int>() * s["height"].get<int>();
+                    this->url = s["url"].get<std::string>();
+                }
+        if (!this->url.empty()) // пустой url без sizes иначе читал бы words.end()-1 (UB)
+            this->ext = *(str::words(this->url, '.').end() - 1);
     }
     else if (this->type == "video")
     {
@@ -54,7 +58,8 @@ Doc::Doc(json lpDoc)
         this->owner_id = lpDoc["owner_id"];
         if (lpDoc["access_key"].is_string())
             this->acess_key = lpDoc["access_key"];
-        this->url = lpDoc["url"];
+        if (lpDoc["url"].is_string())
+            this->url = lpDoc["url"];
         this->ext = "png";
     }
     else if (this->type == "music")
@@ -67,7 +72,8 @@ Doc::Doc(json lpDoc)
         this->ext = "mp3";
         if (lpDoc["date"].is_number())
             this->timestamp = lpDoc["date"];
-        this->url = lpDoc["url"];
+        if (lpDoc["url"].is_string())
+            this->url = lpDoc["url"];
     }
     else if (this->type == "audio_message")
     {
@@ -77,7 +83,8 @@ Doc::Doc(json lpDoc)
         if (lpDoc["access_key"].is_string())
             this->acess_key = lpDoc["access_key"];
         this->ext = "mp3";
-        this->url = lpDoc["link_mp3"];
+        if (lpDoc["link_mp3"].is_string())
+            this->url = lpDoc["link_mp3"];
     }
 }
 

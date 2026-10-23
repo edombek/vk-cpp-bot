@@ -301,6 +301,38 @@ int main()
         check(e.is_chat, "U9d is_chat");
     }
 
+    // --- U23: message_new без текста (text: null) и вложения с неполными полями ---
+    // падали в живой проверке: WORK ERROR type_error.302 на text:null; photo без sizes — UB на ext
+    {
+        Net net;
+        Vk vk(net);
+        json ev =
+        {
+            { "type", "message_new" },
+            { "object",
+              {
+                  { "id", 1 },
+                  { "date", 1700000000 },
+                  { "peer_id", 111 },
+                  { "from_id", 111 },
+                  { "text", nullptr },
+                  { "random_id", 0 },
+                  { "attachments",
+                    {
+                        { { "type", "photo" },
+                          { "photo", { { "id", 5 }, { "owner_id", -1 }, { "sizes", json::array() } } } },
+                        { { "type", "audio_message" },
+                          { "audio_message", { { "id", 6 }, { "owner_id", -1 } } } }
+                    } }
+              } }
+        };
+        Event e(net, vk, ev);
+        check(!e.msg.size() && e.words.empty(), "U23a text:null -> пустой msg");
+        check(e.docs.size() == 2, "U23b docs parsed", std::to_string(e.docs.size()));
+        check(e.docs[0].url.empty() && e.docs[0].ext.empty(), "U23c photo без sizes без UB");
+        check(e.docs[1].ext == "mp3" && e.docs[1].url.empty(), "U23d audio_message без link_mp3");
+    }
+
     // --- U10: Event::send передаёт keyboard в messages.send (FakeNet) ---
     {
         FakeNet fn;
