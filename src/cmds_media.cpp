@@ -91,10 +91,16 @@ void pix(Event &eventIn, Event &eventOut, Worker *worker)
         cv::resize(cvim, cvim, cv::Size(), 1/imgdelta, 1/imgdelta);
         cv::resize(cvim, cvim, cv::Size(), imgdelta, imgdelta, cv::INTER_NEAREST);
 
-        if(full && im.isBig(cvim))
-            eventOut.docs.push_back(img::getDoc(cvim, eventIn.peer_id, eventIn.net, eventIn.vk));
-        else
-            eventOut.docs.push_back(img::getPhoto(cvim, eventIn.peer_id, eventIn.net, eventIn.vk));
+        Doc art = (full && im.isBig(cvim))
+                      ? img::getDoc(cvim, eventIn.peer_id, eventIn.net, eventIn.vk)
+                      : img::getPhoto(cvim, eventIn.peer_id, eventIn.net, eventIn.vk);
+        if (!art.type.empty())
+            eventOut.docs.push_back(art);
+        else if (eventOut.docs.empty())
+            // пустой Doc из getPhoto/getDoc = загрузка не удалась (для group-токена стена фото
+            // не принимает: getMessagesUploadServer 901 на сообщество, getWallUploadServer 27) —
+            // объясняем вместо молчания
+            eventOut.msg += "картинку приложить не удалось (VK ограничивает загрузку фото от имени сообщества в стену) — пришли команду в личные сообщения";
     }
 }
 
@@ -237,10 +243,16 @@ void crt(Event &eventIn, Event &eventOut, Worker *worker)
         imgEdge = imgEdge(myROI);
         cv::bitwise_and(imgColored, imgEdge, cvim);
 
-        if(full && im.isBig(cvim))
-            eventOut.docs.push_back(img::getDoc(cvim, eventIn.peer_id, eventIn.net, eventIn.vk));
-        else
-            eventOut.docs.push_back(img::getPhoto(cvim, eventIn.peer_id, eventIn.net, eventIn.vk));
+        Doc art = (full && im.isBig(cvim))
+                      ? img::getDoc(cvim, eventIn.peer_id, eventIn.net, eventIn.vk)
+                      : img::getPhoto(cvim, eventIn.peer_id, eventIn.net, eventIn.vk);
+        if (!art.type.empty())
+            eventOut.docs.push_back(art);
+        else if (eventOut.docs.empty())
+            // пустой Doc из getPhoto/getDoc = загрузка не удалась (для group-токена стена фото
+            // не принимает: getMessagesUploadServer 901 на сообщество, getWallUploadServer 27) —
+            // объясняем вместо молчания
+            eventOut.msg += "картинку приложить не удалось (VK ограничивает загрузку фото от имени сообщества в стену) — пришли команду в личные сообщения";
     }
 }
 
@@ -276,9 +288,15 @@ void neon(Event &eventIn, Event &eventOut, Worker *worker)
         imgEdge.release();
         cvim = img::neonColors(cvim); // векторный HSV вместо попиксельного цикла
         cv::GaussianBlur(cvim, cvim, cv::Size(5,5), 2);
-        if(full && im.isBig(cvim))
-            eventOut.docs.push_back(img::getDoc(cvim, eventIn.peer_id, eventIn.net, eventIn.vk));
-        else
-            eventOut.docs.push_back(img::getPhoto(cvim, eventIn.peer_id, eventIn.net, eventIn.vk));
+        Doc art = (full && im.isBig(cvim))
+                      ? img::getDoc(cvim, eventIn.peer_id, eventIn.net, eventIn.vk)
+                      : img::getPhoto(cvim, eventIn.peer_id, eventIn.net, eventIn.vk);
+        if (!art.type.empty())
+            eventOut.docs.push_back(art);
+        else if (eventOut.docs.empty())
+            // пустой Doc из getPhoto/getDoc = загрузка не удалась (для group-токена стена фото
+            // не принимает: getMessagesUploadServer 901 на сообщество, getWallUploadServer 27) —
+            // объясняем вместо молчания
+            eventOut.msg += "картинку приложить не удалось (VK ограничивает загрузку фото от имени сообщества в стену) — пришли команду в личные сообщения";
     }
 }
