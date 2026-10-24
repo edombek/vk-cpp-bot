@@ -5,9 +5,10 @@
 Токен пользователя нужен боту для /video и аудиосообщений, а также для
 автоматических живых проверок (писать сообществу от имени пользователя).
 
-Как получить client_id/secret: https://id.vk.com/ru/apps?new=1 — тип «сайт»,
-в « Authorized redirect URI » указать http://localhost:8765/callback,
-права: сообщения (messages). client_secret показывается один раз.
+Как получить client_id/secret: https://vk.com/apps?act=manage — «Создать приложение»
+(или https://vk.com/editapp?act=create), тип «веб-сайт»,
+в «Адрес сайта / Authorized redirect URI » указать http://localhost:8765/callback,
+права: сообщения (messages). секрет показывается один раз.
 
 Режимы:
   ./tools/vk_user_token.py            — auth code flow: откроется браузер,

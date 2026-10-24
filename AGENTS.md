@@ -65,7 +65,8 @@ make NO_PYTHON=1                      # то же без Python
 - `./tools/vk_user_token.py` — получение user-токена VK (auth code flow через
   `http://localhost:8765/callback` или `--paste` implicit) и сохранение в
   `config.json["user_token"]`; `--check` проверяет текущий. Нужен client_id/secret
-  VK-приложения (https://id.vk.com/ru/apps?new=1); значения кэшируются в config.json
+  VK-приложения (https://vk.com/apps?act=manage — «Создать приложение»); значения
+  кэшируются в config.json
   (`vk_client_id`/`vk_client_secret`, в git не попадают). Этим токеном можно
   автоматизировать живые проверки бота (писать сообществу от имени пользователя).
 - Запустить бота end-to-end нельзя без реального ключа сообщества в `config.json`.
