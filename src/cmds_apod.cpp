@@ -87,39 +87,47 @@ static int parseDateStr(const string& s, int& y, int& m, int& d)
 // Возвращает false, если объект не похож на APOD-запись (там уже и сообщение об ошибке).
 static bool apodReply(Event &eventIn, Event &eventOut, const json &resp)
 {
-    if (!resp.is_object() || !resp["title"].is_string())
+    // const operator[] по отсутствующему ключу — UB (nlohmann dereference'ит end();
+    // assert ловит только Debug-сборку) — все поля читаем через find()
+    auto str = [&resp](const char* key) -> string
     {
-        if (resp.is_object() && resp["message"].is_string())
-            eventOut.msg += "APOD за эту дату не найден: " + resp["message"].get<string>();
+        if (!resp.is_object())
+            return "";
+        auto it = resp.find(key);
+        return (it != resp.end() && it->is_string()) ? it->get<string>() : "";
+    };
+    string title = str("title");
+    if (title.empty())
+    {
+        string message = str("message");
+        if (!message.empty())
+            eventOut.msg += "APOD за эту дату не найден: " + message;
         else
             eventOut.msg += "APOD за эту дату не найден";
         return false;
     }
-    eventOut.msg += resp["title"].get<string>() + ":\n\n";
-    if (resp["date"].is_string()) // для /apodrand и /apoddate полезно — дата снимка
-        eventOut.msg += "(" + resp["date"].get<string>() + ")\n\n";
-    if (resp["explanation"].is_string()) // новый формат присылает explanation с HTML-тегами
-        eventOut.msg += str::htmlToText(resp["explanation"].get<string>());
-    if (resp["credit"].is_string())
-    {
-        string credit = str::htmlToText(resp["credit"].get<string>());
-        if (!credit.empty())
-            eventOut.msg += "\n\n" + credit;
-    }
-    string imgurl;
-    if (resp["hdurl"].is_string())
-        imgurl = resp["hdurl"]; // полная картинка; url == permalink (страница поста), не картинка
-    if (resp["media_type"] == "image" && !imgurl.empty())
+    eventOut.msg += title + ":\n\n";
+    string date = str("date");
+    if (!date.empty()) // для /apodrand и /apoddate полезно — дата снимка
+        eventOut.msg += "(" + date + ")\n\n";
+    string explanation = str("explanation");
+    if (!explanation.empty()) // новый формат присылает explanation с HTML-тегами
+        eventOut.msg += str::htmlToText(explanation);
+    string credit = str::htmlToText(str("credit"));
+    if (!credit.empty())
+        eventOut.msg += "\n\n" + credit;
+    string imgurl = str("hdurl"); // полная картинка; url == permalink (страница поста), не картинка
+    if (str("media_type") == "image" && !imgurl.empty())
     {
         string dat = eventIn.net.send(imgurl);
         Doc img;
         if (img.uploadPhoto("img.jpg", dat, eventIn.net, eventIn.vk, eventIn.peer_id))
             eventOut.docs.push_back(img);
         else
-            eventOut.msg += "\nкартинку загрузить не удалось, первоисточник:\n" + (resp["permalink"].is_string() ? resp["permalink"].get<string>() : imgurl);
+            eventOut.msg += "\nкартинку загрузить не удалось, первоисточник:\n" + (str("permalink").empty() ? imgurl : str("permalink"));
     }
-    else if (resp["permalink"].is_string()) // видео/iframe/картинка без hdurl — ссылка на пост
-        eventOut.msg += "\n\n" + resp["permalink"].get<string>();
+    else if (!str("permalink").empty()) // видео/iframe/картинка без hdurl — ссылка на пост
+        eventOut.msg += "\n\n" + str("permalink");
     return true;
 }
 
