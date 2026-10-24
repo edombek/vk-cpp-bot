@@ -5,3 +5,4 @@ vkbot
 *.jpg
 build/
 build-nopy/
+build-asan/

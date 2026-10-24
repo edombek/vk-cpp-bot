@@ -164,5 +164,16 @@ make NO_PYTHON=1                      # то же без Python
   `wall.post` → 214 — только своё сообщество); `wall.getComments`/`wall.deleteComment`/
   `comments.*` group-авторизацией не работают. Погода `/w` — wttr.in (без токена;
   `openweathermap_token` более не нужен и из README/кода убран).
+- **Python-аддоны (фаза 12, ветка `python-commands`)**: `cmd::loadAddons()` регистрирует
+  `py_addons/*.py` (`cmd/info/acess/cat` + `run(eventIn, eventOut, net, vk)`); каждый вызов —
+  свежий под-интерпретатор (`pyF::execAddon`). Таблица `cmdsList` под мьютексом,
+  `msg_func_t` — `std::function`; C++-функция `/rename` переименована в `renameUser`
+  (`rename` конфликтовал с POSIX `::rename` из `<cstdio>/<filesystem>` — GCC ругался
+  невнятным «could not convert» на всю инициализацию таблицы). Временный под-интерпретатор
+  в `pyAddonMeta` обязан быть объявлен **до** `try` (внутри try раскрутка стека убивает его
+  раньше catch с `error_already_set` — double free). Const `operator[]` nlohmann по
+  отсутствующему ключу — UB в Release (пойман флaky SEGFAULT юнитов в `apodReply`; такие
+  поля читать через `find()`). В python `net.send`/`fs.readData` отдают `bytes` для не-UTF-8;
+  `Doc.get()` — строка attachment, данные вложения — `img.download(doc, net)`/`net.send(doc.url)`.
 
 Аудит-отчёт с полным списком: `/home/edombek/.opencode/plan/BUILD-RESULTS.md` (вне репозитория).

@@ -13,10 +13,25 @@ CI: включена (2026-10-23) — build.yml собирает обе конф
 | С Python | `make` (шим cmake) или `cmake -B build && cmake --build build` | ✅ `-Wall` чист (`-Wno-attributes` точечно на `src/py.cpp`, см. ниже) |
 | Без Python | `make NO_PYTHON=1` / `-DVKBOT_WITH_PYTHON=OFF` | ✅ |
 | Smoke-запуск без config.json (временно перенести файл) | `./build/vkbot` | ✅ чистый `FATAL: Vk: не задан token...`, exit 1 (раньше — `terminate`) |
-| Автотесты | `make test` или `cd build && ctest --output-on-failure` | ✅ 2/2 теста (units 137/137 + py_integration 27/27); в NO_PYTHON — 1/1 (только units, каталог `build-nopy`) |
+| Автотесты | `make test` или `cd build && ctest --output-on-failure` | ✅ 2/2 теста (units 137/137 + py_integration 52/52); в NO_PYTHON — 1/1 (только units, каталог `build-nopy`) |
 
 История: до фазы 1.5 штатный `make` не собирался (захардкоженные `-lboost_python39`,
 `-I/usr/include/opencv4`), проверки делались ручной компиляцией с подобранными флагами.
+
+## Отладка редких падений (рецепт, использованный в фазе 12)
+
+Флaky-SEGFAULT (раз на ~10 прогонов) отловила Debug+ASan сборка — assert nlohmann
+на const `operator[]` по отсутствующему ключу (Release с `NDEBUG` молча разыменовывает
+`end()`):
+
+```
+cmake -B build-asan -DCMAKE_BUILD_TYPE=Debug \
+      -DCMAKE_CXX_FLAGS="-fsanitize=address -fsanitize-address-use-after-scope -g"
+cmake --build build-asan -j && ./build-asan/vkbot_unit
+```
+
+Leak-отчёт CPython в `vkbot_pytest` под ASan (~18 МБ) — ложное положительное
+встроенного python, на релизные конфигурации не распространяется.
 
 ## Предупреждения компилятора — тест на регресс
 
@@ -143,8 +158,13 @@ Runtime-проверки фазы 0:
 | T14 | флуд-контроль print: `py_print_max_msgs` (лимит на скрипт + уведомление об обрезке) | ✅ |
 | T15 | флуд-контроль print: `py_print_interval_ms` (минимальный интервал между сообщениями) | ✅ |
 | T16 | `/pywiki`: текст вики (`pyWikiScript()`) исполняется как скрипт и уходит print-сообщениями | ✅ |
+| T17 | метаданные аддонов (`pyAddonMeta`): чтение cmd/info/acess/cat; отказ при отсутствии `run()`, acess вне 1..5, cmd без «/»/с пробелом, синтаксической ошибке (регрессия на double-free: под-интерпретатор должен объявляться до try — см. TASKS, фаза 12) | ✅ |
+| T18 | `pyF::execAddon`: exec модуля + `run(...)`; msg + строковый возврат run() суммируются, print работает, traceback возвращается текстом | ✅ |
+| T19 | `cmd::loadAddons` + диспетчер: валидный зарегистрирован, битый и «заслон built-in» пропущены, новый раздел виден в `/help` и ярлыком `/pythonaddon`, `/addonreload`-перечитывание применяет правку и снимает старые | ✅ |
+| T20 | `net.send()` авто-типизация: текстовый ответ → `str`, бинарный (не-UTF-8) → `bytes` | ✅ |
+| T21 | `vkcppbot.img`: fromBytes/width/height/toPng, gray/scale, sources+fromDoc (фото профиля через FakeNet), `fs.readData` бинарных файлов, `uploadPhoto` c bytes и отрицательным peer (FakeNet, png-магия в upload-теле) | ✅ |
 
-Итого: 27/27 проверок, `ctest` 1/1 passed (~0.2 c).
+Итого: 52/52 проверок.
 
 ## Python-интеграция: стресс-прогоны (исторические, дофазовые)
 
