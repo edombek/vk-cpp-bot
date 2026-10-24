@@ -12,6 +12,9 @@
 --client-id/--client-secret (приложение: https://vk.com/apps?act=manage).
 
 Режимы:
+  ./tools/vk_user_token.py --direct     — прямая авторизация desktop-клиента
+                                          (телефон+пароль, при запросе — код 2FA
+                                          и капча; пароль только в терминале)
   ./tools/vk_user_token.py --print-url  — напечатать ссылку авторизации: открыть,
                                           разрешить, скопировать адрес итоговой
                                           страницы (blank.html#access_token=...)
@@ -21,6 +24,10 @@
   ./tools/vk_user_token.py              — auth code flow через http://localhost:8765
                                           (для своего приложения)
   ./tools/vk_user_token.py --check      — проверить/показать текущий user_token
+
+Замечание 2026: implicit-токены сторонних/закрытых клиентов (Kate Mobile 2685278,
+VK Admin 6121396) VK отвергает (error 9 / «application is blocked») — рабочий путь
+для scope messages: --direct (desktop-клиент 2671, как в библиотеке vk_api).
 """
 
 import argparse
@@ -40,8 +47,9 @@ API = "https://api.vk.com/method/"
 OAUTH = "https://oauth.vk.com/"
 REDIRECT = "http://localhost:8765/callback"
 SCOPES = "messages,friends,status"  # friends/status — чтобы проверки профиля работали шире
-# implicit-поток: pубличный client_id одобренного десктоп-клиента (messages запрещён
-# website-клиентам — «Only desktop applications have access to user messages»).
+# implicit-поток: публичный client_id десктоп-клиента (messages запрещён website-клиентам).
+# 2026: implicit-токены Kate Mobile/VK Admin VK блокирует (error 9 / «application is
+# blocked») — рабочий путь для scope messages: --direct (см. docstring).
 # 2685278 = Kate Mobile (старый whitelisted клиент, как на vkhost.github.io).
 # scope числом: friends(2^1)+status(2^10)+messages(2^12)+offline(2^16) = 70658
 DEFAULT_CLIENT = "2685278"
@@ -186,10 +194,70 @@ def paste_flow(client_id):
     return extract_token(s)
 
 
+def direct_flow():
+    """grant_type=password для desktop-клиента (публичные креды, как в vk_api).
+    Пароль запрашивается через getpass (в историю не попадает)."""
+    import getpass
+    login = input("телефон аккаунта (цифрами, 7...): ").strip()
+    password = getpass.getpass("пароль от аккаунта VK: ")
+    params = {"grant_type": "password", "client_id": "2671", "client_secret": "w0x7ohD9PQOkRS7cR43G",
+              "username": login, "password": password, "scope": str(SCOPE_NUM), "v": "5.131",
+              "2fa_supported": "1", "force_2fa": "0"}
+    code = None
+    for _ in range(8):
+        p = dict(params)
+        if code:
+            p["code"] = code
+        req = urllib.request.Request("https://oauth.vk.com/token",
+                                     data=urllib.parse.urlencode(p).encode(),
+                                     headers={"User-Agent": "VKChat/8.90"})
+        try:
+            with urllib.request.urlopen(req, timeout=30) as r:
+                j = json.loads(r.read().decode())
+        except urllib.error.HTTPError as e:
+            try:
+                j = json.loads(e.read().decode())
+            except ValueError:
+                print("VK вернул не-JSON"); return None
+        err = j.get("error")
+        if not err:
+            print("получили токен" + (f", срок действия {int(j['expires_in'])/3600:.0f} ч" if j.get("expires_in") else ""))
+            return j["access_token"]
+        if err in ("two_factor_required", "two_factor_authorized_error"):
+            if j.get("phone_mask"):
+                print(f"VK просит код 2FA на {j['phone_mask']}")
+            if j.get("password"):
+                params["password"] = j["password"]  # одноразовый токен вместо пароля
+            code = input("код 2FA: ").strip()
+            continue
+        if err == "need_validation":
+            path = "/tmp/opencode/vk_captcha.png"
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            urllib.request.urlretrieve(j.get("captcha_img", ""), path)
+            print(f"нужна капча — картинка сохранена: {path}")
+            params["captcha_sid"] = j.get("captcha_sid")
+            params["captcha_key"] = input("код с картинки: ").strip()
+            continue
+        if err == "need_confirmation":
+            print("VK требует подтвердить новое устройство:")
+            print(j.get("error_description", j))
+            code = input("код подтверждения (Enter — отмена): ").strip()
+            if not code:
+                return None
+            continue
+        print(f"ошибка: {err} — {j.get('error_description', j.get('error_msg', ''))}")
+        if err in ("invalid_client", "unsupported_grant_type"):
+            print("клиент 2671, похоже, тоже заблокирован — сообщите, попробуем другие публичные креды")
+        return None
+    print("слишком много попыток — попробуй ещё раз")
+    return None
+
+
 def main():
     ap = argparse.ArgumentParser(description="получить user-токен VK в config.json")
     ap.add_argument("--check", action="store_true", help="проверить user_token из config.json")
     ap.add_argument("--paste", action="store_true", help="implicit flow (вставить токен руками)")
+    ap.add_argument("--direct", action="store_true", help="прямая авторизация desktop-клиента (телефон+пароль)")
     ap.add_argument("--print-url", action="store_true", help="только напечатать ссылку авторизации")
     ap.add_argument("--save", metavar="ССЫЛКА_ИЛИ_ТОКЕН", help="сохранить токен из адреса blank.html/токена")
     ap.add_argument("--client-id", default=None)
@@ -208,6 +276,18 @@ def main():
         tok = extract_token(a.save)
         if not tok:
             sys.exit("токен не распознан во вставленной строке")
+        if not check_token(tok):
+            sys.exit("токен не проходит users.get — в config не пишем")
+        cfg["user_token"] = tok
+        save_config(cfg)
+        print(f"сохранено: {CONFIG} (ключ user_token)")
+        print("не забудьте перезапустить бота, чтобы он подхватил user_token")
+        return
+
+    if a.direct:
+        tok = direct_flow()
+        if not tok:
+            sys.exit("токен не получен")
         if not check_token(tok):
             sys.exit("токен не проходит users.get — в config не пишем")
         cfg["user_token"] = tok
