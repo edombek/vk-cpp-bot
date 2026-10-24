@@ -103,7 +103,7 @@ void help(Event &eventIn, Event &eventOut, Worker *worker)
             }
         }
         else
-            catsLine += (catsLine.empty() ? "" : ", ") + cat + " — " + to_string(cnt);
+            catsLine += (catsLine.empty() ? "" : "\n") + cat + " — " + to_string(cnt); // в столбик: по строке на раздел
     }
     if (section.size())
     {
@@ -114,7 +114,7 @@ void help(Event &eventIn, Event &eventOut, Worker *worker)
         eventOut.msg += "\n«(ур. N)» — минимальный уровень прав: 1 — любой, 2 — друг, 3 — продвинутый, 5 — админ (у вас " + to_string(eventIn.user.acess) + ");\nэто полный список; по разделам (подгруппам) короче — кнопки ниже или текстом:" + textHint + "\n";
     else
     {
-        eventOut.msg += "команды поделены на разделы (подгруппы), после тире — число команд: " + catsLine + "\n";
+        eventOut.msg += "команды поделены на разделы (подгруппы), после тире — число команд:\n" + catsLine + "\n";
         eventOut.msg += "раздел открывается кнопкой или текстом:" + textHint + "; полный список — «все команды» или /всекоманды\n";
     }
     if (!kbd.empty())
