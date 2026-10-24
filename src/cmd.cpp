@@ -126,8 +126,8 @@ bool cmd::start(const std::string &comand, Event &eventIn, Event &eventOut, Work
     const cmd_t &ci = cmdsList[comand];
     if (ci.acess > eventIn.user.acess) // права — по входящему событию (eventOut — лишь его копия-ответ)
         return false;
-    fprintf(stderr, "\n%s vk.com/id%llu (%llu/%llu(%s))", comand.c_str(), (unsigned long long)eventIn.user.id, (unsigned long long)eventIn.user.id, (unsigned long long)eventIn.peer_id, eventIn.type.c_str());
+    fprintf(stderr, "\n%s vk.com/id%llu (%lld/%lld(%s))", comand.c_str(), (unsigned long long)eventIn.user.id, (long long)eventIn.from_id, (long long)eventIn.peer_id, eventIn.type.c_str());
     ci.func(eventIn, eventOut, worker);
-    fprintf(stderr, "\n%s vk.com/id%llu (%llu/%llu(%s))-done!\n", comand.c_str(), (unsigned long long)eventIn.user.id, (unsigned long long)eventIn.user.id, (unsigned long long)eventIn.peer_id, eventIn.type.c_str());
+    fprintf(stderr, "\n%s vk.com/id%llu (%lld/%lld(%s))-done!\n", comand.c_str(), (unsigned long long)eventIn.user.id, (long long)eventIn.from_id, (long long)eventIn.peer_id, eventIn.type.c_str());
     return true;
 }
