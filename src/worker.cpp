@@ -56,11 +56,14 @@ void Worker::work(json event, Net& net, Vk& vk)
             bd.touch();
             return;
         }
-        if (eventIn.msg.size() && eventIn.from_id > 0)
+        bool selfComment = eventIn.type.find("wall_reply_") != std::string::npos && eventIn.from_id == eventIn.peer_id;
+        // комментарий самой страницы под своей записью: игнор (защита от петли)
+        if (eventIn.msg.size() && eventIn.from_id != 0 && !selfComment)
         {
             eventIn.user = users::getUser(eventIn.from_id, vk);
             Event outEvent = eventIn.getOut();
-            outEvent.msg += outEvent.user.name + ", ";
+            if (!outEvent.user.name.empty()) // у сообществ имени из users.get нет — не печатать «, »
+                outEvent.msg += outEvent.user.name + ", ";
             if (cmd::start(str::low(*eventIn.words.begin()), eventIn, outEvent, this))
                 outEvent.send();
             bd.touch(); // запись dat.json — пакетом по таймеру в Lp::loop, не на каждое сообщение

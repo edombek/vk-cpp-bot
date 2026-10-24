@@ -32,6 +32,7 @@ public:
     int64_t from_id = 0;
     int64_t peer_id = 0;
     uint64_t id = 0;
+    int64_t cid = 0; // wall_reply_new: id комментария — отвечать через reply_to_cid (ветка)
     uint32_t random_id = 0;
     time_t timestamp = 0;
     bool is_chat = false;

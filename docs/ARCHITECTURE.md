@@ -70,6 +70,10 @@ flowchart LR
   `gameNew/gameUsers/randNumbers/bcDraft` в `src/cmds_games.cpp` (доступ только под мьютексом).
 - Нажатие кнопки: `message_event` → `Worker::workButton` → `sendMessageEventAnswer` +
   диспетчеризация payload как команды (общая таблица `cmdsList`).
+- Комментарий к записи стены (`wall_reply_new`) — тоже команда: `Event::cid` хранит id
+  комментария, ответ уходит `wall.createComment` с `reply_to_cid` (в ветку). Комментарии от
+  имении сообществ (`from_id < 0`) обрабатываются (уровень 1 в bd без `users.get`), собственные
+  комментарии страницы игнорируются (`from_id == peer_id` — защита от петли). Чекер — `tools/live_check.py`.
 - Python: каждый `/py` — новый под-интерпретатор в worker-потоке; главный поток не должен
   держать GIL (см. `docs/TASKS.md`, фаза 2).
 - Тесты гоняют конвейер `Worker::work(event, FakeNet, Vk)` без сети и пула (`tests/fakenet.h`).

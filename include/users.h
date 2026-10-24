@@ -8,11 +8,12 @@ namespace users
 typedef struct user_t
 {
     std::string name;
-    uint64_t id = 0;
+    // знаковый: отрицательные id — сообщества (комментарии стены от имени страницы)
+    int64_t id = 0;
     uint8_t acess = 0;
     uint64_t msgs = 0;
 } user;
-json newUser(uint64_t id, Vk& vk);
-user getUser(uint64_t id, Vk& vk, bool inc = true); // inc = false — чтение без увеличения счётчика msgs
-void changeUser(uint64_t id, const user& edited);
+json newUser(int64_t id, Vk& vk);
+user getUser(int64_t id, Vk& vk, bool inc = true); // inc = false — чтение без увеличения счётчика msgs
+void changeUser(int64_t id, const user& edited);
 }

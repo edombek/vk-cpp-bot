@@ -2,7 +2,7 @@
 #include "bd.h"
 #include <iostream>
 
-json users::newUser(uint64_t id, Vk& vk)
+json users::newUser(int64_t id, Vk& vk)
 {
     json u = {};
     u["acess"] = 1;
@@ -11,14 +11,21 @@ json users::newUser(uint64_t id, Vk& vk)
     return u;
 }
 
-users::user users::getUser(uint64_t id, Vk& vk, bool inc)
+users::user users::getUser(int64_t id, Vk& vk, bool inc)
 {
     users::user u;
     bd.lock.lock();
     json& us = bd.get()["users"];
     std::string strid = std::to_string(id);
     if (us[strid].is_null())
-        us[strid] = users::newUser(id, vk);
+    {
+        if (id > 0)
+            us[strid] = users::newUser(id, vk);
+        else
+            // сообщество (комментарий от имени страницы): users.get на него не работает,
+            // заводим запись с базовым уровнем сразу
+            us[strid] = { { "acess", 1 }, { "msgs", 0 }, { "name", "" } };
+    }
     u.id = id;
     u.name = us[strid]["name"];
     u.acess = us[strid]["acess"];
@@ -29,7 +36,7 @@ users::user users::getUser(uint64_t id, Vk& vk, bool inc)
     return u;
 }
 
-void users::changeUser(uint64_t id, const users::user& edited)
+void users::changeUser(int64_t id, const users::user& edited)
 {
     bd.lock.lock();
     json& us = bd.get()["users"];

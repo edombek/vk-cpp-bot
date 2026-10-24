@@ -1056,6 +1056,51 @@ int main()
               "U33b /apodrand с битой загрузкой фото — сообщение со ссылкой", m.substr(0, 70));
     }
 
+    // --- U34: wall_reply_new (комментарий от имени другого сообщества) ---
+    {
+        FakeNet fn;
+        fn.responses["wall.createComment"] = "{\"response\":900}";
+        Vk vk(fn);
+        json ev =
+        {
+            { "type", "wall_reply_new" },
+            { "object", { { "id", 777 }, { "date", 5 }, { "text", "/stat" }, { "from_id", -555 },
+                          { "post_id", 40579 }, { "owner_id", -178228638 } } }
+        };
+        Event e(fn, vk, ev);
+        check(e.cid == 777 && e.id == 40579 && e.peer_id == -178228638 && e.from_id == -555,
+              "U34a парсинг wall_reply_new (cid/id/peer_id)", std::to_string(e.cid) + "/" + std::to_string(e.id));
+        Event out = e.getOut();
+        check(out.cid == e.cid && out.type == e.type && out.id == e.id, "U34b getOut сохраняет cid/type");
+        Worker w;
+        w.work(ev, fn, vk);
+        const FakeNet::Call* c = fn.first("wall.createComment");
+        check(c && c->params.count("post_id") && c->params.at("post_id") == "40579"
+                  && c->params.count("owner_id") && c->params.at("owner_id") == "-178228638"
+                  && c->params.count("reply_to_cid") && c->params.at("reply_to_cid") == "777",
+              "U34c ответ в ветку комментария (reply_to_cid)", c ? (c->params.count("reply_to_cid") ? c->params.at("reply_to_cid") : "(нет reply_to_cid)") : "(нет вызова)");
+        check(c && c->params.count("message") && c->params.at("message").find("Работаю") != std::string::npos,
+              "U34c2 команда выполнена (текст /stat)", c && c->params.count("message") ? c->params.at("message").substr(0, 40) : "(нет)");
+        check(fn.first("users.get") == nullptr, "U34d users.get не зовётся для сообщества", fn.first("users.get") ? "(зовётся)" : "");
+        check(bd.get()["users"]["-555"]["acess"] == 1, "U34e запись сообщества в bd с уровнем 1", bd.get()["users"]["-555"].dump());
+    }
+
+    // --- U35: комментарий самой страницы под своей записью — игнор (защита от петли) ---
+    {
+        FakeNet fn;
+        fn.responses["wall.createComment"] = "{\"response\":901}";
+        Vk vk(fn);
+        json ev =
+        {
+            { "type", "wall_reply_new" },
+            { "object", { { "id", 778 }, { "date", 5 }, { "text", "/stat" }, { "from_id", -178228638 },
+                          { "post_id", 40579 }, { "owner_id", -178228638 } } }
+        };
+        Worker w;
+        w.work(ev, fn, vk);
+        check(fn.first("wall.createComment") == nullptr, "U35a свой комментарий проигнорирован", fn.first("wall.createComment") ? "(ответ!)" : "");
+    }
+
     Net::deinit();
 
     std::cout << "\n=== " << passed << " passed, " << failed << " failed ===" << std::endl;

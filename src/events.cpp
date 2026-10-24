@@ -42,8 +42,9 @@ Event::Event(Net &n, Vk &v, json lpEv)
     this->words = str::words(this->msg);
     if (lpEv["from_id"].is_number())
         this->from_id = lpEv["from_id"];
-    if (this->from_id < 0)
-        return;
+    if (this->from_id < 0 && this->type.find("wall_reply_") == this->type.npos)
+        return; // отрицательный from_id = отправка самим сообществом (сообщения);
+                // у комментариев стены это автор-сообщество — обрабатываем (живые проверки)
     if (lpEv["date"].is_number())
         this->timestamp = lpEv["date"];
     if (this->type.find("message_") != this->type.npos)
@@ -60,6 +61,12 @@ Event::Event(Net &n, Vk &v, json lpEv)
     {
         this->peer_id = lpEv["owner_id"];
         this->id = lpEv["id"];
+    }
+    if (this->type.find("wall_reply_") != this->type.npos)
+    {
+        this->peer_id = lpEv["owner_id"]; // владелец стены (отрицательный id сообщества)
+        this->id = lpEv["post_id"];       // запись, под которую отвечать
+        this->cid = lpEv["id"];           // комментарий-команда — ответ в её ветку
     }
     this->is_chat = this->from_id != this->peer_id; // знаковое сравнение: от «отрицательного» отправления бота (отрицательный from_id это не спасает)
     if (!lpEv["attachments"].is_null())
@@ -84,6 +91,7 @@ void Event::copyBody(const Event& e)
     this->from_id = e.from_id;
     this->peer_id = e.peer_id;
     this->id = e.id;
+    this->cid = e.cid;
     this->random_id = e.random_id;
     this->timestamp = e.timestamp;
     this->is_chat = e.is_chat;
@@ -109,11 +117,13 @@ json Event::send()
             param["attachment"] += doc.get() + ",";
         return this->vk.send("messages.send", param);
     }
-    if (this->type.find("wall_post_") != this->type.npos)
+    if (this->type.find("wall_post_") != this->type.npos || this->type.find("wall_reply_") != this->type.npos)
     {
         param["post_id"] = std::to_string(this->id);
         param["message"] = this->msg;
         param["owner_id"] = std::to_string(this->peer_id);
+        if (this->cid) // комментарий-команда: отвечать в её ветку
+            param["reply_to_cid"] = std::to_string(this->cid);
         for (auto doc : this->docs)
             param["attachment"] += doc.get() + ",";
         return this->vk.send("wall.createComment", param);
@@ -133,6 +143,7 @@ Event Event::getOut() const
     event.from_id = this->from_id;
     event.peer_id = this->peer_id;
     event.id = this->id;
+    event.cid = this->cid;
     event.random_id = this->random_id;
     event.event_id = this->event_id;
     event.user = this->user;

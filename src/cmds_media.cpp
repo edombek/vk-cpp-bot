@@ -34,7 +34,7 @@ void videos(Event &eventIn, Event &eventOut, Worker *worker)
         string msg = eventOut.msg;
         eventOut.msg = msg + "держи";
         uint8_t s = 5;
-        if (eventOut.type.find("wall_post_") != eventOut.type.npos)
+        if (eventOut.type.find("wall_post_") != eventOut.type.npos || eventOut.type.find("wall_reply_") != eventOut.type.npos)
             s = 2;
         for (uint16_t i = 0; i < resp["response"]["items"].size(); i++)
         {

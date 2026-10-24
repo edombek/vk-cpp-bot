@@ -63,7 +63,7 @@ void setc(Event &eventIn, Event &eventOut, Worker *worker)
     }
     else
     {
-        uint32_t id = str::fromString(eventIn.words[1]);
+        int64_t id = str::fromString(eventIn.words[1]); // знаковый: /set доступен и для сообществ (отрицательный id)
         if (!id)
             eventOut.msg += "/set <id> <level>...";
         else
