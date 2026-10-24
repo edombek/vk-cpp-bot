@@ -15,6 +15,7 @@
 
 #include "doc.h"
 #include "fs.h"
+#include "img.h"
 #include "keyboard.h"
 #include "net.h"
 #include "str.h"
@@ -23,6 +24,48 @@
 #include "vk.h"
 
 namespace py = pybind11;
+
+// ответ HTTP/файла в python: текст — как str; бинарные данные (картинки) — py::bytes.
+// pybind при привязке std::string бросает UnicodeDecodeError на не-UTF-8 —
+// на него и ориентируемся
+static py::object pyTextOrBytes(const std::string& s)
+{
+    try
+    {
+        return py::str(s);
+    }
+    catch (const py::error_already_set&)
+    {
+        return py::bytes(s);
+    }
+}
+
+// обёртка cv::Mat для python (фаза 12): OpenCV-типы в скрипты не просачиваются,
+// только данные и пиксельные операции
+struct PyImg
+{
+    cv::Mat mat;
+    static PyImg decode(const std::string& data)
+    {
+        std::vector<uchar> v(data.begin(), data.end());
+        PyImg im{cv::imdecode(v, 1)};
+        if (im.mat.empty())
+            throw std::invalid_argument("не удалось декодировать изображение (не картинка?)");
+        return im;
+    }
+    std::string encode(const std::string& ext, int quality = -1) const
+    {
+        if (mat.empty())
+            throw std::invalid_argument("пустое изображение");
+        std::vector<uchar> buff;
+        std::vector<int> params;
+        if (quality >= 0)
+            params = {cv::IMWRITE_JPEG_QUALITY, quality};
+        if (!cv::imencode(ext, mat, buff, params))
+            throw std::invalid_argument("не удалось закодировать в " + ext);
+        return std::string(buff.begin(), buff.end());
+    }
+};
 
 // ---------------------------------------------------------------------------
 // Модуль `vkcppbot`: embedded (регистрируется через PyImport_AppendInittab на
@@ -49,16 +92,16 @@ PYBIND11_EMBEDDED_MODULE(vkcppbot, m, py::multiple_interpreters::per_interpreter
         .def_readwrite("ext", &Doc::ext)
         .def_readwrite("url", &Doc::url)
         .def_readwrite("timestamp", &Doc::timestamp)
-        .def("get", &Doc::get)
+        .def("get", [](const Doc& self) { return pyTextOrBytes(self.get()); })
         .def("uploadDoc",
-             [](Doc& self, std::string filename, py::object data, Net& net, Vk& vk, uint64_t peer_id, bool audio)
+             [](Doc& self, std::string filename, py::object data, Net& net, Vk& vk, int64_t peer_id, bool audio)
              {
                  std::string d = py::isinstance<py::bytes>(data) ? py::cast<std::string>(data) : std::string(py::str(data));
                  return self.uploadDoc(filename, d, net, vk, peer_id, audio);
              },
              py::arg("filename"), py::arg("data"), py::arg("net"), py::arg("vk"), py::arg("peer_id"), py::arg("audio_message") = false)
         .def("uploadPhoto",
-             [](Doc& self, std::string filename, py::object data, Net& net, Vk& vk, uint64_t peer_id)
+             [](Doc& self, std::string filename, py::object data, Net& net, Vk& vk, int64_t peer_id)
              {
                  std::string d = py::isinstance<py::bytes>(data) ? py::cast<std::string>(data) : std::string(py::str(data));
                  return self.uploadPhoto(filename, d, net, vk, peer_id);
@@ -99,9 +142,12 @@ PYBIND11_EMBEDDED_MODULE(vkcppbot, m, py::multiple_interpreters::per_interpreter
         .def("clear", &Keyboard::clear);
 
     py::class_<Net>(m, "Net")
-        .def("send", py::overload_cast<const std::string&, const std::string&>(&Net::send),
+        // send() возвращает str (текст) или bytes (бинарный ответ — картинка и т.п.)
+        .def("send", [](Net& self, const std::string& url, const std::string& params) -> py::object
+             { return pyTextOrBytes(self.send(url, params)); },
              py::arg("url"), py::arg("params") = std::string())
-        .def("send", py::overload_cast<const std::string&, const table_t&, bool>(&Net::send),
+        .def("send", [](Net& self, const std::string& url, const table_t& params, bool post) -> py::object
+             { return pyTextOrBytes(self.send(url, params, post)); },
              py::arg("url"), py::arg("params"), py::arg("post") = true)
         .def("upload",
              [](Net& self, std::string url, std::string filename, py::object data)
@@ -120,7 +166,7 @@ PYBIND11_EMBEDDED_MODULE(vkcppbot, m, py::multiple_interpreters::per_interpreter
     // имена переменных не должны затенять C++ namespace-ы fs/str/timer
     py::module_ modFs = m.def_submodule("fs", "файловые утилиты");
     modFs.def("exists", [](const std::string& p) { return fs::exists(p); });
-    modFs.def("readData", [](const std::string& p) { return fs::readData(p); });
+    modFs.def("readData", [](const std::string& p) { return pyTextOrBytes(fs::readData(p)); }); // binary — bytes
     modFs.def("writeData", [](const std::string& p, const std::string& d) { fs::writeData(p, d); });
 
     py::module_ modStr = m.def_submodule("str", "строковые утилиты (UTF-8)");
@@ -132,6 +178,37 @@ PYBIND11_EMBEDDED_MODULE(vkcppbot, m, py::multiple_interpreters::per_interpreter
     py::module_ modTimer = m.def_submodule("timer", "время/пауза");
     modTimer.def("sleep", [](int ms) { timer::sleep(ms); });
     modTimer.def("getWorkTime", []() { return timer::getWorkTime(); });
+
+    // --- изображения (фаза 12): источник картинки, загрузка, фильтры OpenCV ---
+    py::class_<PyImg>(m, "Image")
+        .def_property_readonly("width", [](const PyImg& s) { return s.mat.cols; })
+        .def_property_readonly("height", [](const PyImg& s) { return s.mat.rows; })
+        .def("copy", [](const PyImg& s) { PyImg o{s.mat.clone()}; return o; })
+        .def("pix", [](const PyImg& s) { return PyImg{img::toPix(s.mat)}; })       // 8bit art
+        .def("crt", [](const PyImg& s) { return PyImg{img::toCrt(s.mat)}; })       // cartoon
+        .def("neon", [](const PyImg& s) { return PyImg{img::toNeon(s.mat)}; })     // неон
+        .def("invert", [](const PyImg& s) { return PyImg{img::toInvert(s.mat)}; }) // инверсия
+        .def("gray", [](const PyImg& s) { // ч/б (в 3 канала — так же, как в фильтрах crt/neon)
+            cv::Mat gray, out;
+            cv::cvtColor(s.mat, gray, cv::COLOR_RGB2GRAY);
+            cv::cvtColor(gray, out, cv::COLOR_GRAY2RGB);
+            return PyImg{out};
+        })
+        .def("scale", [](const PyImg& s, int w, int h) { return PyImg{img::scale(s.mat, w, h)}; },
+             py::arg("width"), py::arg("height"))
+        .def("toPng", [](const PyImg& s) { return py::bytes(s.encode(".png")); })
+        .def("toJpeg", [](const PyImg& s, int q) { return py::bytes(s.encode(".jpg", q)); }, py::arg("quality") = 90);
+
+    py::module_ modImg = m.def_submodule("img", "изображения: вложения, загрузка, фильтры");
+    modImg.def("sources", [](Event& e) { return img::sources(e); }); // вложения-картинки или фото профиля
+    // скачать содержимое вложения по doc.url (Doc.get() — это строка attachment, не данные!)
+    modImg.def("download", [](const Doc& d, Net& net) { return pyTextOrBytes(net.send(d.url)); },
+               py::arg("doc"), py::arg("net"));
+    modImg.def("fromBytes", [](const std::string& data) { return PyImg::decode(data); }, py::arg("data"));
+    modImg.def("fromDoc", [](const Doc& d, Net& net) { return PyImg::decode(net.send(d.url)); },
+               py::arg("doc"), py::arg("net"));
+    modImg.def("fromUrl", [](const std::string& url, Net& net) { return PyImg::decode(net.send(url)); },
+               py::arg("url"), py::arg("net"));
 }
 
 // ---------------------------------------------------------------------------
@@ -302,6 +379,112 @@ int pyF::printsSent() const
     return impl->printer->printsSent();
 }
 
+std::string pyF::execAddon(const std::string& source)
+{
+    if (!impl->act)
+        impl->act = std::make_unique<py::subinterpreter_scoped_activate>(impl->sub);
+    try
+    {
+        py::exec(py::str(source), impl->ns); // тело модуля аддона (импорты, метаданные)
+        if (!impl->ns.contains("run"))
+            return "аддон не определяет run(eventIn, eventOut, net, vk)";
+        py::object res = impl->ns["run"](impl->ns["eventIn"], impl->ns["eventOut"],
+                                         impl->ns["net"], impl->ns["vk"]);
+        if (!res.is_none()) // строка из run() дописывается к ответу
+        {
+            std::string s = py::str(res);
+            if (!s.empty())
+                impl->eventOut.msg += s;
+        }
+    }
+    catch (const py::error_already_set& e)
+    {
+        return e.what();
+    }
+    catch (const std::exception& e)
+    {
+        return std::string("cpp error: ") + e.what();
+    }
+    return "";
+}
+
+// ---------------------------------------------------------------------------
+// Метаданные python-аддона: временный под-интерпретатор, exec исходника,
+// чтение cmd/info/acess/cat + проверка наличия run(). Ошибки импорта/валидации —
+// в error (аддон пропускается, бот не падает).
+// ---------------------------------------------------------------------------
+PyAddonMeta pyAddonMeta(const std::string& source)
+{
+    PyAddonMeta m;
+    // ВАЖНО: sub/act/ns — вне try. Если объявить их в try, то при исключении
+    // стек развернётся до catch вместе с под-интерпретатором, а error_already_set
+    // будет держать ссылки на уже освобождённые объекты Python (double free —
+    // найдено тестом T17f).
+    py::subinterpreter sub = py::subinterpreter::create();
+    py::subinterpreter_scoped_activate act(sub);
+    py::dict ns;
+    ns["_vk_emit"] = py::cpp_function([](const std::string&) {}); // print при импорте — в пустоту
+    try
+    {
+        py::exec(PY_PRINT_PRELUDE, ns);
+        py::exec(py::str(source), ns);
+        if (!ns.contains("cmd") || !py::isinstance<py::str>(ns["cmd"]))
+        {
+            m.error = "нет строки cmd = \"/команда\"";
+            return m;
+        }
+        m.cmd = ns["cmd"].cast<std::string>();
+        if (m.cmd.size() < 2 || m.cmd[0] != '/')
+        {
+            m.error = "cmd должен начинаться с «/» и быть не короче 2 символов";
+            return m;
+        }
+        for (char c : m.cmd)
+            if (static_cast<unsigned char>(c) <= ' ')
+            {
+                m.error = "cmd не должен содержать пробелов";
+                return m;
+            }
+        if (!ns.contains("info") || !py::isinstance<py::str>(ns["info"]))
+        {
+            m.error = "нет строки info (описание для /help)";
+            return m;
+        }
+        m.info = ns["info"].cast<std::string>();
+        if (!ns.contains("acess") || !py::isinstance<py::int_>(ns["acess"]))
+        {
+            m.error = "нет целого acess (уровень прав 1..5)";
+            return m;
+        }
+        m.acess = ns["acess"].cast<int>();
+        if (m.acess < 1 || m.acess > 5)
+        {
+            m.error = "acess вне диапазона 1..5";
+            return m;
+        }
+        if (!ns.contains("cat") || !py::isinstance<py::str>(ns["cat"]))
+        {
+            m.error = "нет строки cat (раздел справки)";
+            return m;
+        }
+        m.cat = ns["cat"].cast<std::string>();
+        if (!ns.contains("run") || !PyCallable_Check(ns["run"].ptr()))
+        {
+            m.error = "нет функции run(eventIn, eventOut, net, vk)";
+            return m;
+        }
+    }
+    catch (const py::error_already_set& e)
+    {
+        m.error = std::string("импорт: ") + e.what();
+    }
+    catch (const std::exception& e)
+    {
+        m.error = std::string("cpp: ") + e.what();
+    }
+    return m;
+}
+
 // ---------------------------------------------------------------------------
 // Вики по python-скриптам: текст разделён на print-разделы — каждый уходит
 // отдельным сообщением (со штатным флуд-контролем ScriptPrinter)
@@ -309,13 +492,14 @@ int pyF::printsSent() const
 const char* pyWikiScript()
 {
     static const char* wiki = R"PY(
-print("Wiki /py (1/7). Python-скрипты прямо в чате: /py <код>. Каждый запуск — изолированный под-интерпретатор, свои переменные, таймаутов нет; код одной строкой, операторы через «;»")
-print("(2/7) Переменные: eventIn — входящее событие: msg, words, from_id, peer_id, is_chat, user (name/id/acess/msgs), docs, fwds; eventOut — ответ: msg, keyboard; net — HTTP: net.send(url, params); vk — VK API: vk.send('users.get', {'user_ids': 1})")
-print("(3/7) Модуль vkcppbot: import vkcppbot; vkcppbot.fs.exists/readData/writeData; vkcppbot.str.words/low/summ/replase; vkcppbot.timer.sleep(мс)/getWorkTime()")
-print("(4/7) Классы: Keyboard(one_time, inline): button(подпись, payload)/textButton/link/row/dump; Doc(): uploadDoc(файл, данные, net, vk, peer_id)/uploadDoc с audio_message=True/uploadPhoto; Event: getOut/send/pysend")
-print("(5/7) print() отправляет отдельное сообщение в чат (sys.stdout — тоже). Флуд-защита: не чаще 1 сообщения в секунду (py_print_interval_ms) и максимум 30 на скрипт (py_print_max_msgs), обе настройки в config.json")
-print("(6/7) Примеры: /py import vkcppbot; print(vkcppbot.str.low(eventIn.msg)) ; /py print(eventIn.user.name + ', ' + str(len(eventIn.words)) + ' слов')")
-print("(7/7) Ещё: /py eventOut.msg = 'привет' — обычный ответ без print ; /py eventOut.keyboard = vkcppbot.Keyboard().button('да', '/yes').dump() — клавиатура; /pywiki — эта справка заново")
+print("Wiki /py (1/8). Python-скрипты прямо в чате: /py <код>. Каждый запуск — изолированный под-интерпретатор, свои переменные, таймаутов нет; код одной строкой, операторы через «;»")
+print("(2/8) Переменные: eventIn — входящее событие: msg, words, from_id, peer_id, is_chat, user (name/id/acess/msgs), docs, fwds; eventOut — ответ: msg, keyboard; net — HTTP: net.send(url, params); vk — VK API: vk.send('users.get', {'user_ids': 1})")
+print("(3/8) Модуль vkcppbot: import vkcppbot; vkcppbot.fs.exists/readData/writeData; vkcppbot.str.words/low/summ/replase; vkcppbot.timer.sleep(мс)/getWorkTime()")
+print("(4/8) Классы: Keyboard(one_time, inline): button(подпись, payload)/textButton/link/row/dump; Doc(): uploadDoc(файл, данные, net, vk, peer_id)/uploadDoc с audio_message=True/uploadPhoto; Event: getOut/send/pysend")
+print("(5/8) print() отправляет отдельное сообщение в чат (sys.stdout — тоже). Флуд-защита: не чаще 1 сообщения в секунду (py_print_interval_ms) и максимум 30 на скрипт (py_print_max_msgs), обе настройки в config.json")
+print("(6/8) Изображения: vkcppbot.img.sources(eventIn) — картинка-вложение или фото профиля; img.download(doc, net) — данные вложения (bytes); img.fromDoc(doc, net)/img.fromUrl(url, net)/img.fromBytes(bytes) → Image: pix()/crt()/neon()/gray()/invert()/scale(w,h)/toPng()/toJpeg(), width/height; загрузка — Doc().uploadPhoto(имя, bytes, net, vk, peer_id); net.send(url) для бинарного ответа вернёт bytes")
+print("(7/8) Примеры: /py import vkcppbot; print(vkcppbot.str.low(eventIn.msg)) ; /py print(eventIn.user.name + ', ' + str(len(eventIn.words)) + ' слов')")
+print("(8/8) Ещё: /py eventOut.msg = 'привет' — обычный ответ без print ; /py eventOut.keyboard = vkcppbot.Keyboard().button('да', '/yes').dump() — клавиатура; свои ПОСТОЯННЫЕ команды — файлы в каталоге py_addons/ (cmd/info/acess/cat + def run(eventIn, eventOut, net, vk)), список — /addons, перечитать — /addonreload; /pywiki — эта справка заново")
 )PY";
     return wiki;
 }

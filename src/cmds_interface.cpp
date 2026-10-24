@@ -54,7 +54,7 @@ void stat(Event &eventIn, Event &eventOut, Worker *worker)
     eventOut.msg += "Всего сообщений от тебя: " + std::to_string(eventOut.user.msgs) + "\n";
 }
 
-void rename(Event &eventIn, Event &eventOut, Worker *worker)
+void renameUser(Event &eventIn, Event &eventOut, Worker *worker)
 {
     if (eventIn.words.size() < 2)
         eventOut.msg += "/rename <name>...";

@@ -17,7 +17,10 @@
 //   eventOut — формируемый ответ (наполнен из eventIn через getOut(); msg уже
 //              содержит префикс имени), его send() дёргает диспетчер;
 //   worker   — пул, вызвавший команду (nullptr в тестах).
-typedef void (*msg_func_t)(Event &eventIn, Event &eventOut, Worker *worker);
+// std::function (фаза 12): позволяет регистрировать в таблице и python-аддоны
+// (лямбда со своим исходником), C++-функции биндятся неявно.
+#include <functional>
+typedef std::function<void(Event &eventIn, Event &eventOut, Worker *worker)> msg_func_t;
 
 void help(Event &eventIn, Event &eventOut, Worker *worker);
 void setCfg(Event &eventIn, Event &eventOut, Worker *worker);
@@ -25,7 +28,9 @@ void stat(Event &eventIn, Event &eventOut, Worker *worker);
 void con(Event &eventIn, Event &eventOut, Worker *worker);
 void upload(Event &eventIn, Event &eventOut, Worker *worker);
 void setc(Event &eventIn, Event &eventOut, Worker *worker);
-void rename(Event &eventIn, Event &eventOut, Worker *worker);
+// renameUser (не rename): POSIX ::rename из <cstdio>/<filesystem> конфликтует
+// с unqualified rename в таблице команд (имя команды при этом — «/rename»)
+void renameUser(Event &eventIn, Event &eventOut, Worker *worker);
 void videos(Event &eventIn, Event &eventOut, Worker *worker);
 void weather(Event &eventIn, Event &eventOut, Worker *worker);
 void gameF(Event &eventIn, Event &eventOut, Worker *worker);
@@ -34,6 +39,8 @@ void apoddate(Event &eventIn, Event &eventOut, Worker *worker);
 void apodrand(Event &eventIn, Event &eventOut, Worker *worker);
 void pycmd(Event &eventIn, Event &eventOut, Worker *worker);
 void pywiki(Event &eventIn, Event &eventOut, Worker *worker);
+void addons(Event &eventIn, Event &eventOut, Worker *worker);
+void pyreload(Event &eventIn, Event &eventOut, Worker *worker);
 void pix(Event &eventIn, Event &eventOut, Worker *worker);
 void vox(Event &eventIn, Event &eventOut, Worker *worker);
 void crt(Event &eventIn, Event &eventOut, Worker *worker);

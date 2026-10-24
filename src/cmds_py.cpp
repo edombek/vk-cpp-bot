@@ -1,7 +1,9 @@
-// Команды python-интерпретатора: /py (запуск скрипта) и /pywiki (справка по /py).
+// Команды python-интерпретатора: /py (запуск скрипта), /pywiki (справка по /py),
+// /addons (список python-команд из py_addons/) и /addonreload (перечитать каталог).
 // Вынесены из cmds_admin.cpp: здесь только диспетчерские обёртки над pyF,
 // сам интерпретатор и текст вики живут в py.cpp.
 #include "cmds.h"
+#include "cmd.h"
 #include "str.h"
 
 #ifndef NO_PYTHON
@@ -43,5 +45,34 @@ void pywiki(Event &eventIn, Event &eventOut, Worker *worker)
         eventOut.msg = "вики отправлена сообщениями выше";
 #else
     eventOut.msg = "не собрано";
+#endif
+}
+
+void addons(Event &eventIn, Event &eventOut, Worker *worker)
+{
+#ifndef NO_PYTHON
+    std::vector<std::string> list = cmd::addonList();
+    if (list.empty())
+        eventOut.msg += "python-команды не загружены — положи .py-файлы в каталог py_addons/ "
+                        "(cmd/info/acess/cat + def run(eventIn, eventOut, net, vk)), затем /addonreload";
+    else
+    {
+        eventOut.msg += "python-команды (" + std::to_string(list.size()) + ", каталог py_addons/):\n";
+        for (const std::string& s : list)
+            eventOut.msg += s + "\n";
+    }
+#else
+    eventOut.msg = "python не собран";
+#endif
+}
+
+void pyreload(Event &eventIn, Event &eventOut, Worker *worker)
+{
+#ifndef NO_PYTHON
+    cmd::loadAddons();
+    eventOut.msg += "каталог py_addons/ перечитан, python-команд: " + std::to_string(cmd::addonList().size())
+                    + " (подробности — в логе бота)";
+#else
+    eventOut.msg = "python не собран";
 #endif
 }

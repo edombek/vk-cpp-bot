@@ -2,6 +2,7 @@
 #include "py.h"
 #endif // NO_PYTHON
 #include "bd.h"
+#include "cmd.h"
 #include "lp.h"
 #include "timer.h"
 #include "worker.h"
@@ -21,6 +22,7 @@ int main()
 #endif // NO_PYTHON
         timer::init();
         Net::init();
+        cmd::loadAddons(); // python-команды из py_addons/ (фаза 12; no-op в NO_PYTHON)
         Lp lp;
         lp.loop();
         Net::deinit();
