@@ -1217,6 +1217,39 @@ static const unsigned char tinyPng[] = { 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1
         check(m.find("приложить не удалось") != std::string::npos, "U39d сбой загрузки — есть объяснение", m.substr(0, 80));
     }
 
+    // --- U40: загрузка фото — пустой photo и новый формат ответа upload-сервера (2026) ---
+    {
+        FakeNet fn;
+        fn.responses["UploadServer"] = "{\"response\":{\"upload_url\":\"https://upload.example.com/us\"}}";
+        fn.responses["upload.example.com"] = "{\"server\":1,\"photo\":\"\",\"hash\":\"hh\"}";
+        fn.responses["saveMessagesPhoto"] = "{\"response\":[{\"id\":5,\"owner_id\":-1,\"date\":1,\"access_key\":\"ak\"}]}";
+        Vk vk(fn);
+        Doc ph;
+        bool ok = ph.uploadPhoto("x.jpg", "DATA", fn, vk, 123);
+        int saves = 0, ups = 0;
+        for (const auto& c : fn.calls)
+        {
+            if (c.url.find("saveMessagesPhoto") != std::string::npos)
+                saves++;
+            if (c.url == "https://upload.example.com/us")
+                ups++;
+        }
+        check(!ok && saves == 0, "U40a пустой photo — false, saveMessagesPhoto не зовётся", std::to_string(saves));
+        check(ups == 2, "U40b повтор попытки загрузки при пустом photo", std::to_string(ups));
+    }
+    {
+        FakeNet fn;
+        fn.responses["UploadServer"] = "{\"response\":{\"upload_url\":\"https://upload.example.com/us\"}}";
+        fn.responses["upload.example.com"] = "{\"server\":1,\"photo\":\"[{\\\"photo\\\":\\\"abc:x\\\"}]\",\"hash\":\"hh\"}";
+        fn.responses["saveMessagesPhoto"] = "{\"response\":[{\"id\":6,\"owner_id\":-1,\"date\":1,\"access_key\":\"ak2\",\"sizes\":[{\"width\":10,\"height\":10,\"url\":\"http://x/p.jpg\"}]}]}";
+        Vk vk(fn);
+        Doc ph;
+        bool ok = ph.uploadPhoto("x.jpg", "DATA", fn, vk, 123);
+        const FakeNet::Call* sv = fn.first("saveMessagesPhoto");
+        check(ok && sv && sv->params.count("photo") && sv->params.at("photo") == "[{\"photo\":\"abc:x\"}]",
+              "U40c новый формат photo (JSON-строка) пропускается как есть", sv ? sv->params.count("photo") ? sv->params.at("photo") : "(нет)" : "(нет вызова)");
+    }
+
     Net::deinit();
 
     std::cout << "\n=== " << passed << " passed, " << failed << " failed ===" << std::endl;

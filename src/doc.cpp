@@ -112,7 +112,7 @@ bool Doc::uploadDoc(const std::string& filename, const std::string& data, Net& n
     if (resp["response"]["upload_url"].is_null())
         return false;
     resp = json::parse(net.upload(resp["response"]["upload_url"], filename, data), nullptr, false);
-    if (resp.is_discarded() || !resp["file"].is_string())
+    if (resp.is_discarded() || !resp["file"].is_string() || resp["file"].get<std::string>().empty())
         return false;
     params =
     {
@@ -169,40 +169,49 @@ bool Doc::uploadPhoto(const std::string& filename, const std::string& data, Net&
         params["peer_id"] = std::to_string(peer_id);
     else
         return false;
-    json resp = vk.send("photos.getMessagesUploadServer", params);
-    if (resp["response"]["upload_url"].is_null())
-        return false;
-    // VK требует поле «photo» (не «file»); lenient: upload-сервер может ответить не-JSON
-    // (HTML-ошибка при большом файле) — раньше json::parse бросал и команда молчала (живой случай)
-    resp = json::parse(net.upload(resp["response"]["upload_url"], filename, data, "photo"), nullptr, false);
-    if (resp.is_discarded() || !resp["server"].is_number() || !resp["photo"].is_string() || !resp["hash"].is_string())
-        return false;
-    params =
+    // 2026: upload-сервер отдаёт photo в новом формате (JSON-строка «[{...}]») —
+    // saveMessagesPhoto принимает её как есть; иногда же photo приходит пустым
+    // (живой случай: /neon в личке -> «photo is undefined») — повторяем попытку,
+    // пустой токен в saveMessagesPhoto не отправляем
+    for (int attempt = 0; attempt < 2; attempt++)
     {
-        { "server", std::to_string(resp["server"].get<int>()) },
-        { "photo", resp["photo"] },
-        { "hash", resp["hash"] }
-    };
-    resp = vk.send("photos.saveMessagesPhoto", params);
-    if (resp["response"][0].is_null())
-        return false;
-    resp = resp["response"][0];
-    this->type = "photo";
-    this->doc_id = resp["id"];
-    this->owner_id = resp["owner_id"];
-    if (resp["access_key"].is_string())
-        this->acess_key = resp["access_key"];
-    this->timestamp = resp["date"];
-    int maxS = 0;
-    for (auto s : resp["sizes"])
-        if (maxS < s["width"].get<int>() * s["height"].get<int>())
+        json resp = vk.send("photos.getMessagesUploadServer", params);
+        if (resp["response"]["upload_url"].is_null())
+            return false;
+        // VK требует поле «photo» (не «file»); lenient: upload-сервер может ответить не-JSON
+        // (HTML-ошибка при большом файле) — раньше json::parse бросал и команда молчала (живой случай)
+        resp = json::parse(net.upload(resp["response"]["upload_url"], filename, data, "photo"), nullptr, false);
+        if (resp.is_discarded() || !resp["server"].is_number() || !resp["photo"].is_string() ||
+            resp["photo"].get<std::string>().empty() || !resp["hash"].is_string())
+            continue;
+        params =
         {
-            maxS = s["width"].get<int>() * s["height"].get<int>();
-            this->url = s["url"];
-        }
-    if (!this->url.empty()) // пустой url без sizes иначе читал бы words.end()-1 (UB)
-        this->ext = *(str::words(this->url, '.').end() - 1);
-    return true;
+            { "server", std::to_string(resp["server"].get<int>()) },
+            { "photo", resp["photo"] },
+            { "hash", resp["hash"] }
+        };
+        resp = vk.send("photos.saveMessagesPhoto", params);
+        if (resp["response"][0].is_null())
+            return false;
+        resp = resp["response"][0];
+        this->type = "photo";
+        this->doc_id = resp["id"];
+        this->owner_id = resp["owner_id"];
+        if (resp["access_key"].is_string())
+            this->acess_key = resp["access_key"];
+        this->timestamp = resp["date"];
+        int maxS = 0;
+        for (auto s : resp["sizes"])
+            if (maxS < s["width"].get<int>() * s["height"].get<int>())
+            {
+                maxS = s["width"].get<int>() * s["height"].get<int>();
+                this->url = s["url"];
+            }
+        if (!this->url.empty()) // пустой url без sizes иначе читал бы words.end()-1 (UB)
+            this->ext = *(str::words(this->url, '.').end() - 1);
+        return true;
+    }
+    return false;
 }
 
 std::string Doc::get() const
