@@ -4,7 +4,8 @@
 //   cmds_interface.cpp — /stat, /rename
 //   cmds_utils.cpp     — /w
 //   cmds_games.cpp     — /g, /bc
-//   cmds_media.cpp     — /vid, /apod, /pix, /vox, /crt, /neon
+//   cmds_media.cpp     — /vid, /pix, /vox, /crt, /neon
+//   cmds_apod.cpp      — /apod, /apoddate, /apodrand (категория «космос»)
 //   cmds_admin.cpp     — /setc, /con, /u, /set, /py
 // /help живёт в src/cmd.cpp — она строит справку из таблицы команд.
 
@@ -29,6 +30,8 @@ void videos(Event &eventIn, Event &eventOut, Worker *worker);
 void weather(Event &eventIn, Event &eventOut, Worker *worker);
 void gameF(Event &eventIn, Event &eventOut, Worker *worker);
 void apod(Event &eventIn, Event &eventOut, Worker *worker);
+void apoddate(Event &eventIn, Event &eventOut, Worker *worker);
+void apodrand(Event &eventIn, Event &eventOut, Worker *worker);
 void pycmd(Event &eventIn, Event &eventOut, Worker *worker);
 void pywiki(Event &eventIn, Event &eventOut, Worker *worker);
 void pix(Event &eventIn, Event &eventOut, Worker *worker);

@@ -47,6 +47,7 @@ set(VKBOT_CORE_SOURCES
     src/cmds_utils.cpp
     src/cmds_games.cpp
     src/cmds_media.cpp
+    src/cmds_apod.cpp
     src/cmds_admin.cpp
     src/cmds_py.cpp
     src/users.cpp

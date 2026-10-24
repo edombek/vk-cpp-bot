@@ -1,4 +1,4 @@
-// Медиакоманды: /vid, /apod, /pix, /vox, /crt, /neon
+// Медиакоманды: /vid, /pix, /vox, /crt, /neon (семейство /apod — в cmds_apod.cpp)
 #include "cmds.h"
 #include "img.h"
 #include "str.h"
@@ -50,53 +50,6 @@ void videos(Event &eventIn, Event &eventOut, Worker *worker)
         }
         eventOut.msg = msg + "всё)";
     }
-}
-
-void apod(Event &eventIn, Event &eventOut, Worker *worker)
-{
-    // 2026: legacy api.nasa.gov/planetary/apod закрывается (архив 01.12.2026) и с нашего хоста
-    // недоступен (ELB отдаёт 403 ещё до проверки ключа). Новый источник — WordPress-эндпоинт,
-    // ключ не нужен: https://science.nasa.gov/wp-json/wp/v2/apod-basic
-    // lenient: ответ может быть не-JSON — раньше json::parse бросал и /apod молчал (WORK ERROR)
-    json resp = json::parse(eventIn.net.send("https://science.nasa.gov/wp-json/wp/v2/apod-basic"), nullptr, false);
-    if (resp.is_array() && !resp.empty())
-        resp = resp[0]; // на будущее: эндпоинт может вернуть список
-    auto err = [&resp, &eventOut]() // ответ о сбое с дампом ответа NASA (бывшая метка err)
-    {
-        eventOut.msg += "NASA APOD сейчас недоступен";
-        if (resp.is_discarded())
-            eventOut.msg += ": science.nasa.gov вернул не-JSON (HTTP-ошибка?)";
-        else
-            eventOut.msg += ", перешлите сообщение разработчику\n\n" + resp.dump(4);
-    };
-    if (resp.is_discarded() || !resp.is_object() || !resp["title"].is_string())
-    {
-        err();
-        return;
-    }
-    eventOut.msg += resp["title"].get<string>() + ":\n\n";
-    if (resp["explanation"].is_string()) // новый формат присылает explanation с HTML-тегами
-        eventOut.msg += str::htmlToText(resp["explanation"].get<string>());
-    if (resp["credit"].is_string())
-    {
-        string credit = str::htmlToText(resp["credit"].get<string>());
-        if (!credit.empty())
-            eventOut.msg += "\n\n" + credit;
-    }
-    string imgurl;
-    if (resp["hdurl"].is_string())
-        imgurl = resp["hdurl"]; // полная картинка; url == permalink (страница поста), не картинка
-    if (resp["media_type"] == "image" && !imgurl.empty())
-    {
-        string dat = eventIn.net.send(imgurl);
-        Doc img;
-        if (img.uploadPhoto("img.jpg", dat, eventIn.net, eventIn.vk, eventIn.peer_id))
-            eventOut.docs.push_back(img);
-        else
-            eventOut.msg += "\nкартинку загрузить не удалось, первоисточник:\n" + (resp["permalink"].is_string() ? resp["permalink"].get<string>() : imgurl);
-    }
-    else if (resp["permalink"].is_string()) // видео/iframe/картинка без hdurl — ссылка на пост
-        eventOut.msg += "\n\n" + resp["permalink"].get<string>();
 }
 
 #define imgdelta 8.0

@@ -974,6 +974,54 @@ int main()
         check(msg && m.find("APOD") != std::string::npos, "U31d /apod не-JSON -> вежливый ответ", m.substr(0, 80));
     }
 
+    // --- U32: /apoddate и /apodrand (космос) ---
+    {
+        FakeNet fn;
+        fn.responses["users.get"] = "{\"response\":[{\"id\":444,\"first_name\":\"Гость\",\"bdate\":\"24.10.2001\"}]}";
+        fn.responses["/method/messages."] = "{\"response\":1}";
+        fn.responses["apod-basic"] = "{\"date\":\"2014-10-01\",\"title\":\"Butterfly Nebula\",\"media_type\":\"video\",\"explanation\":\"тумба\",\"permalink\":\"https://science.nasa.gov/apod/x/\"}";
+        Vk vk(fn);
+        auto sendApod = [&](const std::string& text)
+        {
+            fn.reset();
+            json ev = { { "type", "message_new" },
+                        { "object", { { "date", 1 }, { "peer_id", 444 }, { "from_id", 444 }, { "text", text }, { "random_id", 1 } } } };
+            Worker w;
+            w.work(ev, fn, vk);
+            const FakeNet::Call* msg = nullptr;
+            for (const auto& x : fn.calls)
+                if (x.url == "https://api.vk.ru/method/messages.send")
+                    msg = &x;
+            std::string apodUrl;
+            for (const auto& x : fn.calls)
+                if (x.url.find("apod-basic") != std::string::npos)
+                    apodUrl = x.url;
+            return std::make_pair(msg && msg->params.count("message") ? msg->params.at("message") : std::string("(нет вызова)"), apodUrl);
+        };
+        auto r1 = sendApod("/apoddate 01.10.2014");
+        check(r1.first.find("Butterfly") != std::string::npos && r1.second.find("apod-basic/141001") != std::string::npos,
+              "U32a /apoddate по дате из текста", r1.second + " | " + r1.first.substr(0, 40));
+        auto r2 = sendApod("/apoddate"); // bdate 24.10.1990 из mock users.get
+        check(r2.second.find("apod-basic/011024") != std::string::npos && r2.first.find("Butterfly") != std::string::npos,
+              "U32b /apoddate по дню рождения профиля", r2.second + " | " + r2.first.substr(0, 40));
+        fn.responses["users.get"] = "{\"response\":[{\"id\":444,\"first_name\":\"Гость\",\"bdate\":\"2.5.1970\"}]}"; // ДР до эры APOD
+        auto r2b = sendApod("/apoddate");
+        bool shifted = r2b.second.find("apod-basic/") != std::string::npos && r2b.first.find("Butterfly") != std::string::npos;
+        check(shifted, "U32b2 доэрастное ДР — сдвиг на последний прошедший год", r2b.second + " | " + r2b.first.substr(0, 40));
+        fn.responses["users.get"] = "{\"response\":[{\"id\":444,\"first_name\":\"Гость\"}]}"; // ДР скрыт
+        auto r2c = sendApod("/apoddate");
+        check(r2c.first.find("скрыта") != std::string::npos && r2c.second.empty(), "U32b3 скрытое ДР — просьба ввести дату", r2c.first.substr(0, 60));
+        auto r3 = sendApod("/apoddate 29.02.2014");
+        check(r3.first.find("не бывает") != std::string::npos && r3.second.empty(),
+              "U32c /apoddate невалидная дата (29.02 невисокосный)", r3.first.substr(0, 60));
+        auto r4 = sendApod("/apoddate 01.01.1990");
+        check(r4.first.find("16.06.1995") != std::string::npos && r4.second.empty(),
+              "U32d /apoddate до эры APOD", r4.first.substr(0, 60));
+        auto r5 = sendApod("/apodrand");
+        bool rndUrl = r5.second.find("apod-basic/") != std::string::npos && r5.second.size() == std::string("https://science.nasa.gov/wp-json/wp/v2/apod-basic/").size() + 6;
+        check(rndUrl && r5.first.find("Butterfly") != std::string::npos, "U32e /apodrand — случайная дата YYMMDD", r5.second);
+    }
+
     Net::deinit();
 
     std::cout << "\n=== " << passed << " passed, " << failed << " failed ===" << std::endl;
