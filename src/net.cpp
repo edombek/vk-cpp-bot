@@ -114,7 +114,7 @@ string Net::send(const string& url, const string& params)
     return buffer;
 }
 
-string Net::upload(const string& url, const string& filename, const string& data)
+string Net::upload(const string& url, const string& filename, const string& data, const string& field)
 {
     string buffer;
     if (!this->curl)
@@ -126,7 +126,7 @@ string Net::upload(const string& url, const string& filename, const string& data
         if (mime)
         {
             curl_mimepart* part = curl_mime_addpart(mime);
-            curl_mime_name(part, "file");
+            curl_mime_name(part, field.c_str()); // «file» для docs/getMessagesUploadServer, «photo» для photos/…
             curl_mime_filename(part, filename.c_str());
             curl_mime_data(part, data.c_str(), data.size());
             curl_easy_setopt(this->curl, CURLOPT_MIMEPOST, mime);

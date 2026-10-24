@@ -35,9 +35,9 @@ public:
         return respond(url);
     }
 
-    std::string upload(const std::string& url, const std::string& filename, const std::string& data) override
+    std::string upload(const std::string& url, const std::string& filename, const std::string& data, const std::string& field = "file") override
     {
-        calls.push_back({url, { { "filename", filename } }, data});
+        calls.push_back({url, { { "filename", filename }, { "field", field } }, data});
         return respond(url);
     }
 

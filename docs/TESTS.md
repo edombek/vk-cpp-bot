@@ -12,7 +12,7 @@ CI: включена (2026-10-23) — build.yml собирает обе конф
 | С Python | `make` (шим cmake) или `cmake -B build && cmake --build build` | ✅ `-Wall` чист (`-Wno-attributes` точечно на `src/py.cpp`, см. ниже) |
 | Без Python | `make NO_PYTHON=1` / `-DVKBOT_WITH_PYTHON=OFF` | ✅ |
 | Smoke-запуск без config.json (временно перенести файл) | `./build/vkbot` | ✅ чистый `FATAL: Vk: не задан token...`, exit 1 (раньше — `terminate`) |
-| Автотесты | `make test` или `cd build && ctest --output-on-failure` | ✅ 2/2 теста (units 101/101 + py_integration 27/27); в NO_PYTHON — 1/1 (только units) |
+| Автотесты | `make test` или `cd build && ctest --output-on-failure` | ✅ 2/2 теста (units 103/103 + py_integration 27/27); в NO_PYTHON — 1/1 (только units) |
 
 История: до фазы 1.5 штатный `make` не собирался (захардкоженные `-lboost_python39`,
 `-I/usr/include/opencv4`), проверки делались ручной компиляцией с подобранными флагами.
@@ -92,8 +92,9 @@ Runtime-проверки фазы 0:
 | U27 | ThreadPool (перенесён в проект): future-результаты, `post()`, исключение задачи не роняет поток пула, `failedTasks()` | ✅ |
 | U28 | `fs::safeWriteData`/`BD::save`: атомарная запись через `.safe`+rename (убийство процесса посреди save не оставляет битый `dat.json`/`config.json` — живой случай 2026-10-24) | ✅ |
 | U29 | `Vk::send` на неразбираемый (не-JSON) ответ API возвращает null без исключения (нет JSON в ответе вешал старт бота с FATAL — живой случай) | ✅ |
+| U30 | multipart-загрузка: фото — поле `photo`, документы — `file` (ошибка 100 «photo is undefined» в `/neon` — живой случай); `url`/`link_mp3` guarded | ✅ |
 
-Итого: 101/101 проверок (тесты герметичны: сброс `conf`/`bd` в начале, повторные запуски проходят).
+Итого: 103/103 проверок (тесты герметичны: сброс `conf`/`bd` в начале, повторные запуски проходят).
 Подробная суть каждого теста — `tests/README.md`.
 Бенчмарк U7b — минимум из 3 замеров: одиночные прогоны под фоновой нагрузкой давали ложные падения.
 Бенчмарк U7 (1280x720): scalar ≈ 23 ms → vector ≈ 13 ms (x1.7).

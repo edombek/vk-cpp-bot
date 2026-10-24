@@ -911,6 +911,25 @@ int main()
         check(!threw && r.is_null(), "U29 битый ответ -> null, процесс жив", threw ? "исключение" : r.dump());
     }
 
+    // --- U30: имена полей multipart-загрузки: «photo» для фото, «file» для документов ---
+    {
+        FakeNet fn;
+        fn.responses["UploadServer"] = "{\"response\":{\"upload_url\":\"https://upload.example.com/us\"}}";
+        fn.responses["upload.example.com"] = "{\"server\":937131,\"photo\":\"PH\",\"hash\":\"hh\",\"file\":\"FH\"}";
+        fn.responses["saveMessagesPhoto"] = "{\"response\":[{\"id\":5,\"owner_id\":-1,\"date\":100,\"access_key\":\"ak\",\"sizes\":[{\"width\":50,\"height\":50,\"url\":\"http://x/y.jpg\"}]}]}";
+        fn.responses["docs.save"] = "{\"response\":{\"type\":\"doc\",\"doc\":{\"id\":6,\"owner_id\":-1,\"access_key\":\"ak2\",\"ext\":\"txt\",\"date\":101}}}";
+        Vk vk(fn);
+        Doc ph;
+        bool okPhoto = ph.uploadPhoto("n.jpg", "DATA", fn, vk, 123);
+        const FakeNet::Call* upP = fn.first("upload.example.com");
+        check(okPhoto && upP && upP->params.at("field") == "photo", "U30a фото — поле «photo»", upP ? upP->params.at("field") : "(нет вызова)");
+        fn.reset();
+        Doc dc;
+        bool okDoc = dc.uploadDoc("n.txt", "DATA", fn, vk, 123);
+        const FakeNet::Call* upD = fn.first("upload.example.com");
+        check(okDoc && upD && upD->params.at("field") == "file", "U30b документ — поле «file»", upD ? upD->params.at("field") : "(нет вызова)");
+    }
+
     Net::deinit();
 
     std::cout << "\n=== " << passed << " passed, " << failed << " failed ===" << std::endl;

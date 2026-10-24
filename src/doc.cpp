@@ -123,7 +123,8 @@ bool Doc::uploadDoc(const std::string& filename, const std::string& data, Net& n
             this->acess_key = resp["access_key"];
         this->ext = resp["ext"];
         this->timestamp = resp["date"];
-        this->url = resp["url"];
+        if (resp["url"].is_string()) // docs.save обычно возвращает doc БЕЗ url (нужен docs.get) — не ронять присваивание
+            this->url = resp["url"];
     }
     else if (this->type == "graffiti")
     {
@@ -132,7 +133,8 @@ bool Doc::uploadDoc(const std::string& filename, const std::string& data, Net& n
         this->owner_id = resp["owner_id"];
         if (resp["access_key"].is_string())
             this->acess_key = resp["access_key"];
-        this->url = resp["url"];
+        if (resp["url"].is_string())
+            this->url = resp["url"];
         this->ext = "png";
     }
     else if (this->type == "audio_message")
@@ -143,7 +145,8 @@ bool Doc::uploadDoc(const std::string& filename, const std::string& data, Net& n
         if (resp["access_key"].is_string())
             this->acess_key = resp["access_key"];
         this->ext = "mp3";
-        this->url = resp["link_mp3"];
+        if (resp["link_mp3"].is_string())
+            this->url = resp["link_mp3"];
     }
     else
         return false;
@@ -160,7 +163,9 @@ bool Doc::uploadPhoto(const std::string& filename, const std::string& data, Net&
     json resp = vk.send("photos.getMessagesUploadServer", params);
     if (resp["response"]["upload_url"].is_null())
         return false;
-    resp = json::parse(net.upload(resp["response"]["upload_url"], filename, data));
+    // VK требует поле «photo» (не «file») для photos.getMessagesUploadServer —
+    // иначе saveMessagesPhoto получает пустой photo (живой случай /neon 2026-10-24)
+    resp = json::parse(net.upload(resp["response"]["upload_url"], filename, data, "photo"));
     if (resp["server"].is_null())
         return false;
     params =
@@ -186,7 +191,8 @@ bool Doc::uploadPhoto(const std::string& filename, const std::string& data, Net&
             maxS = s["width"].get<int>() * s["height"].get<int>();
             this->url = s["url"];
         }
-    this->ext = *(str::words(this->url, '.').end() - 1);
+    if (!this->url.empty()) // пустой url без sizes иначе читал бы words.end()-1 (UB)
+        this->ext = *(str::words(this->url, '.').end() - 1);
     return true;
 }
 

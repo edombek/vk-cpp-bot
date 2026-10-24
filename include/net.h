@@ -19,5 +19,5 @@ public:
     // виртуальные: тесты подменяют сеть моком (FakeNet), end-to-end без токенов
     virtual std::string send(const std::string& url, const std::string& params = "");
     virtual std::string send(const std::string& url, const table_t& param, bool post = true);
-    virtual std::string upload(const std::string& url, const std::string& filename, const std::string& data);
+    virtual std::string upload(const std::string& url, const std::string& filename, const std::string& data, const std::string& field = "file"); // field: «file» для docs, «photo» для photos.*UploadServer
 };
