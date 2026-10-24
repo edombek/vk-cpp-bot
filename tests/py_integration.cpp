@@ -7,9 +7,11 @@
 #include "py.h"
 
 #include "bd.h"
+#include "cmd.h"
 #include "events.h"
 #include "fakenet.h"
 #include "fs.h"
+#include "img.h"
 #include "net.h"
 #include "str.h"
 #include "users.h"
@@ -17,6 +19,8 @@
 
 #include <chrono>
 #include <cstdio>
+#include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <string>
 #include <thread>
@@ -292,6 +296,153 @@ int main()
                            sends.front()->params.at("message").find("Wiki /py") != std::string::npos;
             check(r.err.empty(), "T16a вики-скрипт без ошибок", r.err);
             check(content, "T16b вики печатается разделами", std::to_string(sends.size()));
+        }
+
+        // --- T17: метаданные python-аддонов (pyAddonMeta): чтение и валидация ---
+        {
+            PyAddonMeta m = pyAddonMeta(
+                "cmd = '/t17'\ninfo = 'тест'\nacess = 2\ncat = 'python'\n"
+                "def run(eventIn, eventOut, net, vk):\n    return 'ok'\n");
+            check(m.ok(), "T17a meta ok", m.error);
+            check(m.cmd == "/t17" && m.info == "тест" && m.acess == 2 && m.cat == "python",
+                  "T17b meta fields", m.cmd + "/" + std::to_string(m.acess) + "/" + m.cat);
+            check(!pyAddonMeta("cmd = '/x'\ninfo='i'\nacess=1\ncat='c'").ok(), "T17c нет run()");
+            check(!pyAddonMeta("cmd = '/x'\ninfo='i'\nacess=9\ncat='c'\ndef run(*a): pass").ok(), "T17d acess вне 1..5");
+            check(!pyAddonMeta("cmd = 'x'\ninfo='i'\nacess=1\ncat='c'\ndef run(*a): pass").ok(), "T17e cmd без «/»");
+            check(!pyAddonMeta("def (").ok(), "T17f синтаксическая ошибка");
+            check(!pyAddonMeta("cmd = '/x y'\ninfo='i'\nacess=1\ncat='c'\ndef run(*a): pass").ok(), "T17g cmd с пробелом");
+        }
+
+        // --- T18: запуск аддона (pyF::execAddon): msg + возврат run() + print; ошибки ---
+        {
+            FakeNet fn;
+            fn.responses["/method/messages.send"] = "{\"response\":1}";
+            Vk vkp(fn);
+            Event in(fn, vkp), out(fn, vkp);
+            pyF f(in, out);
+            std::string err = f.execAddon(
+                "cmd='/t18'\ninfo='i'\nacess=1\ncat='python'\n"
+                "def run(eventIn, eventOut, net, vk):\n"
+                "    eventOut.msg = 'база'\n"
+                "    print('печать')\n"
+                "    return '-хвост'\n");
+            check(err.empty(), "T18a аддон выполнен", err);
+            check(out.msg == "база-хвост", "T18b msg + возврат run()", out.msg);
+            check(fn.find("/method/messages.send").size() == 1, "T18c print из аддона");
+            Event in2(fn, vkp), out2(fn, vkp);
+            pyF f2(in2, out2);
+            std::string err2 = f2.execAddon(
+                "cmd='/t'\ninfo='i'\nacess=1\ncat='c'\n"
+                "def run(eventIn, eventOut, net, vk):\n    raise ValueError('сбой')\n");
+            check(!err2.empty() && err2.find("ValueError") != std::string::npos, "T18d traceback из run()", err2);
+            Event in3(fn, vkp), out3(fn, vkp);
+            pyF f3(in3, out3);
+            std::string err3 = f3.execAddon("cmd='/t'\ninfo='i'\nacess=1\ncat='c'\n");
+            check(!err3.empty() && err3.find("run") != std::string::npos, "T18e нет run() при запуске", err3);
+        }
+
+        // --- T19: cmd::loadAddons + диспетчер: рабочий, битый и «заслон built-in» ---
+        {
+            namespace fsx = std::filesystem;
+            std::string dir = "t_addons";
+            fsx::create_directories(dir);
+            auto writeFile = [](const std::string& p, const std::string& s)
+            {
+                std::ofstream f(p);
+                f << s;
+            };
+            writeFile(dir + "/good.py",
+                      "cmd = '/t19echo'\ninfo = 'эхо'\nacess = 1\ncat = 'pythonaddon'\n"
+                      "def run(eventIn, eventOut, net, vk):\n    return 'эхо: ' + eventIn.msg\n");
+            writeFile(dir + "/broken.py",
+                      "cmd = '/t19broken'\ninfo = 'сломан'\nacess = 1\ncat = 'pythonaddon'\nесли ( синтаксис");
+            writeFile(dir + "/shadow.py",
+                      "cmd = '/stat'\ninfo = 'заслон'\nacess = 1\ncat = 'pythonaddon'\n"
+                      "def run(eventIn, eventOut, net, vk):\n    return 'нет'\n");
+            cmd::loadAddons(dir);
+            auto list = cmd::addonList();
+            check(list.size() == 1 && list[0].find("/t19echo") != std::string::npos,
+                  "T19a загружен только валидный", std::to_string(list.size()));
+            FakeNet fn;
+            Vk vkp(fn);
+            Event in(fn, vkp), out(fn, vkp);
+            in.user = out.user = users::user { "U", 1, 1, 0 };
+            in.msg = "привет";
+            check(cmd::start("/t19echo", in, out, nullptr), "T19b аддон диспетчеризуется");
+            check(out.msg.find("эхо: привет") != std::string::npos, "T19c ответ аддона", out.msg);
+            check(!cmd::start("/t19broken", in, out, nullptr), "T19d битый не зарегистрирован");
+            out.msg.clear();
+            check(cmd::start("/help", in, out, nullptr) && out.msg.find("pythonaddon") != std::string::npos,
+                  "T19e новый раздел в /help", out.msg.substr(0, 120));
+            out.msg.clear();
+            check(cmd::start("/pythonaddon", in, out, nullptr) && out.msg.find("pythonaddon") != std::string::npos,
+                  "T19e2 ярлык «/pythonaddon» == /help pythonaddon", out.msg.substr(0, 120));
+            // перечитывание (аналог /addonreload): правка файла применяется, built-in не заслоняется
+            writeFile(dir + "/good.py",
+                      "cmd = '/t19echo'\ninfo = 'эхо2'\nacess = 1\ncat = 'pythonaddon'\n"
+                      "def run(eventIn, eventOut, net, vk):\n    return 'новый'\n");
+            cmd::loadAddons(dir);
+            out.msg.clear();
+            check(cmd::start("/t19echo", in, out, nullptr) && out.msg.find("новый") != std::string::npos,
+                  "T19f reload применяет правку", out.msg);
+            fsx::remove(dir + "/good.py"); // пустой каталог -> снимает регистрацию аддонов
+            cmd::loadAddons(dir);
+            check(cmd::addonList().empty(), "T19g reload снимает старые команды");
+            fsx::remove_all(dir);
+        }
+
+        // --- T20: Net.send авто-типизация: текст -> str, бинарный ответ -> bytes ---
+        {
+            FakeNet fn;
+            std::string bin = std::string("\x89PNG\r\n\x1a\n", 8) + std::string("\xff\xfe\x00рядом", 9); // не UTF-8
+            fn.responses["text.example"] = "{\"a\": 1}";
+            fn.responses["bin.example"] = bin;
+            Vk vkp(fn);
+            RunResult r = run(fn, vkp,
+                              "a = net.send('https://text.example/')\n"
+                              "b = net.send('https://bin.example/')\n"
+                              "eventOut.msg = type(a).__name__ + '/' + type(b).__name__ + '/' + str(len(b))");
+            check(r.err.empty(), "T20a send str/bytes exec", r.err);
+            check(r.msg == "str/bytes/" + std::to_string(bin.size()), "T20b автоопределение bytes", r.msg);
+        }
+
+        // --- T21: vkcppbot.img: fromBytes/invert/gray/scale/toPng, uploadPhoto (bytes, peer<0),
+        // sources+fromDoc (фото профиля через FakeNet), readData бинарных файлов ---
+        {
+            cv::Mat src = cv::Mat::zeros(8, 6, CV_8UC3); // width 6, height 8
+            src.at<cv::Vec3b>(2, 3) = cv::Vec3b(10, 200, 30);
+            std::vector<uchar> buf;
+            cv::imencode(".png", src, buf, {});
+            fs::writeData("t_img.png", std::string(buf.begin(), buf.end()));
+            FakeNet fn;
+            fn.responses["UploadServer"] = "{\"response\":{\"upload_url\":\"https://upload.example.com/us\"}}";
+            fn.responses["upload.example.com"] = "{\"server\":1,\"photo\":\"PH\",\"hash\":\"hh\"}";
+            fn.responses["saveMessagesPhoto"] = "{\"response\":[{\"id\":5,\"owner_id\":-1,\"date\":100,\"access_key\":\"ak\",\"sizes\":[{\"width\":50,\"height\":50,\"url\":\"http://x/y.jpg\"}]}]}";
+            fn.responses["users.get"] = "{\"response\":[{\"id\":1,\"photo_200\":\"http://p/200.png\"}]}";
+            fn.responses["p/200.png"] = std::string(buf.begin(), buf.end());
+            Vk vkp(fn);
+            Event in(fn, vkp), out(fn, vkp);
+            in.from_id = 1; // sources без вложений берёт фото профиля автора
+            pyF f(in, out);
+            std::string script =
+                "import vkcppbot\n"
+                "data = vkcppbot.fs.readData('t_img.png')\n"
+                "im = vkcppbot.img.fromBytes(data)\n"
+                "eventOut.msg = str(im.width) + 'x' + str(im.height) + '/' + str(len(im.toPng()) > 0)\n"
+                "g = im.gray().scale(3, 4)\n"
+                "eventOut.msg += '/' + str(g.width) + 'x' + str(g.height)\n"
+                "docs = vkcppbot.img.sources(eventIn)\n"
+                "im2 = vkcppbot.img.fromDoc(docs[0], net)\n"
+                "eventOut.msg += '/src-' + str(im2.width)\n"
+                "doc = vkcppbot.Doc()\n"
+                "if doc.uploadPhoto('img.png', im.invert().toPng(), net, vk, -1):\n"
+                "    eventOut.msg += '/up-' + doc.get()\n";
+            std::string err = f.exec(script);
+            check(err.empty(), "T21a image api exec", err);
+            check(out.msg == "6x8/True/3x4/src-6/up-photo-1_5_ak", "T21b image api result", out.msg);
+            const FakeNet::Call* up = fn.first("upload.example.com/us");
+            check(up && up->body.rfind("\x89PNG", 0) == 0, "T21c png ушла в upload", up ? std::to_string(up->body.size()) : "нет upload");
+            remove("t_img.png");
         }
     }
 
