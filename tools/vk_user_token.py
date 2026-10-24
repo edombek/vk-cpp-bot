@@ -43,16 +43,15 @@ import urllib.request
 import webbrowser
 
 CONFIG = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "config.json")
-API = "https://api.vk.com/method/"
-OAUTH = "https://oauth.vk.com/"
+API = "https://api.vk.ru/method/"
+OAUTH = "https://oauth.vk.ru/"
 REDIRECT = "http://localhost:8765/callback"
 SCOPES = "messages,friends,status"  # friends/status — чтобы проверки профиля работали шире
-# implicit-поток: публичный client_id десктоп-клиента (messages запрещён website-клиентам).
-# 2026: implicit-токены Kate Mobile/VK Admin VK блокирует (error 9 / «application is
-# blocked») — рабочий путь для scope messages: --direct (см. docstring).
-# 2685278 = Kate Mobile (старый whitelisted клиент, как на vkhost.github.io).
+# implicit-поток: публичный client_id живого approved-клиента — 6222115 (дефолт vk_api
+# 11.x, 2026).Kate Mobile 2685278/VK Admin 6121396 в 2026 мёртвы (error 9/blocked),
+# grant_type=password VK тоже закрыл (vk_api перешёл на oauth.vk.ru/authorize).
 # scope числом: friends(2^1)+status(2^10)+messages(2^12)+offline(2^16) = 70658
-DEFAULT_CLIENT = "2685278"
+DEFAULT_CLIENT = "6222115"
 SCOPE_NUM = 70658
 
 
@@ -168,7 +167,7 @@ def auth_code_flow(client_id, client_secret):
 
 def authorize_url(client_id):
     return (OAUTH + "authorize?client_id=" + client_id +
-            "&redirect_uri=https%3A%2F%2Foauth.vk.com%2Fblank.html" +
+            "&redirect_uri=https%3A%2F%2Foauth.vk.ru%2Fblank.html" +
             "&scope=" + str(SCOPE_NUM) + "&response_type=token&display=page&v=5.131")
 
 
