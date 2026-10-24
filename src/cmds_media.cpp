@@ -54,40 +54,49 @@ void videos(Event &eventIn, Event &eventOut, Worker *worker)
 
 void apod(Event &eventIn, Event &eventOut, Worker *worker)
 {
-    json resp = json::parse(eventIn.net.send("https://api.nasa.gov/planetary/apod", {{"api_key", "DEMO_KEY"}}, false));
-    auto err = [&resp, &eventOut]() // ответ об сбое с дампом ответа NASA (бывшая метка err)
+    // 2026: legacy api.nasa.gov/planetary/apod закрывается (архив 01.12.2026) и с нашего хоста
+    // недоступен (ELB отдаёт 403 ещё до проверки ключа). Новый источник — WordPress-эндпоинт,
+    // ключ не нужен: https://science.nasa.gov/wp-json/wp/v2/apod-basic
+    // lenient: ответ может быть не-JSON — раньше json::parse бросал и /apod молчал (WORK ERROR)
+    json resp = json::parse(eventIn.net.send("https://science.nasa.gov/wp-json/wp/v2/apod-basic"), nullptr, false);
+    if (resp.is_array() && !resp.empty())
+        resp = resp[0]; // на будущее: эндпоинт может вернуть список
+    auto err = [&resp, &eventOut]() // ответ о сбое с дампом ответа NASA (бывшая метка err)
     {
-        eventOut.msg += "что-то пошло не так, перешлите сообщение разработчику\n\n" + resp.dump(4);
+        eventOut.msg += "NASA APOD сейчас недоступен";
+        if (resp.is_discarded())
+            eventOut.msg += ": science.nasa.gov вернул не-JSON (HTTP-ошибка?)";
+        else
+            eventOut.msg += ", перешлите сообщение разработчику\n\n" + resp.dump(4);
     };
-    if (resp["title"].is_null())
+    if (resp.is_discarded() || !resp.is_object() || !resp["title"].is_string())
     {
         err();
         return;
     }
     eventOut.msg += resp["title"].get<string>() + ":\n\n";
-    string imgurl;
-    if (!resp["hdurl"].is_null())
-        imgurl = resp["hdurl"];
-    else if (!resp["url"].is_null())
-        imgurl = resp["url"];
-    else
+    if (resp["explanation"].is_string()) // новый формат присылает explanation с HTML-тегами
+        eventOut.msg += str::htmlToText(resp["explanation"].get<string>());
+    if (resp["credit"].is_string())
     {
-        err();
-        return;
+        string credit = str::htmlToText(resp["credit"].get<string>());
+        if (!credit.empty())
+            eventOut.msg += "\n\n" + credit;
     }
-    if (!resp["explanation"].is_null())
-        eventOut.msg += resp["explanation"].get<string>();
-    if (resp["media_type"] == "image")
+    string imgurl;
+    if (resp["hdurl"].is_string())
+        imgurl = resp["hdurl"]; // полная картинка; url == permalink (страница поста), не картинка
+    if (resp["media_type"] == "image" && !imgurl.empty())
     {
         string dat = eventIn.net.send(imgurl);
         Doc img;
         if (img.uploadPhoto("img.jpg", dat, eventIn.net, eventIn.vk, eventIn.peer_id))
             eventOut.docs.push_back(img);
+        else
+            eventOut.msg += "\nкартинку загрузить не удалось, первоисточник:\n" + (resp["permalink"].is_string() ? resp["permalink"].get<string>() : imgurl);
     }
-    else if (resp["media_type"] == "video")
-        eventOut.msg += "\n\n" + imgurl;
-    else
-        err();
+    else if (resp["permalink"].is_string()) // видео/iframe/картинка без hdurl — ссылка на пост
+        eventOut.msg += "\n\n" + resp["permalink"].get<string>();
 }
 
 #define imgdelta 8.0

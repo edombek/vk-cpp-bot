@@ -148,6 +148,15 @@ openweathermap (мокируется) в текст сообщения.
 фото — VK отдавал `photo:""` и `saveMessagesPhoto` падал с ошибкой 100. Заодно мок вскрыл,
 что `docs.save` возвращает doc без `url` — присваивание `url`/`link_mp3` теперь guarded.
 
+### U31 — новый APOD и `str::htmlToText`
+Живой случай 2026-10-24: `/apod` молчал — `api.nasa.gov` отдаёт с этого хоста HTML-403
+(AWS ELB, до проверки ключа), а `json::parse` кидал исключение (WORK ERROR). Legacy-эндпоинт
+NASA архивирует 01.12.2026, поэтому источник заменён на WordPress-эндпоинт
+`science.nasa.gov/wp-json/wp/v2/apod-basic` (доступен, ключ не нужен). Проверки: `htmlToText`
+(вырезание тегов, `&amp;`/`&#8217;`/числовые сущности, `<br>` -> перевод строки); `/apod` полным
+конвейером — заголовок и очищенный explanation в сообщении, фото с `hdurl` приложен
+(attachment `photo…`); не-JSON ответ -> вежливое сообщение вместо молчания.
+
 ---
 
 ## vkbot_pytest — python-слой (`/py`)

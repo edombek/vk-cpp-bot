@@ -161,3 +161,99 @@ string str::replase(const string& str, const string& findstr, const string& repl
     return out;
 }
 
+// Кодирование кодовой точки в UTF-8 (парная к utf8Decode).
+static void utf8Append(string& out, unsigned cp)
+{
+    if (cp < 0x80)
+        out += (char)cp;
+    else if (cp < 0x800)
+    {
+        out += (char)(0xC0 | (cp >> 6));
+        out += (char)(0x80 | (cp & 0x3F));
+    }
+    else if (cp < 0x10000)
+    {
+        out += (char)(0xE0 | (cp >> 12));
+        out += (char)(0x80 | ((cp >> 6) & 0x3F));
+        out += (char)(0x80 | (cp & 0x3F));
+    }
+    else
+    {
+        out += (char)(0xF0 | (cp >> 18));
+        out += (char)(0x80 | ((cp >> 12) & 0x3F));
+        out += (char)(0x80 | ((cp >> 6) & 0x3F));
+        out += (char)(0x80 | (cp & 0x3F));
+    }
+}
+
+// Новый APOD (WordPress) возвращает explanation/credit с HTML-разметкой —
+// вырезаем теги (<br>/<p> -> перевод строки) и раскрываем сущности (&amp;, &#8217;...).
+string str::htmlToText(const string& html)
+{
+    static const map<string, string> named =
+    {
+        { "amp", "&" }, { "lt", "<" }, { "gt", ">" }, { "quot", "\"" }, { "apos", "'" },
+        { "nbsp", " " }, { "copy", "©" }, { "mdash", "—" }, { "ndash", "–" }, { "hellip", "…" },
+        { "ldquo", "“" }, { "rdquo", "”" }, { "lsquo", "‘" }, { "rsquo", "’" },
+        { "deg", "°" }, { "micro", "µ" }, { "times", "×" }, { "laquo", "«" }, { "raquo", "»" }
+    };
+    string out;
+    for (size_t i = 0; i < html.size();)
+    {
+        char c = html[i];
+        if (c == '<')
+        {
+            size_t close = html.find('>', i);
+            if (close == string::npos)
+                break; // битый тег в хвосте — выкидываем
+            string tag = html.substr(i + 1, close - i - 1);
+            if (!tag.empty() && (str::low(tag.substr(0, 2)) == "br" || tag.substr(0, 2) == "/p" || tag.substr(0, 2) == "/d"))
+                out += '\n';
+            i = close + 1;
+        }
+        else if (c == '&')
+        {
+            size_t semi = html.find(';', i);
+            if (semi == string::npos || semi - i > 10)
+            {
+                out += c;
+                i++;
+                continue;
+            }
+            string ent = html.substr(i + 1, semi - i - 1);
+            auto it = named.find(ent);
+            if (it != named.end())
+            {
+                out += it->second;
+                i = semi + 1;
+            }
+            else if (ent.size() > 1 && ent[0] == '#')
+            {
+                bool hex = (ent[1] == 'x' || ent[1] == 'X');
+                unsigned long cp = strtoul(ent.c_str() + (hex ? 2 : 1), nullptr, hex ? 16 : 10);
+                if (cp && cp < 0x110000)
+                {
+                    utf8Append(out, (unsigned)cp);
+                    i = semi + 1;
+                }
+                else
+                {
+                    out += c;
+                    i++;
+                }
+            }
+            else
+            {
+                out += c;
+                i++;
+            }
+        }
+        else
+        {
+            out += c;
+            i++;
+        }
+    }
+    return out;
+}
+

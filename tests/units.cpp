@@ -930,6 +930,50 @@ int main()
         check(okDoc && upD && upD->params.at("field") == "file", "U30b документ — поле «file»", upD ? upD->params.at("field") : "(нет вызова)");
     }
 
+    // --- U31: новый APOD (science.nasa.gov/wp-json) и str::htmlToText ---
+    {
+        check(str::htmlToText("<strong>Привет</strong>, <a href=\"x\">мир</a> &amp; &#8217;космос&#8217;<br>тест") == "Привет, мир & ’космос’\nтест",
+              "U31a htmlToText: теги/сущности/br", str::htmlToText("<strong>Привет</strong>, <a href=\"x\">мир</a> &amp; &#8217;космос&#8217;<br>тест"));
+        FakeNet fn;
+        fn.responses["users.get"] = "{\"response\":[{\"id\":444,\"first_name\":\"Гость\"}]}";
+        fn.responses["/method/messages."] = "{\"response\":1}";
+        fn.responses["apod-basic"] = "{\"date\":\"2026-10-24\",\"title\":\"Rosetta's Selfie\",\"media_type\":\"image\","
+            "\"explanation\":\"<strong>Expl:</strong> привет &amp; &lt;мир&gt;\",\"credit\":\"ESA/Rosetta\","
+            "\"hdurl\":\"https://assets.example.com/x.png\",\"url\":\"https://science.nasa.gov/apod/x/\",\"permalink\":\"https://science.nasa.gov/apod/x/\"}";
+        fn.responses["assets.example.com"] = "IMGDATA";
+        fn.responses["UploadServer"] = "{\"response\":{\"upload_url\":\"https://upload.example.com/us\"}}";
+        fn.responses["upload.example.com"] = "{\"server\":937131,\"photo\":\"PH\",\"hash\":\"hh\"}";
+        fn.responses["saveMessagesPhoto"] = "{\"response\":[{\"id\":5,\"owner_id\":-1,\"date\":100,\"access_key\":\"ak\",\"sizes\":[{\"width\":50,\"height\":50,\"url\":\"http://x/y.jpg\"}]}]}";
+        Vk vk(fn);
+        json ev = { { "type", "message_new" },
+                    { "object", { { "date", 1 }, { "peer_id", 444 }, { "from_id", 444 }, { "text", "/apod" }, { "random_id", 1 } } } };
+        Worker w;
+        w.work(ev, fn, vk);
+        const FakeNet::Call* msg = nullptr;
+        for (const auto& x : fn.calls)
+            if (x.url == "https://api.vk.ru/method/messages.send")
+                msg = &x;
+        std::string m = msg && msg->params.count("message") ? msg->params.at("message") : "(нет вызова)";
+        bool attached = false;
+        if (msg)
+            for (const auto& p : msg->params)
+                if (p.second.find("photo-1_5_ak") != std::string::npos) // формат VK: type+owner_id (без разделителя)
+                    attached = true;
+        check(msg && m.find("Rosetta's Selfie") != std::string::npos && m.find("Expl: привет & <мир>") != std::string::npos
+              && m.find("<strong>") == std::string::npos, "U31b /apod новый формат, HTML вырезан", m.substr(0, 80));
+        check(attached, "U31c /apod приложил фото (hdurl)", attached ? "есть" : "нет attachment");
+        fn.reset();
+        fn.responses["apod-basic"] = "<html><head><title>403 Forbidden</title></head></html>";
+        Worker w2;
+        w2.work(ev, fn, vk);
+        msg = nullptr;
+        for (const auto& x : fn.calls)
+            if (x.url == "https://api.vk.ru/method/messages.send")
+                msg = &x;
+        m = msg && msg->params.count("message") ? msg->params.at("message") : "(нет вызова)";
+        check(msg && m.find("APOD") != std::string::npos, "U31d /apod не-JSON -> вежливый ответ", m.substr(0, 80));
+    }
+
     Net::deinit();
 
     std::cout << "\n=== " << passed << " passed, " << failed << " failed ===" << std::endl;
