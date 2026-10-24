@@ -1022,6 +1022,40 @@ int main()
         check(rndUrl && r5.first.find("Butterfly") != std::string::npos, "U32e /apodrand — случайная дата YYMMDD", r5.second);
     }
 
+    // --- U33: не-JSON ответ upload-сервера не роняет команду ---
+    {
+        FakeNet fn;
+        fn.responses["UploadServer"] = "{\"response\":{\"upload_url\":\"https://upload.example.com/us\"}}";
+        fn.responses["upload.example.com"] = "<html><head><title>413 Request Entity Too Large</title></head></html>";
+        Vk vk(fn);
+        Doc ph;
+        bool threw = false;
+        bool ok = true;
+        try { ok = ph.uploadPhoto("big.jpg", "DATA", fn, vk, 123); }
+        catch (...) { threw = true; }
+        check(!threw && !ok, "U33a uploadPhoto на HTML-ответ отдаёт false, не бросает", threw ? "исключение" : (ok ? "true" : "false"));
+        // полный конвейер: /apodrand, картинка не грузится -> сообщение со ссылкой на пост
+        FakeNet fn2;
+        fn2.responses["users.get"] = "{\"response\":[{\"id\":444,\"first_name\":\"Гость\"}]}";
+        fn2.responses["/method/messages."] = "{\"response\":1}";
+        fn2.responses["apod-basic"] = "{\"date\":\"1999-01-01\",\"title\":\"Huge One\",\"media_type\":\"image\",\"explanation\":\"огромная\",\"hdurl\":\"https://assets.example.com/huge.png\",\"permalink\":\"https://science.nasa.gov/apod/huge/\"}";
+        fn2.responses["assets.example.com"] = "BIGIMG";
+        fn2.responses["UploadServer"] = "{\"response\":{\"upload_url\":\"https://upload.example.com/us\"}}";
+        fn2.responses["upload.example.com"] = "<html>413 Request Entity Too Large</html>";
+        Vk vk2(fn2);
+        json ev = { { "type", "message_new" },
+                    { "object", { { "date", 1 }, { "peer_id", 444 }, { "from_id", 444 }, { "text", "/apodrand" }, { "random_id", 1 } } } };
+        Worker w;
+        w.work(ev, fn2, vk2);
+        const FakeNet::Call* msg = nullptr;
+        for (const auto& x : fn2.calls)
+            if (x.url == "https://api.vk.ru/method/messages.send")
+                msg = &x;
+        std::string m = msg && msg->params.count("message") ? msg->params.at("message") : "(нет вызова)";
+        check(msg && m.find("картинку загрузить не удалось") != std::string::npos && m.find("science.nasa.gov/apod/huge/") != std::string::npos,
+              "U33b /apodrand с битой загрузкой фото — сообщение со ссылкой", m.substr(0, 70));
+    }
+
     Net::deinit();
 
     std::cout << "\n=== " << passed << " passed, " << failed << " failed ===" << std::endl;

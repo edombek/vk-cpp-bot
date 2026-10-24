@@ -102,8 +102,8 @@ bool Doc::uploadDoc(const std::string& filename, const std::string& data, Net& n
     json resp = vk.send("docs.getMessagesUploadServer", params);
     if (resp["response"]["upload_url"].is_null())
         return false;
-    resp = json::parse(net.upload(resp["response"]["upload_url"], filename, data));
-    if (resp["file"].is_null())
+    resp = json::parse(net.upload(resp["response"]["upload_url"], filename, data), nullptr, false);
+    if (resp.is_discarded() || !resp["file"].is_string())
         return false;
     params =
     {
@@ -163,10 +163,10 @@ bool Doc::uploadPhoto(const std::string& filename, const std::string& data, Net&
     json resp = vk.send("photos.getMessagesUploadServer", params);
     if (resp["response"]["upload_url"].is_null())
         return false;
-    // VK требует поле «photo» (не «file») для photos.getMessagesUploadServer —
-    // иначе saveMessagesPhoto получает пустой photo (живой случай /neon 2026-10-24)
-    resp = json::parse(net.upload(resp["response"]["upload_url"], filename, data, "photo"));
-    if (resp["server"].is_null())
+    // VK требует поле «photo» (не «file»); lenient: upload-сервер может ответить не-JSON
+    // (HTML-ошибка при большом файле) — раньше json::parse бросал и команда молчала (живой случай)
+    resp = json::parse(net.upload(resp["response"]["upload_url"], filename, data, "photo"), nullptr, false);
+    if (resp.is_discarded() || !resp["server"].is_number() || !resp["photo"].is_string() || !resp["hash"].is_string())
         return false;
     params =
     {

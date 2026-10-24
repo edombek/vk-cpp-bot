@@ -84,7 +84,8 @@ void Worker::workButton(Event& eventIn, Vk& vk)
     answer["peer_id"] = std::to_string(eventIn.peer_id);
     answer["event_id"] = eventIn.event_id;
     answer["user_id"] = std::to_string(eventIn.from_id);
-    answer["event_data"] = "{\"type\":null}"; // актуальное имя параметра (раньше — answer)
+    answer["event_data"] = ""; // пустая строка = «действия нет», гасит спиннер кнопки;
+                               // «{"type":null}» VK отвергал с ошибкой 100 (живой лог 2026-10-24)
     if (!eventIn.event_id.empty())
         vk.send("messages.sendMessageEventAnswer", answer);
     if (eventIn.from_id <= 0 || !eventIn.words.size())
