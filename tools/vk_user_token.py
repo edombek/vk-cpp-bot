@@ -5,21 +5,22 @@
 Токен пользователя нужен боту для /video и аудиосообщений, а также для
 автоматических живых проверок (писать сообществу от имени пользователя).
 
-Как получить client_id/secret: https://vk.com/apps?act=manage — «Создать приложение»
-(или https://vk.com/editapp?act=create), тип «веб-сайт»,
-в «Адрес сайта / Authorized redirect URI » указать http://localhost:8765/callback,
-права: сообщения (messages). секрет показывается один раз.
+По умолчанию — публичный client_id официального клиента vk.com (2671, так же
+работает библиотека vk_api) и редирект на oauth.vk.com/blank.html:
+регистрировать своё приложение НЕ нужно (в VK ID «Моё приложение» localhost
+не принимают — нужен https-домен, он нам не обязателен). Свой client_id —
+--client-id/--client-secret (приложение: https://vk.com/apps?act=manage).
 
 Режимы:
-  ./tools/vk_user_token.py            — auth code flow: откроется браузер,
-                                        скрипт поднимет http://localhost:8765
-  ./tools/vk_user_token.py --paste    — implicit flow: открыть ссылку, скопировать
-                                        адрес итоговой страницы (или сам токен)
-  ./tools/vk_user_token.py --check    — проверить/показать текущий user_token из config.json
-
-client_id/secret берутся из аргументов, окружения (VK_CLIENT_ID/VK_CLIENT_SECRET)
-или config.json (vk_client_id/vk_client_secret); после успешного запуска они
-сохраняются в config.json, чтобы в следующий раз запускать без параметров.
+  ./tools/vk_user_token.py --print-url  — напечатать ссылку авторизации: открыть,
+                                          разрешить, скопировать адрес итоговой
+                                          страницы (blank.html#access_token=...)
+  ./tools/vk_user_token.py --save '<адрес итоговой страницы или сам токен>'
+                                        — провалидировать и сохранить в config.json
+  ./tools/vk_user_token.py --paste      — интерактивно: ссылка + вставка с клавиатуры
+  ./tools/vk_user_token.py              — auth code flow через http://localhost:8765
+                                          (для своего приложения)
+  ./tools/vk_user_token.py --check      — проверить/показать текущий user_token
 """
 
 import argparse
@@ -151,10 +152,22 @@ def auth_code_flow(client_id, client_secret):
 
 # ---------- режим 2: implicit (response_type=token), вставка руками ----------
 
+def authorize_url(client_id):
+    return (OAUTH + "authorize?client_id=" + client_id +
+            "&redirect_uri=https%3A%2F%2Foauth.vk.com%2Fblank.html" +
+            "&scope=" + SCOPES + "&response_type=token&display=page&v=5.131")
+
+
+def extract_token(s):
+    """из адреса blank.html#access_token=..., из query или самого токена"""
+    if "#" in s:
+        s = urllib.parse.urlparse(s).fragment or s.split("#", 1)[1]
+    q = urllib.parse.parse_qs(s)
+    return (q.get("access_token", [s])[0] or "").strip()
+
+
 def paste_flow(client_id):
-    url = (OAUTH + "authorize?client_id=" + client_id +
-           "&redirect_uri=https%3A%2F%2Foauth.vk.com%2Fblank.html" +
-           "&scope=" + SCOPES + "&response_type=token&display=page&v=5.131")
+    url = authorize_url(client_id)
     print("Откройте в браузере и разрешите доступ:")
     print(url)
     try:
@@ -164,17 +177,15 @@ def paste_flow(client_id):
     print("После разрешения браузер уйдёт на oauth.vk.com/blank.html#access_token=...")
     print("Скопируйте адрес страницы целиком (или сам access_token) и вставьте:")
     s = sys.stdin.readline().strip()
-    if "#" in s:
-        s = urllib.parse.urlparse(s).fragment or s.split("#", 1)[1]
-    q = urllib.parse.parse_qs(s)
-    tok = q.get("access_token", [s])[0]
-    return tok or None
+    return extract_token(s)
 
 
 def main():
     ap = argparse.ArgumentParser(description="получить user-токен VK в config.json")
     ap.add_argument("--check", action="store_true", help="проверить user_token из config.json")
     ap.add_argument("--paste", action="store_true", help="implicit flow (вставить токен руками)")
+    ap.add_argument("--print-url", action="store_true", help="только напечатать ссылку авторизации")
+    ap.add_argument("--save", metavar="ССЫЛКА_ИЛИ_ТОКЕН", help="сохранить токен из адреса blank.html/токена")
     ap.add_argument("--client-id", default=None)
     ap.add_argument("--client-secret", default=None)
     a = ap.parse_args()
@@ -187,12 +198,26 @@ def main():
             sys.exit(1)
         sys.exit(0 if check_token(tok) else 1)
 
-    client_id = a.client_id or os.environ.get("VK_CLIENT_ID") or cfg.get("vk_client_id")
-    if not client_id:
-        try:
-            client_id = input("client_id приложения VK: ").strip()
-        except EOFError:
-            sys.exit("нужен client_id")
+    if a.save:
+        tok = extract_token(a.save)
+        if not tok:
+            sys.exit("токен не распознан во вставленной строке")
+        if not check_token(tok):
+            sys.exit("токен не проходит users.get — в config не пишем")
+        cfg["user_token"] = tok
+        save_config(cfg)
+        print(f"сохранено: {CONFIG} (ключ user_token)")
+        print("не забудьте перезапустить бота, чтобы он подхватил user_token")
+        return
+
+    # 2671 — публичный client_id vk.com (implicit-поток не требует секрета)
+    client_id = a.client_id or os.environ.get("VK_CLIENT_ID") or cfg.get("vk_client_id") or "2671"
+    if client_id == "2671":
+        print("(client_id 2671 — официальный клиент vk.com, своё приложение не требуется)")
+
+    if a.print_url:
+        print(authorize_url(client_id))
+        return
 
     if a.paste:
         tok = paste_flow(client_id)
@@ -202,7 +227,7 @@ def main():
             try:
                 secret = input("client_secret приложения VK: ").strip()
             except EOFError:
-                sys.exit("нужен client_secret")
+                sys.exit("нужен client_secret (или используй --print-url + --save)")
         tok = auth_code_flow(client_id, secret)
         if secret:
             cfg["vk_client_secret"] = secret
