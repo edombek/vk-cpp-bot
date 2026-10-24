@@ -200,8 +200,8 @@ def direct_flow():
     try:
         import getpass
         import vk_api
-        from vk_api.exceptions import ApiCaptchaRequired
-    except ImportError:
+    except ImportError as e:
+        print(f"(vk_api не импортирован: {e}; ставим: python3 -m pip install --user --break-system-packages vk_api)")
         return _direct_flow_stdlib()
     login = input("телефон аккаунта (цифрами, 7...): ").strip()
     password = getpass.getpass("пароль от аккаунта VK: ")
@@ -220,8 +220,8 @@ def direct_flow():
         session = vk_api.VkApi(login, password, scope=SCOPE_NUM, api_version="5.131",
                                auth_handler=auth_handler, captcha_handler=captcha_handler)
         session.auth(reauth=True)
-    except vk_api.AuthError as e:
-        print(f"vk_api: {e}")
+    except vk_api.VkApiError as e:
+        print(f"vk_api: {type(e).__name__}: {e}")
         return None
     tok = (session.token or {}).get("access_token")
     if tok:
