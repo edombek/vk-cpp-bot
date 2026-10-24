@@ -57,9 +57,17 @@ void Worker::work(json event, Net& net, Vk& vk)
             return;
         }
         bool selfComment = eventIn.type.find("wall_reply_") != std::string::npos && eventIn.from_id == eventIn.peer_id;
-        // комментарий самой страницы под своей записью: игнор (защита от петли)
-        if (eventIn.msg.size() && eventIn.from_id != 0 && !selfComment)
+        // комментарий самой страницы под своей записью: игнор (защита от петли),
+        // кроме комментариев чекера живых проверок с маркером «@@ » (см. tools/live_check.py --self:
+        // ответы бота маркера не содержат — зацикливание исключено)
+        bool selfMarker = selfComment && eventIn.msg.compare(0, 3, "@@ ") == 0;
+        if (eventIn.msg.size() && eventIn.from_id != 0 && (!selfComment || selfMarker))
         {
+            if (selfMarker)
+            {
+                eventIn.msg.erase(0, 3);
+                eventIn.words = str::words(eventIn.msg);
+            }
             eventIn.user = users::getUser(eventIn.from_id, vk);
             Event outEvent = eventIn.getOut();
             if (!outEvent.user.name.empty()) // у сообществ имени из users.get нет — не печатать «, »

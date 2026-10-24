@@ -1101,6 +1101,27 @@ int main()
         check(fn.first("wall.createComment") == nullptr, "U35a свой комментарий проигнорирован", fn.first("wall.createComment") ? "(ответ!)" : "");
     }
 
+    // --- U36: собственный комментарий с маркером «@@ » (режим самопроверки чекера) ---
+    {
+        FakeNet fn;
+        fn.responses["wall.createComment"] = "{\"response\":902}";
+        Vk vk(fn);
+        json ev =
+        {
+            { "type", "wall_reply_new" },
+            { "object", { { "id", 779 }, { "date", 5 }, { "text", "@@ /stat" }, { "from_id", -178228638 },
+                          { "post_id", 40579 }, { "owner_id", -178228638 } } }
+        };
+        Worker w;
+        w.work(ev, fn, vk);
+        const FakeNet::Call* c = fn.first("wall.createComment");
+        check(c && c->params.count("reply_to_cid") && c->params.at("reply_to_cid") == "779"
+                  && c->params.count("message") && c->params.at("message").find("Работаю") != std::string::npos,
+              "U36a «@@ /stat» от своей страницы выполнен", c && c->params.count("message") ? c->params.at("message").substr(0, 40) : "(нет вызова)");
+        check(c && c->params.count("message") && c->params.at("message").find("@@") == std::string::npos,
+              "U36b маркер из команды вырезан", c && c->params.count("message") ? c->params.at("message").substr(0, 30) : "");
+    }
+
     Net::deinit();
 
     std::cout << "\n=== " << passed << " passed, " << failed << " failed ===" << std::endl;

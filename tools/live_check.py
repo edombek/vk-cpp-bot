@@ -3,10 +3,10 @@
 """Живые проверки бота через КОММЕНТАРИИ к одной записи стены (не спамит стену).
 
 Схема: на стене сообщества есть один тестовый пост (по умолчанию id 40579).
-Каждая проверяемая команда публикуется комментарием под ним токеном ДРУГОЙ
-страницы (config.json["checker_token"]) — сам бот свои комментарии игнорирует
-(защита от петли), поэтому проверяющий обязан быть «другим». Ответ бота —
-комментарий в ветку команды (wall.createComment + reply_to_cid).
+Каждая проверяемая команда публикуется комментарием под ним — токеном ДРУГОЙ
+страницы (config.json["checker_token"]) или токеном самого сообщества (--self,
+с маркером «@@ »). Ответ бота — комментарий в ветку команды (wall.createComment
++ reply_to_cid).
 
 Результат определяется по stderr-логу бота: строки вида
     /stat vk.com/id-90697853 (-90697853/-178228638(wall_reply_new))
@@ -16,8 +16,14 @@
 Удалить комментарии group-токеном нельзя (wall.deleteComment — ошибка 27,
 comments.* выведены из API) — по окончании печатаются ссылки для ручной чистки.
 
+2026-10-24: VK закрыл group-токенам доступ к чужим стенам (wall.createComment в
+чужое сообщество — ошибка 15), поэтому для автоматизации есть режим --self:
+комментарии публикуются токеном самого сообщества с маркером «@@ », который
+бот разрешает только для своих комментариев (ответы маркера не содержат —
+петля исключена).
+
 Примеры:
-    ./tools/live_check.py /stat /help
+    ./tools/live_check.py --self /stat /help
     ./tools/live_check.py --post 40579 --timeout 30 "/apoddate 01.10.2014" /apodrand
 """
 
@@ -62,6 +68,9 @@ def main():
     p.add_argument("--post", type=int, default=40579, help="id записи стены (default 40579)")
     p.add_argument("--log", help="лог бота (default — свежайший /tmp/opencode/vkbot_run*.log)")
     p.add_argument("--timeout", type=float, default=40.0, help="секунд ожидания -done! на команду")
+    p.add_argument("--self", action="store_true",
+                   help="самопроверка: комментарии токеном самого сообщества с маркером «@@ » "
+                        "(bot их обрабатывает; нужен только token сообщества)")
     a = p.parse_args()
 
     cfg = json.load(open(a.config, encoding="utf-8"))
@@ -69,12 +78,15 @@ def main():
     chk_token = cfg.get("checker_token")
     if not bot_token:
         sys.exit("В config.json нет token (сообщество бота)")
-    if not chk_token:
+    if a.self:
+        chk_token = bot_token  # свои комментарии бот принимает только с маркером «@@ »
+    elif not chk_token:
         sys.exit("В config.json нет checker_token — токен ДРУГОЙ страницы/сообщества, "
-                 "от имени которой будут публиковаться комментарии-команды")
-    if chk_token == bot_token:
-        sys.exit("checker_token совпадает с token сообщества бота: бот игнорирует свои "
-                 "комментарии (защита от петли) — нужен токен другой страницы")
+                 "от имени которой будут публиковаться комментарии-команды "
+                 "(или запустите с --self — самопроверка токеном сообщества)")
+    elif chk_token == bot_token:
+        sys.exit("checker_token совпадает с token сообщества бота — для таких проверок "
+                 "запустите с --self (бот принимает свои комментарии с маркером «@@ »)")
 
     log_path = find_log(a.log)
     bot_id = api("groups.getById", bot_token)[0]["id"]
@@ -87,7 +99,8 @@ def main():
     for cmd in a.commands:
         offset = os.path.getsize(log_path)
         try:
-            cid = api("wall.createComment", chk_token, owner_id=owner, post_id=a.post, message=cmd)
+            cid = api("wall.createComment", chk_token, owner_id=owner, post_id=a.post,
+                      message=("@@ " if a.self else "") + cmd)
         except RuntimeError as e:
             print(f"[{cmd}] НЕ ОПУБЛИКОВАН комментарий: {e}")
             results.append((cmd, "NO-POST"))
