@@ -73,7 +73,18 @@ void Worker::work(json event, Net& net, Vk& vk)
             if (!outEvent.user.name.empty()) // у сообществ имени из users.get нет — не печатать «, »
                 outEvent.msg += outEvent.user.name + ", ";
             if (cmd::start(str::low(*eventIn.words.begin()), eventIn, outEvent, this))
+            {
                 outEvent.send();
+                // живые проверки: текст ответа в лог (wall.getComments group-токеном недоступен —
+                // иначе результат комментария-команды нечем прочитать); переводы строк -> «\n»
+                std::string out = outEvent.msg;
+                for (char& c : out)
+                    if (c == '\n')
+                        c = ' ';
+                if (out.size() > 300)
+                    out.resize(300);
+                fprintf(stderr, "\n└─> %s", out.c_str());
+            }
             bd.touch(); // запись dat.json — пакетом по таймеру в Lp::loop, не на каждое сообщение
         }
     }
