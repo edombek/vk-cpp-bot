@@ -40,6 +40,12 @@ API = "https://api.vk.com/method/"
 OAUTH = "https://oauth.vk.com/"
 REDIRECT = "http://localhost:8765/callback"
 SCOPES = "messages,friends,status"  # friends/status — чтобы проверки профиля работали шире
+# implicit-поток: pубличный client_id одобренного десктоп-клиента (messages запрещён
+# website-клиентам — «Only desktop applications have access to user messages»).
+# 2685278 = Kate Mobile (старый whitelisted клиент, как на vkhost.github.io).
+# scope числом: friends(2^1)+status(2^10)+messages(2^12)+offline(2^16) = 70658
+DEFAULT_CLIENT = "2685278"
+SCOPE_NUM = 70658
 
 
 def load_config():
@@ -155,7 +161,7 @@ def auth_code_flow(client_id, client_secret):
 def authorize_url(client_id):
     return (OAUTH + "authorize?client_id=" + client_id +
             "&redirect_uri=https%3A%2F%2Foauth.vk.com%2Fblank.html" +
-            "&scope=" + SCOPES + "&response_type=token&display=page&v=5.131")
+            "&scope=" + str(SCOPE_NUM) + "&response_type=token&display=page&v=5.131")
 
 
 def extract_token(s):
@@ -210,10 +216,10 @@ def main():
         print("не забудьте перезапустить бота, чтобы он подхватил user_token")
         return
 
-    # 2671 — публичный client_id vk.com (implicit-поток не требует секрета)
-    client_id = a.client_id or os.environ.get("VK_CLIENT_ID") or cfg.get("vk_client_id") or "2671"
-    if client_id == "2671":
-        print("(client_id 2671 — официальный клиент vk.com, своё приложение не требуется)")
+    # Публичные client_id официальных/одобренных клиентов (implicit не требует секрета)
+    client_id = a.client_id or os.environ.get("VK_CLIENT_ID") or cfg.get("vk_client_id") or DEFAULT_CLIENT
+    if client_id == DEFAULT_CLIENT:
+        print(f"(client_id {DEFAULT_CLIENT} — одобренный десктоп-клиент VK, своё приложение не требуется)")
 
     if a.print_url:
         print(authorize_url(client_id))
