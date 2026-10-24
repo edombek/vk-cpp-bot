@@ -493,7 +493,7 @@ int main()
         check(kbdOk, "U12b help keyboard (разделы)", msg && msg->params.count("keyboard") ? msg->params.at("keyboard") : "(нет)");
         check(msg && msg->params.count("message") &&
               msg->params.at("message").find("поделены на разделы") != std::string::npos &&
-              msg->params.at("message").find("игры (") != std::string::npos &&
+              msg->params.at("message").find("игры —") != std::string::npos &&
               msg->params.at("message").find("текстом: /интерфейс /утилиты /игры /медиа") != std::string::npos &&
               msg->params.at("message").find("/всекоманды") != std::string::npos,
               "U12c текст о подгруппах и текстовых ярлыках", msg && msg->params.count("message") ? msg->params.at("message") : "(нет)");
@@ -506,6 +506,8 @@ int main()
                      all->params.at("message").find("[ игры ]") != std::string::npos &&
                      all->params.at("message").find("/bc") != std::string::npos &&
                      all->params.at("message").find("или текстом: /интерфейс") != std::string::npos &&
+                     all->params.at("message").find("минимальный уровень прав") != std::string::npos && // расшифровка «(ур. N)»
+                     all->params.at("message").find(" (ур. ") == std::string::npos && // пометок уровня для юзера (1) нет
                      all->params.at("message").find("/py ") == std::string::npos &&
                      all->params.at("message").find("/py\n") == std::string::npos; // недоступное /py не показывается (/pywiki — можно, у него доступ 1)
         check(allOk, "U12d /help все — команды по разделам", all && all->params.count("message") ? all->params.at("message") : "(нет)");

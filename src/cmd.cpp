@@ -96,11 +96,14 @@ void help(Event &eventIn, Event &eventOut, Worker *worker)
             {
                 if (!cmdInfo.second.disp || cmdInfo.second.cat != cat || eventIn.user.acess < cmdInfo.second.acess)
                     continue;
-                eventOut.msg += cmdInfo.first + " - " + cmdInfo.second.info + " (" + to_string(cmdInfo.second.acess) + ")\n";
+                eventOut.msg += cmdInfo.first + " - " + cmdInfo.second.info;
+                if (cmdInfo.second.acess > 1) // (ур. 1) не пишем — доступно всем; расшифровка в сноске
+                    eventOut.msg += " (ур. " + to_string(cmdInfo.second.acess) + ")";
+                eventOut.msg += "\n";
             }
         }
         else
-            catsLine += (catsLine.empty() ? "" : ", ") + cat + " (" + to_string(cnt) + ")";
+            catsLine += (catsLine.empty() ? "" : ", ") + cat + " — " + to_string(cnt);
     }
     if (section.size())
     {
@@ -108,10 +111,10 @@ void help(Event &eventIn, Event &eventOut, Worker *worker)
         eventOut.msg += "\nэто не все команды — они поделены на разделы; кнопки ниже работают и текстом:" + textHint + ", полный список — /всекоманды\n";
     }
     else if (allCmds)
-        eventOut.msg += "\nэто полный список; по разделам (подгруппам) короче — кнопки ниже или текстом:" + textHint + "\n";
+        eventOut.msg += "\n«(ур. N)» — минимальный уровень прав: 1 — любой, 2 — друг, 3 — продвинутый, 5 — админ (у вас " + to_string(eventIn.user.acess) + ");\nэто полный список; по разделам (подгруппам) короче — кнопки ниже или текстом:" + textHint + "\n";
     else
     {
-        eventOut.msg += "команды поделены на разделы (подгруппы): " + catsLine + "\n";
+        eventOut.msg += "команды поделены на разделы (подгруппы), после тире — число команд: " + catsLine + "\n";
         eventOut.msg += "раздел открывается кнопкой или текстом:" + textHint + "; полный список — «все команды» или /всекоманды\n";
     }
     if (!kbd.empty())
