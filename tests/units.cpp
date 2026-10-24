@@ -692,17 +692,15 @@ int main()
         check(guess, "U19d check submitted", lastMsg());
     }
 
-    // --- U20: /w без аргумента — кнопки городов; /w Москва — разбор погоды (FakeNet) ---
+    // --- U20: /w без аргумента — кнопки городов; /w Москва — разбор погоды wttr.in (FakeNet) ---
     {
-        conf.lock.lock();
-        conf.get()["openweathermap_token"] = "TESTKEY";
-        conf.lock.unlock();
         FakeNet fn;
         fn.responses["users.get"] = "{\"response\":[{\"id\":444,\"first_name\":\"Город\"}]}";
-        fn.responses["api.openweathermap.org"] =
-            "{\"main\":{\"temp\":20.5,\"humidity\":50},\"wind\":{\"speed\":3},"
-            "\"weather\":[{\"description\":\"ясно\"}],\"name\":\"Moscow\",\"sys\":{\"country\":\"RU\"}}";
-        fn.responses["/method/messages."] = "{\"response\":1}"; // ключ с /method/ — иначе матчит и .../data/2.5/weather
+        fn.responses["wttr.in"] =
+            "{\"current_condition\":[{\"temp_C\":\"-5\",\"windspeedKmph\":\"15\",\"humidity\":\"90\","
+            "\"lang_ru\":[{\"value\":\"метель\"}],\"weatherDesc\":[{\"value\":\"Snow\"}]}],"
+            "\"nearest_area\":[{\"areaName\":[{\"value\":\"Москва\"}],\"country\":[{\"value\":\"Россия\"}]}]}";
+        fn.responses["/method/messages."] = "{\"response\":1}"; // ключ с /method/ — иначе матчит и wttr
         Vk vk(fn);
         auto sendMsg = [&](const std::string& text)
         {
@@ -735,7 +733,28 @@ int main()
         }
         check(hasMoscow, "U20b /w Москва payload");
         auto r2 = sendMsg("/w Москва");
-        check(r2.first.find("погода в RU/Moscow") != std::string::npos, "U20c weather parsed", r2.first.substr(0, 80));
+        check(r2.first.find("погода в Москва (Россия)") != std::string::npos && r2.first.find("-5°C") != std::string::npos &&
+              r2.first.find("4м/с") != std::string::npos && r2.first.find("метель") != std::string::npos,
+              "U20c weather parsed", r2.first.substr(0, 80));
+        const FakeNet::Call* wc = fn.first("wttr.in");
+        check(wc && wc->url.find("wttr.in/%D0%9C%D0%BE%D1%81%D0%BA%D0%B2%D0%B0") != std::string::npos,
+              "U20d город в URL %-закодирован", wc ? wc->url : std::string("(нет вызова)"));
+        // город не найден: wttr вернул не-JSON (HTML) —lenient-парсинг, сообщение вместо молчания/падения
+        FakeNet fn2;
+        fn2.responses["users.get"] = "{\"response\":[{\"id\":444,\"first_name\":\"Город\"}]}";
+        fn2.responses["wttr.in"] = "<html>unknown location</html>";
+        fn2.responses["/method/messages."] = "{\"response\":1}";
+        Vk vk2(fn2);
+        json ev2 = { { "type", "message_new" },
+                     { "object", { { "date", 1 }, { "peer_id", 444 }, { "from_id", 444 }, { "text", "/w Кудыкина-гора" }, { "random_id", 1 } } } };
+        Worker w2;
+        w2.work(ev2, fn2, vk2);
+        const FakeNet::Call* c2 = nullptr;
+        for (const auto& x : fn2.calls)
+            if (x.url == "https://api.vk.ru/method/messages.send")
+                c2 = &x;
+        check(c2 && c2->params.count("message") && c2->params.at("message").find("город не найден") != std::string::npos,
+              "U20e неизвестный город — объяснение", c2 ? c2->params.count("message") ? c2->params.at("message") : std::string("(без msg)") : std::string("(нет вызова)"));
     }
 
     // --- U21: /set без аргументов — кнопки уровней (для админа) ---

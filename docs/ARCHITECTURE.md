@@ -23,7 +23,7 @@ flowchart LR
     end
 
     VKS["ВКонтакте API<br/>+ upload-серверы"]
-    EXT["Внешние API<br/>openweathermap · nasa apod"]
+    EXT["Внешние API<br/>wttr.in · nasa apod"]
     VOX[("vox/*.wav<br/>(сабмодуль)")]
 
     MAIN --> LP
