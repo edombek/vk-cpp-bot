@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """Живые проверки бота через КОММЕНТАРИИ к одной записи стены (не спамит стену).
 
-Схема: на стене сообщества есть один тестовый пост (по умолчанию id 40579).
+Схема: на стене сообщества есть один тестовый пост (по умолчанию id 40581).
 Каждая проверяемая команда публикуется комментарием под ним — токеном ДРУГОЙ
 страницы (config.json["checker_token"]) или токеном самого сообщества (--self,
 с маркером «@@ »). Ответ бота — комментарий в ветку команды (wall.createComment
@@ -24,7 +24,7 @@ comments.* выведены из API) — по окончании печатаю
 
 Примеры:
     ./tools/live_check.py --self /stat /help
-    ./tools/live_check.py --post 40579 --timeout 30 "/apoddate 01.10.2014" /apodrand
+    ./tools/live_check.py --post 40581 --timeout 30 "/apoddate 01.10.2014" /apodrand
 """
 
 import argparse
@@ -65,7 +65,7 @@ def main():
     p = argparse.ArgumentParser(description="Проверка команд бота комментариями под одним постом")
     p.add_argument("commands", nargs="+", help="команды, например /stat \"/apoddate 01.10.2014\"")
     p.add_argument("--config", default="config.json", help="путь к config.json (token + checker_token)")
-    p.add_argument("--post", type=int, default=40579, help="id записи стены (default 40579)")
+    p.add_argument("--post", type=int, default=40581, help="id записи стены (default 40579)")
     p.add_argument("--log", help="лог бота (default — свежайший /tmp/opencode/vkbot_run*.log)")
     p.add_argument("--timeout", type=float, default=40.0, help="секунд ожидания -done! на команду")
     p.add_argument("--self", action="store_true",
@@ -109,8 +109,9 @@ def main():
             cid = cid.get("comment_id") or cid.get("id")
         comment_ids.append(cid)
         word = cmd.split()[0].lower()
-        recv_re = re.compile(re.escape(word) + r" vk\.com/id\S* \(" + str(chk_id) + r"/" + str(owner) + r"\(wall_reply_new\)\)\s*$")
-        done_re = re.compile(re.escape(word) + r" vk\.com/id\S* \(" + str(chk_id) + r"/" + str(owner) + r"\(wall_reply_new\)\)-done!\s*$")
+        from_id = -chk_id  # в логе from_id комментатора-сообщества знаковый (отрицательный)
+        recv_re = re.compile(re.escape(word) + r" vk\.com/id\S* \(" + str(from_id) + r"/" + str(owner) + r"\(wall_reply_new\)\)\s*$")
+        done_re = re.compile(re.escape(word) + r" vk\.com/id\S* \(" + str(from_id) + r"/" + str(owner) + r"\(wall_reply_new\)\)-done!\s*$")
         err_re = re.compile(r"WORK ERROR|VK ERROR|FATAL")
 
         deadline = time.time() + a.timeout
@@ -124,17 +125,21 @@ def main():
             lines = buf.splitlines()
             got_done = any(done_re.search(l) for l in lines)
             got_recv = any(recv_re.search(l) for l in lines)
-            errline = next((l for l in lines if err_re.search(l)), None)
+            erridx = next((i for i, l in enumerate(lines) if err_re.search(l)), None)
             if got_done:
-                status, detail = "PASS", ""
+                if erridx is not None:  # команда завершилась, но внутри были ошибки API
+                    status, detail = "PASS*", " ".join(lines[erridx:erridx + 3])[:120]
+                else:
+                    status = "PASS"
                 break
-            if errline:
-                status, detail = "FAIL", errline.strip()
+            if erridx is not None and got_recv:
+                status = "FAIL"
+                detail = " ".join(lines[erridx:erridx + 3])[:120]
                 break
             if got_recv:
                 status = "RECV"  # принято, выполнения нет
             time.sleep(0.5)
-        mark = {"PASS": "✅", "FAIL": "❌", "RECV": "⏳", "TIMEOUT": "⌛"}[status]
+        mark = {"PASS": "✅", "PASS*": "⚠️", "FAIL": "❌", "RECV": "⏳", "TIMEOUT": "⌛"}[status]
         extra = f"  ({detail})" if detail else ("" if status == "PASS" else "  (нет строки -done!)")
         print(f"{mark} [{cmd}] {status}{extra}")
         results.append((cmd, status))
@@ -142,7 +147,7 @@ def main():
     print("\nСсылки на комментарии-команды (бот не может их удалить — чистить вручную):")
     for cid in comment_ids:
         print(f"  https://vk.com/wall-{bot_id}_{a.post}?cid={cid}")
-    bad = [c for c, s in results if s != "PASS"]
+    bad = [c for c, s in results if s not in ("PASS", "PASS*")]
     return 1 if bad else 0
 
 

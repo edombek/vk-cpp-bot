@@ -53,10 +53,36 @@ void videos(Event &eventIn, Event &eventOut, Worker *worker)
 }
 
 #define imgdelta 8.0
+
+// Источник картинки для арт-команд: вложения сообщения/комментария (фото или документ),
+// а если вложений нет — фотография профиля автора (сообщества — его обложка)
+static std::vector<Doc> imageSources(Event &eventIn)
+{
+    if (!eventIn.docs.empty())
+        return eventIn.docs;
+    json resp;
+    if (eventIn.from_id > 0)
+        resp = eventIn.vk.send("users.get", { { "user_ids", std::to_string(eventIn.from_id) },
+                                              { "fields", "photo_200,photo_100,photo_50" } })["response"];
+    else
+        resp = eventIn.vk.send("groups.getById", { { "group_id", std::to_string(-eventIn.from_id) },
+                                                  { "fields", "photo_200,photo_100,photo_50" } })["response"];
+    if (!resp.is_array() || resp.empty())
+        return {};
+    for (const char* f : { "photo_200", "photo_100", "photo_50" })
+        if (resp[0][f].is_string() && !std::string(resp[0][f]).empty())
+        {
+            Doc d;
+            d.type = "photo";
+            d.url = resp[0][f];
+            return { d };
+        }
+    return {};
+}
 void pix(Event &eventIn, Event &eventOut, Worker *worker)
 {
     bool full = eventIn.user.acess >= 2;
-    for(auto doc : eventIn.docs)
+    for(auto doc : imageSources(eventIn))
     {
         img im(doc, eventIn.net);
         cv::Mat cvim = im.getMat(full);
@@ -181,7 +207,7 @@ void vox(Event &eventIn, Event &eventOut, Worker *worker)
 void crt(Event &eventIn, Event &eventOut, Worker *worker)
 {
     bool full = eventIn.user.acess >= 2;
-    for(auto doc : eventIn.docs)
+    for(auto doc : imageSources(eventIn))
     {
         img im(doc, eventIn.net);
         cv::Mat cvim = im.getMat(full);
@@ -221,7 +247,7 @@ void crt(Event &eventIn, Event &eventOut, Worker *worker)
 void neon(Event &eventIn, Event &eventOut, Worker *worker)
 {
     bool full = eventIn.user.acess >= 2;
-    for(auto doc : eventIn.docs)
+    for(auto doc : imageSources(eventIn))
     {
         img im(doc, eventIn.net);
         cv::Mat cvim = im.getMat(full);

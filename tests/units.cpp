@@ -1122,6 +1122,84 @@ int main()
               "U36b маркер из команды вырезан", c && c->params.count("message") ? c->params.at("message").substr(0, 30) : "");
     }
 
+    // --- U37: отрицательный peer_id (wall_reply) при загрузке вложения ---
+    {
+        FakeNet fn;
+        fn.responses["UploadServer"] = "{\"response\":{\"upload_url\":\"https://upload.example.com/us\"}}";
+        fn.responses["upload.example.com"] = "{\"server\":1,\"photo\":\"PH\",\"hash\":\"hh\"}";
+        fn.responses["saveMessagesPhoto"] = "{\"response\":[{\"id\":5,\"owner_id\":-178228638,\"date\":1,\"access_key\":\"ak\"}]}";
+        Vk vk(fn);
+        Doc ph;
+        bool ok = ph.uploadPhoto("x.jpg", "DATA", fn, vk, -178228638);
+        const FakeNet::Call* g = fn.first("getMessagesUploadServer");
+        check(ok && g && g->params.count("peer_id") && g->params.at("peer_id") == "-178228638",
+              "U37a peer_id знаковый, не переполнен в беззнаковый", g ? (g->params.count("peer_id") ? g->params.at("peer_id") : "(нет)") : "(нет вызова)");
+    }
+
+    // --- U38: пустой ответ не отправляется (VK запрещает пустые сообщения/комментарии) ---
+    {
+        FakeNet fn;
+        fn.responses["wall.createComment"] = "{\"response\":1}";
+        Vk vk(fn);
+        Event e(fn, vk);
+        e.type = "wall_reply_new";
+        e.peer_id = -178228638; e.id = 40581; e.cid = 1;
+        check(e.send().is_null() && fn.calls.empty(), "U38a пустой ответ не отправлен", std::to_string(fn.calls.size()));
+        e.msg = "текст";
+        check(!e.send().is_null() && !fn.calls.empty(), "U38b непустой ответ отправлен");
+    }
+
+
+    // --- U39: источник картинки арт-команд — вложение комментария или фото профиля ---
+    {
+        FakeNet fn;
+        Vk vk(fn);
+        json ev =
+        {
+            { "type", "wall_reply_new" },
+            { "object", { { "id", 777 }, { "date", 5 }, { "text", "/neon" }, { "from_id", 987 },
+                          { "post_id", 40581 }, { "owner_id", -178228638 },
+                          { "attachment", { { "photo", { { "id", 3 }, { "owner_id", 987 }, { "date", 1 }, { "access_key", "ak" },
+                                          { "sizes", json::array({ { { "width", 100 }, { "height", 80 }, { "url", "http://x/c.jpg" } } }) } } } } } } }
+        };
+        Event e(fn, vk, ev);
+        check(e.docs.size() == 1 && e.docs[0].type == "photo" && e.docs[0].url == "http://x/c.jpg",
+              "U39a одиночное вложение комментария (attachment)", e.docs.size() ? e.docs[0].url : "(нет доков)");
+    }
+    // U39b: /neon без вложения — берётся фото профиля автора
+    {
+        FakeNet fn;
+        fn.responses["users.get"] = "{\"response\":[{\"id\":987,\"first_name\":\"Чел\",\"photo_200\":\"http://x/prof.jpg\"}]}";
+static const unsigned char tinyPng[] = { 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x04, 0x08, 0x02, 0x00, 0x00, 0x00, 0x26, 0x93, 0x09, 0x29, 0x00, 0x00, 0x00, 0x2e, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9c, 0x0d, 0xc6, 0x31, 0x01, 0x00, 0x30, 0x0c, 0xc3, 0x30, 0x23, 0x29, 0x12, 0x23, 0x29, 0x92, 0x20, 0x19, 0x92, 0x00, 0x5c, 0x75, 0x09, 0x40, 0x26, 0x58, 0xf6, 0x3a, 0x6a, 0xdc, 0x1a, 0xc8, 0x75, 0x93, 0x34, 0x0f, 0xba, 0xf6, 0xfa, 0xda, 0x7e, 0x46, 0x83, 0x10, 0xe1, 0xb0, 0xad, 0x57, 0xc9, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82 };
+        fn.responses["prof.jpg"] = std::string(reinterpret_cast<const char*>(tinyPng), sizeof(tinyPng));
+        fn.responses["UploadServer"] = "{\"response\":{\"upload_url\":\"https://upload.example.com/us\"}}";
+        fn.responses["upload.example.com"] = "{\"server\":1,\"photo\":\"PH\",\"hash\":\"hh\"}";
+        fn.responses["saveMessagesPhoto"] = "{\"response\":[{\"id\":5,\"owner_id\":-178228638,\"date\":1,\"access_key\":\"ak\"}]}";
+        fn.responses["wall.createComment"] = "{\"comment_id\":1}";
+        Vk vk(fn);
+        json ev = { { "type", "wall_reply_new" },
+                    { "object", { { "id", 778 }, { "date", 5 }, { "text", "/neon" }, { "from_id", 987 },
+                                  { "post_id", 40581 }, { "owner_id", -178228638 } } } };
+        Worker w;
+        w.work(ev, fn, vk);
+        const FakeNet::Call* c = fn.first("wall.createComment");
+        check(c && c->params.count("attachment") && c->params.at("attachment").find("photo") == 0,
+              "U39b /neon без вложения обрабатывает фото профиля", c && c->params.count("attachment") ? c->params.at("attachment") : "(нет attachment)");
+    }
+    // U39c: нет ни вложения, ни фото — пустой ответ не отправляется
+    {
+        FakeNet fn;
+        fn.responses["users.get"] = "{\"response\":[{\"id\":988,\"first_name\":\"Без фото\"}]}";
+        fn.responses["wall.createComment"] = "{\"comment_id\":1}";
+        Vk vk(fn);
+        json ev = { { "type", "wall_reply_new" },
+                    { "object", { { "id", 779 }, { "date", 5 }, { "text", "/neon" }, { "from_id", 988 },
+                                  { "post_id", 40581 }, { "owner_id", -178228638 } } } };
+        Worker w;
+        w.work(ev, fn, vk);
+        check(fn.first("wall.createComment") == nullptr, "U39c без картинки — комментарий не отправлен", fn.first("wall.createComment") ? "(отправлен!)" : "");
+    }
+
     Net::deinit();
 
     std::cout << "\n=== " << passed << " passed, " << failed << " failed ===" << std::endl;

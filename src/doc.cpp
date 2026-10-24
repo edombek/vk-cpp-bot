@@ -6,7 +6,16 @@ Doc::Doc(json lpDoc)
 {
     if (lpDoc == NULL || lpDoc.empty())
         return;
-    this->type = lpDoc["type"];
+    if (lpDoc["type"].is_string())
+        this->type = lpDoc["type"];
+    else
+        // wall_reply_new: одиночное «attachment» без поля type — выводим тип из ключа вложения
+        for (auto it = lpDoc.begin(); it != lpDoc.end(); ++it)
+            if (it.value().is_object())
+            {
+                this->type = it.key();
+                break;
+            }
     if (this->type == "doc")
     {
         lpDoc = lpDoc["doc"];
@@ -88,7 +97,7 @@ Doc::Doc(json lpDoc)
     }
 }
 
-bool Doc::uploadDoc(const std::string& filename, const std::string& data, Net& net, Vk& vk, uint64_t peer_id, bool audio_message)
+bool Doc::uploadDoc(const std::string& filename, const std::string& data, Net& net, Vk& vk, int64_t peer_id, bool audio_message)
 {
     table_t params;
     if (peer_id)
@@ -153,7 +162,7 @@ bool Doc::uploadDoc(const std::string& filename, const std::string& data, Net& n
     return true;
 }
 
-bool Doc::uploadPhoto(const std::string& filename, const std::string& data, Net& net, Vk& vk, uint64_t peer_id)
+bool Doc::uploadPhoto(const std::string& filename, const std::string& data, Net& net, Vk& vk, int64_t peer_id)
 {
     table_t params;
     if (peer_id)

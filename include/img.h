@@ -24,8 +24,8 @@ public:
 
     img(const Doc& doc, Net& n);
     cv::Mat getMat(bool full = false);
-    static Doc getDoc(cv::Mat im, uint32_t peer_id, Net& net, Vk& vk);
-    static Doc getPhoto(cv::Mat im, uint32_t peer_id, Net& net, Vk& vk);
+    static Doc getDoc(cv::Mat im, int64_t peer_id, Net& net, Vk& vk);
+    static Doc getPhoto(cv::Mat im, int64_t peer_id, Net& net, Vk& vk);
     static bool isBig(cv::Mat im);
     // «неоновая» цветокоррекция: H и S сохраняются, V принудительно 1, чёрные
     // пиксели не трогаются. Векторный эквивалент старого попиксельного цикла

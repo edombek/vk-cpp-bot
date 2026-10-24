@@ -24,7 +24,7 @@ cv::Mat img::getMat(bool full)
     return imtemp;
 }
 
-Doc img::getDoc(cv::Mat im, uint32_t peer_id, Net& net, Vk& vk)
+Doc img::getDoc(cv::Mat im, int64_t peer_id, Net& net, Vk& vk)
 {
     std::vector<uchar> buff;
     cv::imencode(".png", im, buff, {});
@@ -35,7 +35,7 @@ Doc img::getDoc(cv::Mat im, uint32_t peer_id, Net& net, Vk& vk)
     return doctemp;
 }
 
-Doc img::getPhoto(cv::Mat im, uint32_t peer_id, Net& net, Vk& vk)
+Doc img::getPhoto(cv::Mat im, int64_t peer_id, Net& net, Vk& vk)
 {
     std::vector<uchar> buff;
     cv::imencode(".jpg", im, buff, {});

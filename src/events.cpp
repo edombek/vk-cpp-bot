@@ -1,6 +1,7 @@
 #include "events.h"
 #include "common.h"
 #include "str.h"
+#include <cstdio> // fprintf (лог пустого ответа)
 Event::Event(Net &n, Vk &v, json lpEv)
     : net(n)
     , vk(v)
@@ -74,6 +75,8 @@ Event::Event(Net &n, Vk &v, json lpEv)
         for (auto attach : lpEv["attachments"])
             this->docs.emplace_back(Doc(attach));
     }
+    else if (lpEv["attachment"].is_object()) // wall_reply_new: вложение комментария — одиночное, без поля type
+        this->docs.emplace_back(Doc(lpEv["attachment"]));
 }
 
 Event::Event(const Event& e): net(e.net), vk(e.vk)
@@ -104,6 +107,14 @@ void Event::copyBody(const Event& e)
 
 json Event::send()
 {
+    if (this->msg.empty() || (this->docs.empty() && this->keyboard.empty() && this->msg == this->user.name + ", "))
+    {
+        // VK отвергает пустые сообщения/комментарии (ошибка 100) — команды без текста
+        // и вложений (например /pix без картинки) не имеют чего отвечать;
+        // «префикс имени» без содержимого — тот же пустой ответ
+        fprintf(stderr, "\n(пустой ответ — не отправлено)");
+        return json();
+    }
     table_t param;
     if (this->type.find("message_") != this->type.npos)
     {
