@@ -65,7 +65,7 @@ def main():
     p = argparse.ArgumentParser(description="Проверка команд бота комментариями под одним постом")
     p.add_argument("commands", nargs="+", help="команды, например /stat \"/apoddate 01.10.2014\"")
     p.add_argument("--config", default="config.json", help="путь к config.json (token + checker_token)")
-    p.add_argument("--post", type=int, default=40581, help="id записи стены (default 40579)")
+    p.add_argument("--post", type=int, default=40581, help="id записи стены (default 40581)")
     p.add_argument("--log", help="лог бота (default — свежайший /tmp/opencode/vkbot_run*.log)")
     p.add_argument("--timeout", type=float, default=40.0, help="секунд ожидания -done! на команду")
     p.add_argument("--self", action="store_true",
