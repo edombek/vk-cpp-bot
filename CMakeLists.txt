@@ -52,6 +52,7 @@ set(VKBOT_CORE_SOURCES
     src/users.cpp
     src/img.cpp
     src/timer.cpp
+    src/thread_pool.cpp
     src/game.cpp)
 
 add_executable(vkbot ${VKBOT_CORE_SOURCES} src/main.cpp)

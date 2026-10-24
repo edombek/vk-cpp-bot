@@ -71,7 +71,7 @@ make NO_PYTHON=1                      # то же без Python
 ## Архитектура (неочевидно с первого взгляда)
 
 - Поток: `src/main.cpp` (глобальные `conf`=`config.json`, `bd`=`dat.json`) → `Lp::loop()`
-  (longpoll) → `Worker::work()` (пул потоков, `include/ThreadPool.h` — часть проекта,
+  (longpoll) → `Worker::work()` (пул потоков, `include/thread_pool.h + src/thread_pool.cpp` — часть проекта,
   размер = `pool_size` из `config.json`, default 5) → `cmd::start()`
   (таблица команд в `src/cmd.cpp`) → функции в `src/cmds_*.cpp` (модули по категориям).
 - **Кнопки VK (фаза 6)**: `Keyboard` (`include/keyboard.h`) собирает JSON-клавиатуру,
