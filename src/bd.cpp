@@ -28,8 +28,8 @@ void BD::touch()
 void BD::save()
 {
     this->lock.lock();
-    fs::writeData(this->file, this->dat.dump(4));
-    this->dirty = false;
+    fs::safeWriteData(this->file, this->dat.dump(4)); // через .tmp+rename: процесс, убитый в момент
+    this->dirty = false;                              // записи, не оставит битый файл (живой случай 2026-10-24)
     this->lock.unlock();
 }
 

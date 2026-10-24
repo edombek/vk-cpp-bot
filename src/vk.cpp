@@ -48,7 +48,14 @@ json Vk::send(const string& method, table_t args, bool user)
         args["v"] = ver;
     for (int attempt = 0;; attempt++)
     {
-        json buff = json::parse(this->net.send("https://api.vk.ru/method/" + method, args));
+        json buff = json::parse(this->net.send("https://api.vk.ru/method/" + method, args), nullptr, false);
+        if (buff.is_discarded() || !buff.is_object())
+        {
+            // живой случай 2026-10-24: нет JSON в ответе (сетевой сбой) -> FATAL при старте;
+            // теперь это наблюдаемая сетевая ошибка, а не исключение
+            cout << "Vk: метод " << method << " вернул неразбираемый ответ (не JSON)" << endl;
+            return json();
+        }
         if (!buff["error"]["error_code"].is_number())
             return buff;
         int code = buff["error"]["error_code"].get<int>();

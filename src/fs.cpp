@@ -75,8 +75,7 @@ void fs::writeData(const string& path, const string& data)
 void fs::safeWriteData(const string& path, const string& data)
 {
     fs::writeData(path + ".safe", data);
-    remove(path.c_str());
-    fs::rename(path + ".safe", path);
+    fs::rename(path + ".safe", path); // rename атомарен; remove() перед ним создавал окно без файла
 }
 
 string fs::readData(const string& path)

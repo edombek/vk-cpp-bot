@@ -877,6 +877,40 @@ int main()
         check(failedSeen && alive == 7, "U27c пул жив после исключения в post", std::to_string(tp.failedTasks()));
     }
 
+    // --- U28: fs::safeWriteData и BD::save — атомарная запись (убить процесс посреди save ≠ битый файл) ---
+    {
+        fs::safeWriteData("t_safe.json", "{\"a\":1}");
+        check(fs::readData("t_safe.json") == "{\"a\":1}" && !fs::exists("t_safe.json.safe"),
+              "U28a safeWriteData: содержимое на месте, .safe не остаётся");
+        remove("t_safe.json");
+        {
+            BD b2("t_bd.json");
+            b2.get()["k"] = "v";
+            b2.save();
+        }
+        check(fs::readData("t_bd.json").find("\"k\"") != std::string::npos && !fs::exists("t_bd.json.safe"),
+              "U28b BD::save пишет через .safe атомарно");
+        remove("t_bd.json");
+    }
+
+    // --- U29: Vk::send на неразбираемый ответ API — null без исключения (найдено живой проверкой) ---
+    {
+        FakeNet fn;
+        fn.defaultResponse = "service unavailable"; // не JSON
+        Vk vk(fn);
+        json r;
+        bool threw = false;
+        try
+        {
+            r = vk.send("users.get");
+        }
+        catch (...)
+        {
+            threw = true;
+        }
+        check(!threw && r.is_null(), "U29 битый ответ -> null, процесс жив", threw ? "исключение" : r.dump());
+    }
+
     Net::deinit();
 
     std::cout << "\n=== " << passed << " passed, " << failed << " failed ===" << std::endl;
