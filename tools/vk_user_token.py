@@ -194,8 +194,44 @@ def paste_flow(client_id):
 
 
 def direct_flow():
-    """grant_type=password для desktop-клиента (публичные креды, как в vk_api).
-    Пароль запрашивается через getpass (в историю не попадает)."""
+    """Получение токена через vk_api (веб-логин login.php + выдача токена из
+    доверенной сессии) — единственная схема, живая в 2026: прямые oauth-клиенты
+    VK блокирует («application is blocked»). Пароль через getpass."""
+    try:
+        import getpass
+        import vk_api
+        from vk_api.exceptions import ApiCaptchaRequired
+    except ImportError:
+        return _direct_flow_stdlib()
+    login = input("телефон аккаунта (цифрами, 7...): ").strip()
+    password = getpass.getpass("пароль от аккаунта VK: ")
+    def auth_handler():
+        print("VK просит подтверждение входа (новое устройство/2FA)")
+        code = input("код из SMS/push: ").strip()
+        return code, True
+    def captcha_handler(captcha):
+        path = "/tmp/opencode/vk_captcha.png"
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "wb") as f:
+            f.write(captcha.get_image())
+        print(f"нужна капча — картинка сохранена: {path}")
+        return captcha.sid, input("код с картинки: ").strip()
+    try:
+        session = vk_api.VkApi(login, password, scope=SCOPE_NUM, api_version="5.131",
+                               auth_handler=auth_handler, captcha_handler=captcha_handler)
+        session.auth(reauth=True)
+    except vk_api.AuthError as e:
+        print(f"vk_api: {e}")
+        return None
+    tok = (session.token or {}).get("access_token")
+    if tok:
+        print("получили токен")
+    return tok
+
+
+def _direct_flow_stdlib():
+    """запасной путь без vk_api (grant_type=password) — в 2026 VK его закрыл,
+    оставлен на случай возврата"""
     import getpass
     login = input("телефон аккаунта (цифрами, 7...): ").strip()
     password = getpass.getpass("пароль от аккаунта VK: ")
