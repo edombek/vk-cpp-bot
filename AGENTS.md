@@ -28,9 +28,10 @@ make NO_PYTHON=1                      # то же без Python
 ```
 
 - Требуется: cmake ≥3.16, libcurl-dev, OpenCV (core/imgproc/imgcodecs/objdetect/photo,
-  любые /usr-инсталляции находятся через find_package), Python dev, Boost.Python
-  (фаза 2 заменит его на pybind11 — header-only).
-- Все объекты и `vkbot` — в `./build/`; `build/` в .gitignore.
+  любые /usr-инсталляции находятся через find_package), Python dev, **pybind11 из pip**
+  (в apt-версии нет `py::subinterpreter` — CMake подхватывает pip через `python3 -m pybind11 --includes`).
+- Все объекты и `vkbot` — в `./build/`; `build/` в .gitignore. `make NO_PYTHON=1` — по
+  умолчанию в отдельном каталоге `build-nopy` (основной `build/` не переконфигурирует).
 - `GIT_URL`/`GIT_VER` определяются cmake на configure (`git` в PATH; при его отсутствии —
   «unknown»).
 - **`-DNO_PYTHON` меняет состав классов** (`Vk::send(dict)` есть только с Python) — CMake
@@ -74,6 +75,13 @@ make NO_PYTHON=1                      # то же без Python
   `FATAL: Vk: не задан token...` и выходит с кодом 1. Новые тесты добавляйте в
   `tests/units.cpp` / `tests/py_integration.cpp` (CTest-registrация в CMakeLists.txt),
   а не отдельными скриптами.
+- **Живые проверки** (то, что юнитами не покрыто — longpoll, реальные API):
+  `./tools/live_check.py --self "/stat" "/w Москва" ...` — публикует комментарии-команды
+  токеном самого сообщества под закреплённым постом 40581 с маркером «@@ » (бот принимает
+  только свои комментарии с маркером — U36; без маркера свои комментарии игнорируются — U35),
+  ответ бота читается из его stderr-лога (строка `└─> …`; `wall.getComments` group-токеном
+  закрыт). Автоигра «Быки и коровы» через комментарии — `./tools/bc_play.py`. Комментарии
+  чекера group-токеном не удаляются — чистить вручную (ссылки печатает чекер).
 
 ## Архитектура (неочевидно с первого взгляда)
 
@@ -85,6 +93,11 @@ make NO_PYTHON=1                      # то же без Python
   `Event::keyboard` прикрепляет её к `messages.send`. Нажатие callback-кнопки приходит
   событием `message_event` (payload = команда, `event_id`); `Worker::workButton` отвечает
   `messages.sendMessageEventAnswer` и диспетчеризует payload как обычную команду.
+- **Команды в комментариях стены (фаза 11)**: событие `wall_reply_new` диспетчеризуется как
+  обычная команда, ответ — `wall.createComment` с `reply_to_cid` (в ветку комментария). Свои
+  комментарии бот игнорирует, кроме помеченных «@@ » (режим самопроверки `live_check.py --self`,
+  маркер вырезается). Текст ответа печатается в stderr (`└─> …`). `user.id`/`peer_id`/`cid` —
+  знаковый `int64_t` (сообщества отрицательные, id диалогов 2026 ~2·10¹¹).
 - **Функции-команды** объявлены в `include/cmds.h` с явными параметрами
   `Event &eventIn, Event &eventOut, Worker *worker` (макрос `cmdHead` убран в фазе 8);
   реализации разнесены по `src/cmds_{interface,utils,games,media,admin,py}.cpp`,
@@ -140,5 +153,16 @@ make NO_PYTHON=1                      # то же без Python
   (понижается регистр ASCII и кириллицы/Ё, остальное pass-through).
 - `bd` (dat.json) сохраняется пакетом: команды вызывают `bd.touch()`, `Lp::loop`
   сбрасывает изменения `saveIfDirty()` раз в 30 с. Ретраи Net/Vk конечны (см. TASKS, фаза 3).
+- **Загрузка фото, VK 2026**: `photos.getMessagesUploadServer` отдаёт `photo` в новом формате —
+  JSON-строка `[{"photo":"<токен>:x",…}]`; `saveMessagesPhoto` принимает её **как есть**
+  (вложенный токен отдельно — «Invalid hash»). Upload-сервер периодически возвращает пустой
+  `photo` — `uploadPhoto` повторяет попытку и не шлёт пустой токен (U40). Формат
+  `docs.getMessagesUploadServer` не менялся (`file` — токен). Приложить фото к комментарию
+  group-токеном нельзя: `getMessagesUploadServer` с сообщественным peer → 901,
+  `getWallUploadServer` → 27 (user-only) — арт-команды отвечают объяснением.
+- **Group-токены в 2026**: закрыт доступ к чужим стенам (`wall.createComment` → 15,
+  `wall.post` → 214 — только своё сообщество); `wall.getComments`/`wall.deleteComment`/
+  `comments.*` group-авторизацией не работают. Погода `/w` — wttr.in (без токена;
+  `openweathermap_token` более не нужен и из README/кода убран).
 
 Аудит-отчёт с полным списком: `/home/edombek/.opencode/plan/BUILD-RESULTS.md` (вне репозитория).
