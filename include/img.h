@@ -1,5 +1,6 @@
 #pragma once
 #include "doc.h"
+#include "events.h"
 #include "vk.h"
 #ifdef WIN32
 #include <opencv2/highgui/highgui.hpp>
@@ -31,6 +32,15 @@ public:
     // пиксели не трогаются. Векторный эквивалент старого попиксельного цикла
     // (точность — ±1 LSB из-за другого порядка округления).
     static cv::Mat neonColors(const cv::Mat& src);
+    // источник картинки для арт-команд: вложения события, а без них — фото профиля автора
+    static std::vector<Doc> sources(Event &eventIn);
+    // фильтры (фаза 12 — вынесены из cmds_media, вызовы идентичны прежним циклам;
+    // возвращают результат, аргумент не меняют; pix/crt/neon — как в /pix /crt /neon)
+    static cv::Mat toPix(const cv::Mat& src);   // 8bit art: даунсэмпл x8 + nearest up
+    static cv::Mat toCrt(const cv::Mat& src);   // cartoon: bilateral + контуры
+    static cv::Mat toNeon(const cv::Mat& src);  // неон с контурами
+    static cv::Mat toInvert(const cv::Mat& src);
+    static cv::Mat scale(const cv::Mat& src, int w, int h);
     Doc doc;
     Net &net;
 };

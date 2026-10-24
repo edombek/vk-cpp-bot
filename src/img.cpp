@@ -1,10 +1,19 @@
 #include "img.h"
 #include "vk.h"
+#include <algorithm>
 
 #ifdef WIN32
 #pragma comment(lib, "opencv_core2413.lib")
 #pragma comment(lib, "opencv_imgproc2413.lib")
 #pragma comment(lib, "opencv_highgui2413.lib")
+#endif
+
+// OpenCV 5 убрал константы с префиксом CV_ (значения те же — 0)
+#ifndef CV_ADAPTIVE_THRESH_MEAN_C
+#define CV_ADAPTIVE_THRESH_MEAN_C 0
+#endif
+#ifndef CV_THRESH_BINARY
+#define CV_THRESH_BINARY 0
 #endif
 
 #include "str.h"
@@ -74,5 +83,123 @@ cv::Mat img::neonColors(const cv::Mat& src)
     cv::Mat out;
     back.convertTo(out, CV_8UC3, 255.0);
     src.copyTo(out, black); // чёрные остаются как были
+    return out;
+}
+
+// источник картинки для арт-команд: вложения сообщения/комментария (фото или документ),
+// а если вложений нет — фотография профиля автора (сообщества — его обложка)
+std::vector<Doc> img::sources(Event &eventIn)
+{
+    if (!eventIn.docs.empty())
+        return eventIn.docs;
+    json resp;
+    if (eventIn.from_id > 0)
+        resp = eventIn.vk.send("users.get", { { "user_ids", std::to_string(eventIn.from_id) },
+                                              { "fields", "photo_200,photo_100,photo_50" } })["response"];
+    else
+        resp = eventIn.vk.send("groups.getById", { { "group_id", std::to_string(-eventIn.from_id) },
+                                                  { "fields", "photo_200,photo_100,photo_50" } })["response"];
+    if (!resp.is_array() || resp.empty())
+        return {};
+    for (const char* f : { "photo_200", "photo_100", "photo_50" })
+        if (resp[0][f].is_string() && !std::string(resp[0][f]).empty())
+        {
+            Doc d;
+            d.type = "photo";
+            d.url = resp[0][f];
+            return { d };
+        }
+    return {};
+}
+
+#define imgdelta 8.0
+
+cv::Mat img::toPix(const cv::Mat& src)
+{
+    if (src.empty())
+        return src;
+    cv::Mat out = src.clone();
+    cv::resize(out, out, cv::Size(), 1/imgdelta, 1/imgdelta);
+    cv::resize(out, out, cv::Size(), imgdelta, imgdelta, cv::INTER_NEAREST);
+    return out;
+}
+
+#define nDownSampling 2
+#define nBts 7
+
+cv::Mat img::toCrt(const cv::Mat& src)
+{
+    if (src.empty())
+        return src;
+    cv::Mat cvim = src.clone();
+    cv::Mat imgColored = cvim.clone();
+    for (int i = 0; i < nDownSampling; i++)
+        cv::pyrDown(imgColored, imgColored);
+    for (int i = 0; i < nBts; i++)
+    {
+        cv::Mat buff;
+        cv::bilateralFilter(imgColored, buff, 9, 9, 7);
+        imgColored = std::move(buff); // без лишнего clone
+    }
+    for (int i = 0; i < nDownSampling; i++)
+        cv::pyrUp(imgColored, imgColored);
+    cv::Mat imgGray;
+    cv::cvtColor(imgColored, imgGray, cv::COLOR_RGB2GRAY);
+    cv::Mat imgBlur;
+    cv::medianBlur(imgGray, imgBlur, 7);
+    cv::Mat imgEdge;
+    cv::adaptiveThreshold(imgBlur, imgEdge, 255, CV_ADAPTIVE_THRESH_MEAN_C, CV_THRESH_BINARY, 9, 2);
+    cv::cvtColor(imgEdge, imgEdge, cv::COLOR_GRAY2RGB);
+    cv::resize(imgEdge, imgEdge, cv::Size(imgColored.size().width, imgColored.size().height));
+    cv::Rect myROI(0, 0, std::min(cvim.size().width, imgEdge.size().width), std::min(cvim.size().height, imgEdge.size().height));
+    cvim = cvim(myROI);
+    imgEdge = imgEdge(myROI);
+    cv::bitwise_and(imgColored, imgEdge, cvim);
+    return cvim; // прежнее поведение cmds_media: результат — кроп ROI
+}
+
+cv::Mat img::toNeon(const cv::Mat& src)
+{
+    if (src.empty())
+        return src;
+    cv::Mat cvim = src.clone();
+    for (int i = 0; i < nBts; i++)
+    {
+        cv::Mat buff;
+        cv::bilateralFilter(cvim, buff, 16, 16, 64);
+        cvim = std::move(buff);
+    }
+    cv::Mat imgGray;
+    cv::cvtColor(cvim, imgGray, cv::COLOR_RGB2GRAY);
+    cv::Mat imgEdge;
+    cv::adaptiveThreshold(imgGray, imgEdge, 255, CV_ADAPTIVE_THRESH_MEAN_C, CV_THRESH_BINARY, 5, 2);
+    imgGray.release();
+
+    cv::resize(imgEdge, imgEdge, cv::Size(cvim.size().width, cvim.size().height));
+    cv::Rect myROI(0, 0, std::min(cvim.size().width, imgEdge.size().width), std::min(cvim.size().height, imgEdge.size().height));
+    cvim = cvim(myROI);
+    imgEdge = imgEdge(myROI);
+
+    cv::Mat low(myROI.height, myROI.width, CV_8UC3, cv::Scalar(0, 0, 0));
+    cv::bitwise_and(cvim, low, cvim, imgEdge);
+    imgEdge.release();
+    cvim = img::neonColors(cvim); // векторный HSV вместо попиксельного цикла
+    cv::GaussianBlur(cvim, cvim, cv::Size(5,5), 2);
+    return cvim;
+}
+
+cv::Mat img::toInvert(const cv::Mat& src)
+{
+    cv::Mat out;
+    if (!src.empty())
+        cv::bitwise_not(src, out);
+    return out;
+}
+
+cv::Mat img::scale(const cv::Mat& src, int w, int h)
+{
+    cv::Mat out;
+    if (!src.empty())
+        cv::resize(src, out, cv::Size(w, h));
     return out;
 }

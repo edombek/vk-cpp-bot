@@ -7,10 +7,6 @@
 
 using namespace std;
 
-#ifndef MIN
-#define MIN(a,b) ((a) < (b) ? (a) : (b))
-#endif // MIN
-
 void videos(Event &eventIn, Event &eventOut, Worker *worker)
 {
     if (eventIn.words.size() < 2)
@@ -52,44 +48,18 @@ void videos(Event &eventIn, Event &eventOut, Worker *worker)
     }
 }
 
-#define imgdelta 8.0
+// Источник картинки для арт-команд — img::sources (вложения события, иначе фото профиля)
 
-// Источник картинки для арт-команд: вложения сообщения/комментария (фото или документ),
-// а если вложений нет — фотография профиля автора (сообщества — его обложка)
-static std::vector<Doc> imageSources(Event &eventIn)
-{
-    if (!eventIn.docs.empty())
-        return eventIn.docs;
-    json resp;
-    if (eventIn.from_id > 0)
-        resp = eventIn.vk.send("users.get", { { "user_ids", std::to_string(eventIn.from_id) },
-                                              { "fields", "photo_200,photo_100,photo_50" } })["response"];
-    else
-        resp = eventIn.vk.send("groups.getById", { { "group_id", std::to_string(-eventIn.from_id) },
-                                                  { "fields", "photo_200,photo_100,photo_50" } })["response"];
-    if (!resp.is_array() || resp.empty())
-        return {};
-    for (const char* f : { "photo_200", "photo_100", "photo_50" })
-        if (resp[0][f].is_string() && !std::string(resp[0][f]).empty())
-        {
-            Doc d;
-            d.type = "photo";
-            d.url = resp[0][f];
-            return { d };
-        }
-    return {};
-}
 void pix(Event &eventIn, Event &eventOut, Worker *worker)
 {
     bool full = eventIn.user.acess >= 2;
-    for(auto doc : imageSources(eventIn))
+    for(auto doc : img::sources(eventIn))
     {
         img im(doc, eventIn.net);
         cv::Mat cvim = im.getMat(full);
         if(cvim.empty())
             continue;
-        cv::resize(cvim, cvim, cv::Size(), 1/imgdelta, 1/imgdelta);
-        cv::resize(cvim, cvim, cv::Size(), imgdelta, imgdelta, cv::INTER_NEAREST);
+        cvim = img::toPix(cvim);
 
         Doc art = (full && im.isBig(cvim))
                       ? img::getDoc(cvim, eventIn.peer_id, eventIn.net, eventIn.vk)
@@ -204,46 +174,16 @@ void vox(Event &eventIn, Event &eventOut, Worker *worker)
     eventOut.docs.push_back(wavDoc);
 }
 
-#define nDownSampling 2
-#define nBts 7
-#ifndef CV_ADAPTIVE_THRESH_MEAN_C
-#define CV_ADAPTIVE_THRESH_MEAN_C 0
-#endif
-#ifndef CV_THRESH_BINARY
-#define CV_THRESH_BINARY 0
-#endif
 void crt(Event &eventIn, Event &eventOut, Worker *worker)
 {
     bool full = eventIn.user.acess >= 2;
-    for(auto doc : imageSources(eventIn))
+    for(auto doc : img::sources(eventIn))
     {
         img im(doc, eventIn.net);
         cv::Mat cvim = im.getMat(full);
         if(cvim.empty())
             continue;
-        cv::Mat imgColored = cvim.clone();
-        for (int i = 0; i < nDownSampling; i++)
-            cv::pyrDown(imgColored, imgColored);
-        for (int i = 0; i < nBts; i++)
-        {
-            cv::Mat buff;
-            cv::bilateralFilter(imgColored, buff, 9, 9, 7);
-            imgColored = std::move(buff); // без лишнего clone
-        }
-        for (int i = 0; i < nDownSampling; i++)
-            cv::pyrUp(imgColored, imgColored);
-        cv::Mat imgGray;
-        cv::cvtColor(imgColored, imgGray, cv::COLOR_RGB2GRAY);
-        cv::Mat imgBlur;
-        cv::medianBlur(imgGray, imgBlur, 7);
-        cv::Mat imgEdge;
-        cv::adaptiveThreshold(imgBlur, imgEdge, 255, CV_ADAPTIVE_THRESH_MEAN_C, CV_THRESH_BINARY, 9, 2);
-        cv::cvtColor(imgEdge, imgEdge, cv::COLOR_GRAY2RGB);
-        cv::resize(imgEdge, imgEdge, cv::Size(imgColored.size().width, imgColored.size().height));
-        cv::Rect myROI(0, 0, MIN(cvim.size().width, imgEdge.size().width), MIN(cvim.size().height, imgEdge.size().height));
-        cvim = cvim(myROI);
-        imgEdge = imgEdge(myROI);
-        cv::bitwise_and(imgColored, imgEdge, cvim);
+        cvim = img::toCrt(cvim);
 
         Doc art = (full && im.isBig(cvim))
                       ? img::getDoc(cvim, eventIn.peer_id, eventIn.net, eventIn.vk)
@@ -263,35 +203,13 @@ void crt(Event &eventIn, Event &eventOut, Worker *worker)
 void neon(Event &eventIn, Event &eventOut, Worker *worker)
 {
     bool full = eventIn.user.acess >= 2;
-    for(auto doc : imageSources(eventIn))
+    for(auto doc : img::sources(eventIn))
     {
         img im(doc, eventIn.net);
         cv::Mat cvim = im.getMat(full);
         if(cvim.empty())
             continue;
-
-        for (int i = 0; i < nBts; i++)
-        {
-            cv::Mat buff;
-            cv::bilateralFilter(cvim, buff, 16, 16, 64);
-            cvim = std::move(buff);
-        }
-        cv::Mat imgGray;
-        cv::cvtColor(cvim, imgGray, cv::COLOR_RGB2GRAY);
-        cv::Mat imgEdge;
-        cv::adaptiveThreshold(imgGray, imgEdge, 255, CV_ADAPTIVE_THRESH_MEAN_C, CV_THRESH_BINARY, 5, 2);
-        imgGray.release();
-
-        cv::resize(imgEdge, imgEdge, cv::Size(cvim.size().width, cvim.size().height));
-        cv::Rect myROI(0, 0, MIN(cvim.size().width, imgEdge.size().width), MIN(cvim.size().height, imgEdge.size().height));
-        cvim = cvim(myROI);
-        imgEdge = imgEdge(myROI);
-
-        cv::Mat low(myROI.height, myROI.width, CV_8UC3, cv::Scalar(0, 0, 0));
-        cv::bitwise_and(cvim,low, cvim, imgEdge);
-        imgEdge.release();
-        cvim = img::neonColors(cvim); // векторный HSV вместо попиксельного цикла
-        cv::GaussianBlur(cvim, cvim, cv::Size(5,5), 2);
+        cvim = img::toNeon(cvim);
         Doc art = (full && im.isBig(cvim))
                       ? img::getDoc(cvim, eventIn.peer_id, eventIn.net, eventIn.vk)
                       : img::getPhoto(cvim, eventIn.peer_id, eventIn.net, eventIn.vk);
