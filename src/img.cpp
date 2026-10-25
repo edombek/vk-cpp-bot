@@ -2,11 +2,6 @@
 #include "vk.h"
 #include <algorithm>
 
-#if CV_VERSION_MAJOR >= 5
-// OpenCV 5: getPerspectiveTransform переехал в модуль geometry (libopencv_geometry)
-#include <opencv2/geometry/2d.hpp>
-#endif
-
 #ifdef WIN32
 #pragma comment(lib, "opencv_core2413.lib")
 #pragma comment(lib, "opencv_imgproc2413.lib")
@@ -217,27 +212,42 @@ cv::Mat img::warp(const cv::Mat& src, int seed, int strength)
         strength = 1;
     cv::RNG rng(seed >= 0 ? (uint64)(uint32_t)seed : cv::theRNG().state); // state — текущее «случайное» состояние глобального RNG
     cv::Mat img = src.clone();
+    const int minDim = std::min(img.rows, img.cols);
 
-    // 1) случайная перспектива: каждый угол сдвигается не более чем на strength/2 % стороны
-    float f = (float)strength / 100.0f * 0.5f;
-    cv::Point2f s[4] = { { 0, 0 }, { (float)img.cols, 0 },
-                         { (float)img.cols, (float)img.rows }, { 0, (float)img.rows } };
-    cv::Point2f d[4];
-    for (int i = 0; i < 4; i++)
-        d[i] = cv::Point2f(s[i].x + (float)rng.uniform(-img.cols * f, img.cols * f),
-                           s[i].y + (float)rng.uniform(-img.rows * f, img.rows * f));
-    cv::Mat M = cv::getPerspectiveTransform(s, d);
-    cv::warpPerspective(img, img, M, img.size(), cv::INTER_LINEAR, cv::BORDER_REFLECT_101);
-
-    // 2) «желе»: гауссово поле смещений, сглаженное размытием -> плавные волны;
-    // амплитуда ~strength пикселей (поле нормировано на ~3 сигм)
+    // набор локальных «бугров»: каждый тянет свою область в свою сторону,
+    // области между ними остаются нетронутыми -> разные участки искажаются по-разному
+    int places = std::min(24, std::max(4, minDim / 40)); // ~12 зон для картинки ~500 px
     cv::Mat fx(img.rows, img.cols, CV_32FC1), fy(img.rows, img.cols, CV_32FC1);
-    rng.fill(fx, cv::RNG::NORMAL, 0.0, 1.0); // OpenCV 5: константы распределения — в классе RNG
-    rng.fill(fy, cv::RNG::NORMAL, 0.0, 1.0);
-    double sigma = std::max(3.0, (double)std::max(img.rows, img.cols) / 60.0);
-    cv::GaussianBlur(fx, fx, cv::Size(0, 0), sigma);
-    cv::GaussianBlur(fy, fy, cv::Size(0, 0), sigma);
-    double k = (double)strength / 3.0;
+    fx = cv::Scalar(0);
+    fy = cv::Scalar(0);
+    for (int i = 0; i < places; i++)
+    {
+        float cx = (float)rng.uniform(0.05, 0.95) * img.cols;
+        float cy = (float)rng.uniform(0.05, 0.95) * img.rows;
+        float r = (float)rng.uniform(0.10, 0.30) * minDim;  // радиус зоны
+        float a = (float)rng.uniform(0.2, 1.0) * strength;  // амплитуда своя у каждой зоны
+        double ang = rng.uniform(0.0, 2.0 * CV_PI);         // и своё направление
+        float dx = (float)cos(ang) * a, dy = (float)sin(ang) * a;
+        int x0 = std::max(0, (int)(cx - r)), x1 = std::min(img.cols - 1, (int)(cx + r));
+        int y0 = std::max(0, (int)(cy - r)), y1 = std::min(img.rows - 1, (int)(cy + r));
+        for (int y = y0; y <= y1; y++)
+        {
+            float* mx = fx.ptr<float>(y);
+            float* my = fy.ptr<float>(y);
+            float ddy = (float)(y - cy) * (y - cy);
+            for (int x = x0; x <= x1; x++)
+            {
+                float ddx = (float)(x - cx) * (x - cx);
+                float d2 = ddx + ddy;
+                if (d2 >= r * r)
+                    continue;
+                float w = 1.0f - d2 / (r * r); // плавный спад к краю зоны
+                w = w * w;
+                mx[x] += dx * w;
+                my[x] += dy * w;
+            }
+        }
+    }
     cv::Mat mapx(img.rows, img.cols, CV_32FC1), mapy(img.rows, img.cols, CV_32FC1);
     for (int y = 0; y < img.rows; y++)
     {
@@ -247,8 +257,8 @@ cv::Mat img::warp(const cv::Mat& src, int seed, int strength)
         const float* py = fy.ptr<float>(y);
         for (int x = 0; x < img.cols; x++)
         {
-            mx[x] = (float)x + (float)(px[x] * k);
-            my[x] = (float)y + (float)(py[x] * k);
+            mx[x] = (float)x + px[x];
+            my[x] = (float)y + py[x];
         }
     }
     cv::remap(img, img, mapx, mapy, cv::INTER_LINEAR, cv::BORDER_REFLECT_101);
