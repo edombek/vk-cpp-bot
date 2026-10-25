@@ -65,7 +65,7 @@ flowchart LR
 | События/вложения | `events.*`, `doc.*` | модели Event/Doc, `send()` (messages.send / wall.createComment+reply_to_cid), приложение keyboard; `wall_reply_new` (cid), одиночное поле `attachment` комментария (тип по ключу) |
 | Пользователи | `users.*` | кеш `dat.json:users`, права 1–5 |
 | Хранилище | `bd.*`, `fs.*` | два JSON-файла; `bd` — dirty-флаг (`touch`/`saveIfDirty`); `fs::safeWriteData` — запись через `.safe` + rename |
-| Изображения | `img.*` | загрузка/декод, фильтры `toPix/toCrt/toNeon/toInvert/scale` (используют и C++-команды, и `vkcppbot.img`), статический `sources()` — картинка для арт-команд (вложение или фото профиля) |
+| Изображения | `img.*` | загрузка/декод, фильтры `toPix/toCrt/toNeon/toInvert/scale/warp` (`warp` — локальные зоны деформации геометрии, разные области по-разному), статический `sources()` — картинка для арт-команд (вложение или фото профиля) |
 | Игры | `game.*`, bc в cmds | «линксы» 4×4 и «быки и коровы» (с клавиатурой цифр) в памяти |
 | Python | `py.*`, `py_casters.h` | pybind11, embedded `vkcppbot` (fs/str/timer/**img**), под-интерпретатор на `/py` и на каждый вызов аддона; `pyAddonMeta`/`execAddon`; `bytes` для не-UTF-8 ответов `net.send`/`fs.readData` |
 | Python-аддоны | `py_addons/*.py` | постоянные python-команды: `cmd/info/acess/cat` + `def run(eventIn, eventOut, net, vk)`; загрузка `cmd::loadAddons()`, `/addons`, `/addonreload` |

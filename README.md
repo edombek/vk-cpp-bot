@@ -66,7 +66,7 @@ make test    # шим для ctest
 | игры | `/g` — «линксы» 4×4, `/bc` — «Быки и коровы» (клавиатура цифр) |
 | медиа | `/pix` (8bit art), `/crt` (cartoon), `/neon` (неон), `/vox` (Half-Life), `/vid` (ур. 3, нужен `user_token`) |
 | космос | `/apod`, `/apoddate` (дата/ДР из профиля), `/apodrand` |
-| python | `/addons` — список python-команд; плюс команды из `py_addons/` (см. ниже): `/echo`, `/space`, `/invert` |
+| python | `/addons` — список python-команд; плюс команды из `py_addons/` (см. ниже): `/echo`, `/space`, `/invert`, `/warp` |
 | админ (ур. 5) | `/py` — python-скрипт, `/addonreload` — перечитать `py_addons/`, `/set` — права, `/setc` — конфиг, `/con` — консоль, `/u` — загрузка файла |
 
 Арт-команды берут картинку из вложения (фото/стикер сообщения или комментария),
@@ -138,7 +138,9 @@ config.json:
 - `vkcppbot.img`: `sources(eventIn)` — вложения-картинки события, а без них фото профиля автора;
   `download(doc, net)` — данные вложения (`bytes`; внимание: `Doc.get()` — это строка attachment,
   не данные), `fromBytes(bytes)` / `fromDoc(doc, net)` / `fromUrl(url, net)` → `Image` с фильтрами
-  `pix() crt() neon() gray() invert() scale(w,h)` (каждый возвращает новый `Image`),
+  `pix() crt() neon() gray() invert() warp(seed=-1, сила=40) scale(w,h)` (каждый возвращает новый
+  `Image`; `warp` — локальные зоны деформации: каждая тянет свою область в свою сторону,
+  seed ≥ 0 — повторяемый результат),
   `toPng()` / `toJpeg(quality=90)` → `bytes`, свойства `width/height`
 - классы: `Doc()` (поля `type/owner_id/doc_id/acess_key/ext/url/timestamp`,
   `get()`, `uploadDoc(filename, data, net, vk, peer_id, audio_message=False)`,
@@ -195,7 +197,8 @@ def run(eventIn, eventOut, net, vk):   # обработчик (обязател�
   каталог без перезапуска бота.
 - Примеры в репозитории: `/echo` (содержимое запроса: вложения, пересылки), `/space`
   (астрофото NASA с картинкой — внешний HTTP + `uploadPhoto`), `/invert` (инверсия
-  приложенной картинки через `vkcppbot.img`).
+  приложенной картинки через `vkcppbot.img`), `/warp` (разные области картинки
+  искажаются по-разному: `Image.warp` + `uploadPhoto`, `/warp <зерно>` — повторяемо).
 
 ## Windows — не поддерживается
 
