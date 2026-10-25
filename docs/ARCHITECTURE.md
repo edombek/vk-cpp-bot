@@ -62,7 +62,7 @@ flowchart LR
 | Команды | `cmds.h` + `cmds_{interface,utils,games,media,admin,apod,py}.cpp` | реализации с явной сигнатурой `(Event& in, Event& out, Worker*)`; игровые карты — `shared_ptr`, `lock_guard` |
 | Клавиатуры | `keyboard.*` | сборка JSON-клавиатур VK (callback/text/link, цвета, строки, inline/one_time) |
 | VK API | `vk.*`, `net.*` | POST-методы, encode/upload, конечные ретраи; `Net` виртуален для mock-тестов; фото-загрузка 2026: `photo` в ответе upload-сервера — JSON-строка (принимается как есть), пустой `photo` — повтор попытки |
-| События/вложения | `events.*`, `doc.*` | модели Event/Doc, `send()` (messages.send / wall.createComment+reply_to_cid), приложение keyboard; `wall_reply_new` (cid), одиночное поле `attachment` комментария (тип по ключу) |
+| События/вложения | `events.*`, `doc.*` | модели Event/Doc, `send()` (messages.send / wall.createComment+reply_to_cid), приложение keyboard; `wall_reply_new` (cid), одиночное поле `attachment` комментария (тип по ключу); вложения пересланных (`forward`/`fwd_messages`, рекурсивно) подмешиваются в `docs`, `reply_message` — только контекст |
 | Пользователи | `users.*` | кеш `dat.json:users`, права 1–5 |
 | Хранилище | `bd.*`, `fs.*` | два JSON-файла; `bd` — dirty-флаг (`touch`/`saveIfDirty`); `fs::safeWriteData` — запись через `.safe` + rename |
 | Изображения | `img.*` | загрузка/декод, фильтры `toPix/toCrt/toNeon/toInvert/scale/warp` (`warp` — локальные зоны деформации геометрии, разные области по-разному), статический `sources()` — картинка для арт-команд (вложение или фото профиля) |

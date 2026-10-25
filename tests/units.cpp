@@ -1306,6 +1306,44 @@ static const unsigned char tinyPng[] = { 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1
               "U40c новый формат photo (JSON-строка) пропускается как есть", sv ? sv->params.count("photo") ? sv->params.at("photo") : "(нет)" : "(нет вызова)");
     }
 
+    // --- U42: вложения пересланных сообщений попадают в docs (арт-команды /warp-у-видят) ---
+    {
+        FakeNet fn;
+        Vk vk(fn);
+        auto photo = [](int id, const char* key)
+        {
+            return json{ { "type", "photo" }, { "photo", { { "id", id }, { "owner_id", -1 }, { "access_key", key }, { "sizes", json::array() } } } };
+        };
+        json ev =
+        {
+            { "type", "message_new" },
+            { "object",
+              {
+                  { "date", 1 }, { "peer_id", 2 }, { "from_id", 42 }, { "text", "/warp" },
+                  { "forward", // одиночная пересылка со своей картинкой и вложенной пересылкой
+                    { { "date", 1 }, { "from_id", 42 }, { "peer_id", 2 },
+                      { "attachments", json::array({ photo(6, "a2") }) },
+                      { "fwd_messages", json::array({ { { "date", 1 }, { "from_id", 43 }, { "peer_id", 2 },
+                                                        { "attachments", json::array({ photo(7, "a3") }) } } }) } } },
+                  { "reply_message", // контекст ответа — его вложения подмешивать НЕ надо
+                    { { "date", 1 }, { "from_id", 42 }, { "peer_id", 2 }, { "attachments", json::array({ photo(5, "a1") }) } } }
+              } }
+        };
+        Event e(fn, vk, ev);
+        auto has = [&](const std::string& g)
+        {
+            for (const Doc& d : e.docs)
+                if (d.get() == g)
+                    return true;
+            return false;
+        };
+        check(e.docs.size() == 2 && has("photo-1_6_a2") && has("photo-1_7_a3"),
+              "U42a вложения пересылок (и вложенных) в docs, reply_message — нет", std::to_string(e.docs.size()));
+        std::vector<Doc> src = img::sources(e);
+        check(src.size() == 2 && fn.first("users.get") == nullptr,
+              "U42b img::sources берёт пересланные фото, фото профиля не зовётся", std::to_string(src.size()));
+    }
+
     Net::deinit();
 
     std::cout << "\n=== " << passed << " passed, " << failed << " failed ===" << std::endl;

@@ -53,10 +53,21 @@ Event::Event(Net &n, Vk &v, json lpEv)
         if(lpEv["peer_id"].is_number())
             this->peer_id = lpEv["peer_id"];
         if (!lpEv["reply_message"].is_null())
-            this->fwds.emplace_back(Event(this->net, this->vk, { { "type", this->type }, { "object", lpEv["reply_message"] } }));
+            this->fwds.emplace_back(Event(this->net, this->vk, { { "type", this->type }, { "object", lpEv["reply_message"] } })); // только контекст ответа
+        // пересланные сообщения: их вложения — тоже вложения этого события
+        // (арт-команды и vkcppbot.img.sources видят картинки из пересылок);
+        // вложенные цепочки пересылок подмешиваются рекурсивно через конструктор
+        auto addFwd = [&](const json& fwdObj)
+        {
+            size_t n = this->fwds.size();
+            this->fwds.emplace_back(Event(this->net, this->vk, { { "type", this->type }, { "object", fwdObj } }));
+            this->docs.insert(this->docs.end(), this->fwds[n].docs.begin(), this->fwds[n].docs.end());
+        };
+        if (lpEv["forward"].is_object()) // одиночная пересылка (messages.send: forward)
+            addFwd(lpEv["forward"]);
         if (!lpEv["fwd_messages"].is_null())
             for (auto fwd : lpEv["fwd_messages"])
-                this->fwds.emplace_back(Event(this->net, this->vk, { { "type", this->type }, { "object", fwd } }));
+                addFwd(fwd);
     }
     if (this->type.find("wall_post_") != this->type.npos)
     {
