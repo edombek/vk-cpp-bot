@@ -2,6 +2,11 @@
 #include "vk.h"
 #include <algorithm>
 
+#if CV_VERSION_MAJOR >= 5
+// OpenCV 5: getPerspectiveTransform переехал в модуль geometry (libopencv_geometry)
+#include <opencv2/geometry/2d.hpp>
+#endif
+
 #ifdef WIN32
 #pragma comment(lib, "opencv_core2413.lib")
 #pragma comment(lib, "opencv_imgproc2413.lib")
@@ -202,4 +207,50 @@ cv::Mat img::scale(const cv::Mat& src, int w, int h)
     if (!src.empty())
         cv::resize(src, out, cv::Size(w, h));
     return out;
+}
+
+cv::Mat img::warp(const cv::Mat& src, int seed, int strength)
+{
+    if (src.empty())
+        return src;
+    if (strength < 1)
+        strength = 1;
+    cv::RNG rng(seed >= 0 ? (uint64)(uint32_t)seed : cv::theRNG().state); // state — текущее «случайное» состояние глобального RNG
+    cv::Mat img = src.clone();
+
+    // 1) случайная перспектива: каждый угол сдвигается не более чем на strength/2 % стороны
+    float f = (float)strength / 100.0f * 0.5f;
+    cv::Point2f s[4] = { { 0, 0 }, { (float)img.cols, 0 },
+                         { (float)img.cols, (float)img.rows }, { 0, (float)img.rows } };
+    cv::Point2f d[4];
+    for (int i = 0; i < 4; i++)
+        d[i] = cv::Point2f(s[i].x + (float)rng.uniform(-img.cols * f, img.cols * f),
+                           s[i].y + (float)rng.uniform(-img.rows * f, img.rows * f));
+    cv::Mat M = cv::getPerspectiveTransform(s, d);
+    cv::warpPerspective(img, img, M, img.size(), cv::INTER_LINEAR, cv::BORDER_REFLECT_101);
+
+    // 2) «желе»: гауссово поле смещений, сглаженное размытием -> плавные волны;
+    // амплитуда ~strength пикселей (поле нормировано на ~3 сигм)
+    cv::Mat fx(img.rows, img.cols, CV_32FC1), fy(img.rows, img.cols, CV_32FC1);
+    rng.fill(fx, cv::RNG::NORMAL, 0.0, 1.0); // OpenCV 5: константы распределения — в классе RNG
+    rng.fill(fy, cv::RNG::NORMAL, 0.0, 1.0);
+    double sigma = std::max(3.0, (double)std::max(img.rows, img.cols) / 60.0);
+    cv::GaussianBlur(fx, fx, cv::Size(0, 0), sigma);
+    cv::GaussianBlur(fy, fy, cv::Size(0, 0), sigma);
+    double k = (double)strength / 3.0;
+    cv::Mat mapx(img.rows, img.cols, CV_32FC1), mapy(img.rows, img.cols, CV_32FC1);
+    for (int y = 0; y < img.rows; y++)
+    {
+        float* mx = mapx.ptr<float>(y);
+        float* my = mapy.ptr<float>(y);
+        const float* px = fx.ptr<float>(y);
+        const float* py = fy.ptr<float>(y);
+        for (int x = 0; x < img.cols; x++)
+        {
+            mx[x] = (float)x + (float)(px[x] * k);
+            my[x] = (float)y + (float)(py[x] * k);
+        }
+    }
+    cv::remap(img, img, mapx, mapy, cv::INTER_LINEAR, cv::BORDER_REFLECT_101);
+    return img;
 }

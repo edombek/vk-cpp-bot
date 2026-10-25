@@ -41,6 +41,10 @@ public:
     static cv::Mat toNeon(const cv::Mat& src);  // неон с контурами
     static cv::Mat toInvert(const cv::Mat& src);
     static cv::Mat scale(const cv::Mat& src, int w, int h);
+    // случайная деформация геометрии: перспективный перекос (углы «гуляют») +
+    // плавное гауссово поле смещений («желе»). seed >= 0 — повторяемый результат,
+    // seed < 0 — случайный; strength — «сила» в процентах/пикселях (default 40)
+    static cv::Mat warp(const cv::Mat& src, int seed = -1, int strength = 40);
     Doc doc;
     Net &net;
 };
