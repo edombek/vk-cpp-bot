@@ -2,7 +2,7 @@
 #include "common.h"
 #include "str.h"
 #include <cstdio> // fprintf (лог пустого ответа)
-Event::Event(Net &n, Vk &v, json lpEv)
+Event::Event(Net &n, Vk &v, json lpEv, bool nested)
     : net(n)
     , vk(v)
 {
@@ -43,9 +43,10 @@ Event::Event(Net &n, Vk &v, json lpEv)
     this->words = str::words(this->msg);
     if (lpEv["from_id"].is_number())
         this->from_id = lpEv["from_id"];
-    if (this->from_id < 0 && this->type.find("wall_reply_") == this->type.npos)
+    if (this->from_id < 0 && this->type.find("wall_reply_") == this->type.npos && !nested)
         return; // отрицательный from_id = отправка самим сообществом (сообщения);
-                // у комментариев стены это автор-сообщество — обрабатываем (живые проверки)
+                // у комментариев стены это автор-сообщество — обрабатываем (живые проверки);
+                // вложенные (пересылки/контекст) разбираем всегда — там бывают ботские фото
     if (lpEv["date"].is_number())
         this->timestamp = lpEv["date"];
     if (this->type.find("message_") != this->type.npos)
@@ -53,21 +54,33 @@ Event::Event(Net &n, Vk &v, json lpEv)
         if(lpEv["peer_id"].is_number())
             this->peer_id = lpEv["peer_id"];
         if (!lpEv["reply_message"].is_null())
-            this->fwds.emplace_back(Event(this->net, this->vk, { { "type", this->type }, { "object", lpEv["reply_message"] } })); // только контекст ответа
-        // пересланные сообщения: их вложения — тоже вложения этого события
-        // (арт-команды и vkcppbot.img.sources видят картинки из пересылок);
-        // вложенные цепочки пересылок подмешиваются рекурсивно через конструктор
+            this->fwds.emplace_back(Event(this->net, this->vk, { { "type", this->type }, { "object", lpEv["reply_message"] } }, true));
+        // пересланные/ответные сообщения — контекст в fwds (nested=1: разбираем и от
+        // отрицательного from_id, картинки ботских сообщений тоже достаются);
+        // в docs не подмешиваем — docs остаются «своими» вложениями сообщения,
+        // контекст забирает img::sources (арт-команды и python-аддоны картинок)
         auto addFwd = [&](const json& fwdObj)
         {
-            size_t n = this->fwds.size();
-            this->fwds.emplace_back(Event(this->net, this->vk, { { "type", this->type }, { "object", fwdObj } }));
-            this->docs.insert(this->docs.end(), this->fwds[n].docs.begin(), this->fwds[n].docs.end());
+            this->fwds.emplace_back(Event(this->net, this->vk, { { "type", this->type }, { "object", fwdObj } }, true));
         };
         if (lpEv["forward"].is_object()) // одиночная пересылка (messages.send: forward)
             addFwd(lpEv["forward"]);
         if (!lpEv["fwd_messages"].is_null())
             for (auto fwd : lpEv["fwd_messages"])
                 addFwd(fwd);
+        if (lpEv["action"].is_object() && lpEv["action"]["type"] == "forward_message" && lpEv["action"]["payload"].is_string())
+        {
+            // новый формат пересылки (messages.send action=forward_message):
+            // содержимое в action.payload — JSON-строкой
+            try
+            {
+                std::string payload = lpEv["action"]["payload"]; // json::parse не принимает json-значение
+                json pl = json::parse(payload);
+                if (pl["message"].is_object())
+                    addFwd(pl["message"]);
+            }
+            catch (...) {}
+        }
     }
     if (this->type.find("wall_post_") != this->type.npos)
     {

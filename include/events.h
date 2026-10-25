@@ -11,7 +11,9 @@ private:
 public:
     Net& net;
     Vk& vk;
-    Event(Net& n, Vk& v, json lpEv = NULL);
+    Event(Net& n, Vk& v, json lpEv = NULL, bool nested = false); // nested=1 — вложенное
+    // сообщение (пересылка/контекст ответа): его разбираем и от отрицательного from_id,
+    // чтобы картинки из ботских сообщений тоже доставались (reply на фото бота + /warp)
     Event(const Event& e);
     Event& operator=(const Event& e)
     {

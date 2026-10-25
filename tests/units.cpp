@@ -1314,7 +1314,7 @@ static const unsigned char tinyPng[] = { 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1
               "U40c новый формат photo (JSON-строка) пропускается как есть", sv ? sv->params.count("photo") ? sv->params.at("photo") : "(нет)" : "(нет вызова)");
     }
 
-    // --- U42: вложения пересланных сообщений попадают в docs (арт-команды /warp-у-видят) ---
+    // --- U42: вложения пересланных/ответных сообщений видит img::sources ---
     {
         FakeNet fn;
         Vk vk(fn);
@@ -1333,23 +1333,51 @@ static const unsigned char tinyPng[] = { 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1
                       { "attachments", json::array({ photo(6, "a2") }) },
                       { "fwd_messages", json::array({ { { "date", 1 }, { "from_id", 43 }, { "peer_id", 2 },
                                                         { "attachments", json::array({ photo(7, "a3") }) } } }) } } },
-                  { "reply_message", // контекст ответа — его вложения подмешивать НЕ надо
-                    { { "date", 1 }, { "from_id", 42 }, { "peer_id", 2 }, { "attachments", json::array({ photo(5, "a1") }) } } }
+                  // как в живом случае 2026-10-25: команда ОТВЕТОМ на сообщение с фото
+                  // (from_id=-1 — ответ на ботское сообщение: nested разбирается тоже)
+                  { "reply_message",
+                    { { "date", 1 }, { "from_id", -1 }, { "peer_id", 2 }, { "attachments", json::array({ photo(5, "a1") }) } } }
               } }
         };
         Event e(fn, vk, ev);
-        auto has = [&](const std::string& g)
+        auto has = [&](const std::vector<Doc>& docs, const std::string& g)
         {
-            for (const Doc& d : e.docs)
+            for (const Doc& d : docs)
                 if (d.get() == g)
                     return true;
             return false;
         };
-        check(e.docs.size() == 2 && has("photo-1_6_a2") && has("photo-1_7_a3"),
-              "U42a вложения пересылок (и вложенных) в docs, reply_message — нет", std::to_string(e.docs.size()));
+        check(e.docs.empty() && e.fwds.size() == 2, "U42a fwds как контекст, docs не подмешиваются", std::to_string(e.fwds.size()));
         std::vector<Doc> src = img::sources(e);
-        check(src.size() == 2 && fn.first("users.get") == nullptr,
-              "U42b img::sources берёт пересланные фото, фото профиля не зовётся", std::to_string(src.size()));
+        check(src.size() == 3 && has(src, "photo-1_5_a1") && has(src, "photo-1_6_a2") && has(src, "photo-1_7_a3") && fn.first("users.get") == nullptr,
+              "U42b sources берёт фото пересылок (и вложенных) и reply_message, без users.get", std::to_string(src.size()));
+        // свои вложения приоритетнее пересланных
+        e.docs.push_back(Doc(photo(8, "a4")));
+        src = img::sources(e);
+        check(src.size() == 1 && has(src, "photo-1_8_a4"), "U42c свои вложения важнее пересланных", std::to_string(src.size()));
+    }
+
+    // --- U43: новый формат пересылки — action.type=forward_message, payload JSON-строкой ---
+    {
+        FakeNet fn;
+        Vk vk(fn);
+        json inner = { { "date", 1 }, { "from_id", 43 }, { "peer_id", 2 }, { "text", "фото" },
+                       { "attachments", json::array({ { { "type", "photo" }, { "photo", { { "id", 9 }, { "owner_id", -1 }, { "access_key", "a9" }, { "sizes", json::array() } } } } }) } };
+        json payload = { { "action_type", "forward_message" }, { "message", inner } }; // формат VK: содержимое в pl["message"]
+        json ev =
+        {
+            { "type", "message_new" },
+            { "object",
+              {
+                  { "date", 1 }, { "peer_id", 2 }, { "from_id", 42 }, { "text", "/pix" },
+                  { "action", { { "type", "forward_message" }, { "member_id", 43 },
+                                { "payload", payload.dump() } } }
+              } }
+        };
+        Event e(fn, vk, ev);
+        std::vector<Doc> src = img::sources(e);
+        check(e.fwds.size() == 1 && e.fwds[0].msg == "фото", "U43a payload разобран в fwds", e.fwds.size() ? e.fwds[0].msg : "(нет)");
+        check(src.size() == 1 && src[0].get() == "photo-1_9_a9", "U43b картинка из action.payload доходит до sources", std::to_string(src.size()));
     }
 
     Net::deinit();

@@ -2,6 +2,7 @@
 #include "vk.h"
 #include <algorithm>
 #include <random> // std::random_device — энтропия для warp без зерна
+#include <set>    // дедупликация вложений из пересылок в sources
 
 #ifdef WIN32
 #pragma comment(lib, "opencv_core2413.lib")
@@ -89,10 +90,28 @@ cv::Mat img::neonColors(const cv::Mat& src)
 
 // источник картинки для арт-команд: вложения сообщения/комментария (фото или документ),
 // а если вложений нет — фотография профиля автора (сообщества — его обложка)
+// рекурсивный сбор вложений из fwds (пересланные сообщения и контекст ответа)
+static void collectFwdDocs(const Event& e, std::vector<Doc>& out, std::set<std::string>& seen)
+{
+    for (const Event& f : e.fwds)
+    {
+        for (const Doc& d : f.docs)
+            if (seen.insert(d.get()).second)
+                out.push_back(d);
+        collectFwdDocs(f, out, seen);
+    }
+}
+
 std::vector<Doc> img::sources(Event &eventIn)
 {
     if (!eventIn.docs.empty())
         return eventIn.docs;
+    // своих вложений нет — берём вложения пересланных сообщений и контекста ответа
+    std::vector<Doc> fwds;
+    std::set<std::string> seen;
+    collectFwdDocs(eventIn, fwds, seen);
+    if (!fwds.empty())
+        return fwds;
     json resp;
     if (eventIn.from_id > 0)
         resp = eventIn.vk.send("users.get", { { "user_ids", std::to_string(eventIn.from_id) },
