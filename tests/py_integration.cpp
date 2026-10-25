@@ -444,6 +444,32 @@ int main()
             check(up && up->body.rfind("\x89PNG", 0) == 0, "T21c png ушла в upload", up ? std::to_string(up->body.size()) : "нет upload");
             remove("t_img.png");
         }
+
+        // --- T22: Image.warp — случайная деформация геометрии (повторяемо по зерну) ---
+        {
+            cv::Mat src(30, 40, CV_8UC3); // width 40, height 30
+            cv::randu(src, 0, 255);
+            std::vector<uchar> buf;
+            cv::imencode(".png", src, buf, {});
+            fs::writeData("t_warp.png", std::string(buf.begin(), buf.end()));
+            FakeNet fn;
+            Vk vkp(fn);
+            Event in(fn, vkp), out(fn, vkp);
+            pyF f(in, out);
+            std::string script =
+                "import vkcppbot\n"
+                "im = vkcppbot.img.fromBytes(vkcppbot.fs.readData('t_warp.png'))\n"
+                "a = im.warp(7).toPng()\n"
+                "b = im.warp(7).toPng()\n"
+                "c = im.warp(8).toPng()\n"
+                "w = im.warp(7, 90)\n"
+                "eventOut.msg = str(a == b) + '/' + str(a != c) + '/' + str(a != im.toPng()) + '/' + "
+                "str(w.width == im.width and w.height == im.height)\n";
+            std::string err = f.exec(script);
+            check(err.empty(), "T22a warp exec", err);
+            check(out.msg == "True/True/True/True", "T22b warp детерминирован, отличается, размеры целы", out.msg);
+            remove("t_warp.png");
+        }
     }
 
     remove("test_conf.json");

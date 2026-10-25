@@ -273,6 +273,43 @@ int main()
         check(tVec < tRef, "U7b vector faster than scalar", std::to_string(tRef) + " -> " + std::to_string(tVec) + "ms");
     }
 
+    // --- U41: img::warp — локальные зоны: разные области искажаются по-разному ---
+    {
+        cv::Mat src(240, 240, CV_8UC3, cv::Scalar(0, 0, 0));
+        for (int y = 0; y < src.rows; y += 40)
+            for (int x = 0; x < src.cols; x += 40)
+                if (((y / 40) + (x / 40)) % 2)
+                    src(cv::Rect(x, y, 40, 40)) = cv::Scalar(220, 220, 220); // блочная шахматка: сдвиг <1 px внутри блока не меняет пиксель
+        cv::Mat a = img::warp(src, 7, 40);
+        cv::Mat b = img::warp(src, 7, 40);
+        check(a.size() == src.size(), "U41a warp сохраняет размер",
+              std::to_string(a.cols) + "x" + std::to_string(a.rows));
+        cv::Mat d1;
+        cv::absdiff(a, b, d1);
+        double maxd = 0;
+        cv::minMaxLoc(d1, nullptr, &maxd);
+        check(maxd == 0, "U41b warp детерминирован по зерну", "max diff " + std::to_string((int)maxd));
+
+        cv::Mat d2;
+        cv::absdiff(a, src, d2);
+        int changed = 0, same = 0;
+        for (int y = 0; y < d2.rows; y++)
+        {
+            const uchar* p = d2.ptr<uchar>(y);
+            for (int x = 0; x < d2.cols; x++)
+            {
+                int m = std::max(p[x * 3], std::max(p[x * 3 + 1], p[x * 3 + 2]));
+                if (m >= 30) changed++;
+                else if (m == 0) same++;
+            }
+        }
+        int total = d2.rows * d2.cols;
+        std::cout << "[info] warp 240x240 seed=7: изменено " << changed * 100 / total
+                  << "%, нетронуто " << same * 100 / total << "%" << std::endl;
+        check(changed * 10 >= total, "U41c есть заметно искажённые области", std::to_string(changed * 100 / total) + "%");
+        check(same * 2 >= total, "U41d не вся картинка искажена разом", std::to_string(same * 100 / total) + "% нетронуто");
+    }
+
     // --- U8: Keyboard — формат JSON-клавиатуры VK ---
     {
         Keyboard kbd(false, false);
