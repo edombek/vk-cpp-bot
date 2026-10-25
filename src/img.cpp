@@ -1,6 +1,7 @@
 #include "img.h"
 #include "vk.h"
 #include <algorithm>
+#include <random> // std::random_device — энтропия для warp без зерна
 
 #ifdef WIN32
 #pragma comment(lib, "opencv_core2413.lib")
@@ -210,16 +211,28 @@ cv::Mat img::warp(const cv::Mat& src, int seed, int strength)
         return src;
     if (strength < 1)
         strength = 1;
-    cv::RNG rng(seed >= 0 ? (uint64)(uint32_t)seed : cv::theRNG().state); // state — текущее «случайное» состояние глобального RNG
+    uint64 rs;
+    if (seed >= 0)
+        rs = (uint64)(uint32_t)seed;
+    else
+    {
+        // энтропия ОС: cv::theRNG().state без вызовов opencv-случайных функций
+        // не продвигается — без этого каждый /warp без зерна давал ОДНУ И ТУ ЖЕ деформацию
+        std::random_device rd;
+        rs = ((uint64)rd() << 32) | rd();
+    }
+    cv::RNG rng(rs ? rs : (uint64)0xffffffff);
     cv::Mat img = src.clone();
     const int minDim = std::min(img.rows, img.cols);
 
-    // набор локальных «бугров»: каждый тянет свою область в свою сторону,
-    // области между ними остаются нетронутыми -> разные участки искажаются по-разному
-    int places = std::min(24, std::max(4, minDim / 40)); // ~12 зон для картинки ~500 px
+    // «сила» и число зон тоже гуляют от кадра к кадру (при seed >= 0 — воспроизводимо)
+    strength = std::max(1, (int)(strength * rng.uniform(0.5, 1.5)));
+    int places = rng.uniform(3, std::max(6, minDim / 20)); // ~3..12 зон для картинки ~240 px
     cv::Mat fx(img.rows, img.cols, CV_32FC1), fy(img.rows, img.cols, CV_32FC1);
     fx = cv::Scalar(0);
     fy = cv::Scalar(0);
+    // набор локальных «бугров»: каждый тянет свою область в свою сторону,
+    // области между ними остаются нетронутыми -> разные участки искажаются по-разному
     for (int i = 0; i < places; i++)
     {
         float cx = (float)rng.uniform(0.05, 0.95) * img.cols;

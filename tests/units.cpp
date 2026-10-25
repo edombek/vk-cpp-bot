@@ -308,6 +308,14 @@ int main()
                   << "%, нетронуто " << same * 100 / total << "%" << std::endl;
         check(changed * 10 >= total, "U41c есть заметно искажённые области", std::to_string(changed * 100 / total) + "%");
         check(same * 2 >= total, "U41d не вся картинка искажена разом", std::to_string(same * 100 / total) + "% нетронуто");
+        // без зерна — своя энтропия на каждый вызов (иначе state theRNG() не двигался
+        // и все деформации были одинаковыми)
+        cv::Mat r1 = img::warp(src, -1, 40), r2 = img::warp(src, -1, 40);
+        cv::Mat d3;
+        cv::absdiff(r1, r2, d3);
+        double maxd2 = 0;
+        cv::minMaxLoc(d3, nullptr, &maxd2);
+        check(maxd2 > 0, "U41e без зерна — каждый раз своя деформация", "max diff " + std::to_string((int)maxd2));
     }
 
     // --- U8: Keyboard — формат JSON-клавиатуры VK ---
